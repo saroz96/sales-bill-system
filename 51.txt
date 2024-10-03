@@ -1,0 +1,68 @@
+async function handleItemSearchKeydown(event) {
+            if (event.key === 'Enter') {
+                // Open the modal and focus the close button
+                // openModalAndFocusCloseButton();
+                // Fetch and check if transactions should be displayed
+                const displayTransactions = await shouldDisplayTransactions();
+
+                // Only open the modal if displayTransactions is true
+                if (displayTransactions) {
+                    openModalAndFocusCloseButton();
+                } else {
+                    document.getElementById('quantity').focus();
+                }
+            }
+        }
+
+        function openModalAndFocusCloseButton() {
+            // Open the modal
+            $('#transactionModal').modal('show');
+
+            // Wait until the modal is fully shown before focusing the close button
+            $('#transactionModal').on('shown.bs.modal', function () {
+                document.getElementById('closeModalButton').focus();
+            });
+        }
+
+        // function openModalAndFocusCloseButton() {
+        //         // Open the modal
+        //         $('#transactionModal').modal('show');
+
+        //         // Remove previous event listeners to avoid multiple bindings
+        //         $('#transactionModal').off('shown.bs.modal');
+
+        //         // Add a new event listener to focus the close button when the modal is shown
+        //         $('#transactionModal').on('shown.bs.modal', function () {
+        //             // Ensure the close button exists before trying to focus it
+        //             const closeButton = document.getElementById('closeModalButton');
+        //             if (closeButton) {
+        //                 closeButton.focus();
+        //             } else {
+        //                 console.error('Close button not found');
+        //             }
+        //         });
+        //     }
+
+        function handleCloseButtonKeydown(event) {
+            if (event.key === 'Enter') {
+                // Close the modal (optional, depending on your implementation)
+                $('#transactionModal').modal('hide');
+
+                // Focus on the quantity input field
+                document.getElementById('quantity').focus();
+            }
+        }
+
+        function handleQuantityKeydown(event) {
+            if (event.key === 'Enter') {
+                // Focus on the price input field
+                document.getElementById('price').focus();
+            }
+        }
+
+        function handlePriceKeydown(event) {
+            if (event.key === 'Enter') {
+                // Focus back on the item search input field
+                document.getElementById('itemSearch').focus();
+            }
+        }

@@ -1,0 +1,89 @@
+// Route to switch fiscal year
+router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        try {
+            const companyId = req.session.currentCompany;
+            const { startDateEnglish, endDateEnglish, startDateNepali, endDateNepali, dateFormat } = req.body;
+
+            // Determine the start and end date based on the selected date format (Nepali or English)
+            let startDate, endDate;
+            if (dateFormat === 'nepali') {
+                startDate = startDateNepali;
+                endDate = endDateNepali;
+            } else if (dateFormat === 'english') {
+                startDate = startDateEnglish;
+                endDate = endDateEnglish;
+            } else {
+                return res.status(400).json({ error: 'Invalid date format' });
+            }
+
+            // If the end date is not provided, default to one year from the start date
+            if (!endDate) {
+                endDate = new Date(startDate);
+                endDate.setFullYear(endDate.getFullYear() + 1);
+                endDate.setDate(endDate.getDate() - 1);
+            }
+
+            const startDateObject = new Date(startDate);
+            const endDateObject = new Date(endDate);
+            const startYear = startDateObject.getFullYear();
+            const endYear = endDateObject.getFullYear();
+            const fiscalYearName = `${startYear}/${endYear.toString().slice(-2)}`;
+
+            // Create the new fiscal year
+            const newFiscalYear = await switchFiscalYear(companyId, {
+                name: fiscalYearName,
+                startDate: startDateObject,
+                endDate: endDateObject,
+                dateFormat
+            });
+
+            // Fetch all items for the company
+            const items = await Item.find({ company: companyId });
+
+            for (let item of items) {
+                // Find the most recent fiscal year's stock entry (the one before the new fiscal year)
+                const previousFiscalYearEntry = item.openingStockByFiscalYear
+                    .filter(entry => {
+                        const fiscalYear = FiscalYear.findById(entry.fiscalYear);
+                        return fiscalYear && fiscalYear.endDate < startDateObject;
+                    })
+                    .sort((a, b) => new Date(b.endDate) - new Date(a.endDate))[0]; // Get the most recent fiscal year entry
+
+                const previousStock = previousFiscalYearEntry ? previousFiscalYearEntry.openingStock : item.stock;
+
+                // Add an entry for the new fiscal year with the stock from the previous fiscal year
+                const openingStockEntry = {
+                    fiscalYear: newFiscalYear._id,
+                    openingStock: previousStock
+                };
+
+                // Update the opening stock for the new fiscal year
+                item.openingStockByFiscalYear.push(openingStockEntry);
+                await item.save();
+
+                console.log(`Updated item ${item._id}: Opening stock for fiscal year ${newFiscalYear.name} set to ${previousStock}`);
+            }
+
+            // Update the session with the new fiscal year details
+            req.session.currentFiscalYear = {
+                id: newFiscalYear._id.toString(),
+                startDate: newFiscalYear.startDate,
+                endDate: newFiscalYear.endDate,
+                name: newFiscalYear.name,
+                dateFormat: newFiscalYear.dateFormat,
+                isActive: true
+            };
+
+            // Flash success message and redirect to the dashboard
+            req.flash('success', `Fiscal Year switched to ${newFiscalYear.name} successfully.`);
+            res.redirect('/wholesellerDashboard');
+        } catch (err) {
+            console.error('Error switching fiscal year:', err);
+            req.flash('error', 'Failed to switch fiscal year.');
+            res.redirect('/wholesellerDashboard');
+        }
+    } else {
+        res.redirect('/'); // Handle unauthorized access
+    }
+});

@@ -1,0 +1,306 @@
+const express = require('express');
+const router = express.Router();
+const Company = require('../models/wholeseller/Company');
+const User = require('../models/wholeseller/User');
+const mongoose = require('mongoose');
+const AccountGroup = require('../models/wholeseller/CompanyGroup');
+// const addDefaultAccountGroups = require('../Seed/InsertDefaultAccountGroups');
+const Account = require('../models/wholeseller/Account');
+
+const { ensureAuthenticated } = require('../middleware/auth');
+const Category = require('../models/wholeseller/Category');
+const Unit = require('../models/wholeseller/Unit');
+
+router.get('/company/new', ensureAuthenticated, async (req, res) => {
+    res.render('createCompany', { companyId: req.session.currentCompany });
+});
+
+router.get('/dashboard', ensureAuthenticated, async (req, res) => {
+    try {
+        const userCompanies = await Company.find({ owner: req.user._id });
+        res.render('wholeseller/dashboard', { user: req.user, companies: userCompanies });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get('/dashboard', ensureAuthenticated, async (req, res) => {
+    try {
+        const userCompanies = await Company.find({ owner: req.user._id });
+        res.render('wholeseller/dashboard', { user: req.user, companies: userCompanies });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get('/retailerDashboard', ensureAuthenticated, async (req, res) => {
+    try {
+        const userCompanies = await Company.find({ owner: req.user._id });
+        res.render('retailerDashboard', { user: req.user, companies: userCompanies });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get('/pharmacyDashboard', ensureAuthenticated, async (req, res) => {
+    try {
+        const userCompanies = await Company.find({ owner: req.user._id });
+        res.render('pharmacyDashboard', { user: req.user, companies: userCompanies });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get('/defaultDashboard', ensureAuthenticated, async (req, res) => {
+    try {
+        const userCompanies = await Company.find({ owner: req.user._id });
+        res.render('defaultDashboard', { user: req.user, companies: userCompanies });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+const defaultCashAccount = {
+    name: 'Cash in Hand',
+    groupName: 'Cash in Hand',
+    groupType: 'Current Assets', // Assuming Cash falls under Current Assets
+    openingBalance: { amount: 0, type: 'Dr' },
+
+};
+
+// Default account groups
+const defaultAccountGroups = [
+    { name: 'Sundry Debtors', type: 'Current Assets' },
+    { name: 'Sundry Creditors', type: 'Current Liabilities' },
+    { name: 'Cash in Hand', type: 'Current Assets' },
+    { name: 'Bank Accounts', type: 'Current Assets' },
+    { name: 'Bank O/D Account', type: 'Loans(Liability)' },
+    { name: 'Duties & Taxes', type: 'Current Liabilities' },
+    { name: 'Fixed Assets', type: 'Fixed Assets' },
+    { name: 'Reserves & Surplus', type: 'Capital Account' },
+    { name: 'Secured Loans', type: 'Loans(Liability)' },
+    { name: 'Securities & Deposits', type: 'Current Assets' },
+    { name: 'Stock in hand', type: 'Current Assets' },
+    { name: 'Unsecured Loans', type: 'Loans(Liability)' },
+    { name: 'Expenses (Direct/Mfg.)', type: 'Revenue Accounts' },
+    { name: 'Expenses (Indirect/Admn.)', type: 'Revenue Accounts' },
+    { name: 'Income (Direct/Opr.)', type: 'Revenue Accounts' },
+    { name: 'Income (Indirect)', type: 'Revenue Accounts' },
+    { name: 'Loans & Advances', type: 'Current Assets' },
+    { name: 'Provisions/Expenses Payable', type: 'Current Liabilities' },
+    // Add more default groups as needed
+];
+
+// Function to add the default Cash account
+async function addDefaultCashAccount(companyId) {
+    try {
+        const cashGroup = await AccountGroup.findOne({
+            name: defaultCashAccount.groupName,
+            type: defaultCashAccount.groupType,
+            company: companyId,
+        });
+
+        if (cashGroup) {
+            const cashAccount = new Account({
+                name: defaultCashAccount.name,
+                companyGroups: cashGroup._id, // Correct field for group reference
+                openingBalance: {
+                    amount: defaultCashAccount.openingBalance.amount,
+                    type: defaultCashAccount.openingBalance.type
+                },
+                company: companyId,
+            });
+
+            await cashAccount.save();
+            console.log(`Default cash account "${defaultCashAccount.name}" added successfully.`);
+        } else {
+            console.error('Error: "Cash in Hand" group not found for the company.');
+        }
+    } catch (error) {
+        console.error('Error adding default cash account:', error);
+    }
+}
+
+// Function to add default account groups associated with the company
+async function addDefaultAccountGroups(companyId) {
+    try {
+        const accountGroups = defaultAccountGroups.map(group => ({
+            ...group,
+            company: companyId // Associate with the newly created company
+        }));
+
+        await AccountGroup.insertMany(accountGroups);
+        console.log('Default account groups added successfully.');
+
+        // After adding groups, add the default Cash account under the "Cash in Hand" group
+        await addDefaultCashAccount(companyId);
+    } catch (error) {
+        console.error('Error adding default account groups:', error);
+    }
+}
+
+const defaultItemCategory = {
+    name: 'General'
+}
+async function addDefaultItemCategory(companyId) {
+    const categories = new Category({
+        name: defaultItemCategory.name,
+        company: companyId,
+    });
+    await categories.save();
+}
+
+const defaultItemUnit = [
+    { name: 'Bott' },
+    { name: 'Box' },
+    { name: 'Dozen' },
+    { name: 'Gms.' },
+    { name: 'Jar' },
+    { name: 'Kgs.' },
+    { name: 'Kit' },
+    { name: 'Test' },
+    { name: 'Mtr' },
+    { name: 'Pair' },
+    { name: 'Pcs' },
+    { name: 'Ph' },
+    { name: 'Pkt' },
+    { name: 'Roll' },
+    { name: 'Set' },
+    { name: 'Than' },
+    { name: 'Tonne' },
+    { name: 'Units' }
+];
+
+async function addDefaultAccountGroups(companyId) {
+    try {
+        const accountGroups = defaultAccountGroups.map(group => ({
+            ...group,
+            company: companyId // Associate with the newly created company
+        }));
+
+        await AccountGroup.insertMany(accountGroups);
+        console.log('Default account groups added successfully.');
+
+        // After adding groups, add the default Cash account under the "Cash in Hand" group
+        await addDefaultCashAccount(companyId);
+    } catch (error) {
+        console.error('Error adding default account groups:', error);
+    }
+}
+async function addDefaultItemUnit(companyId) {
+    try {
+        const units = defaultItemUnit.map(unit => ({
+            ...unit,
+            company: companyId,
+        }));
+        await Unit.insertMany(units);
+        console.log('Default item units added successfully.');
+    } catch (error) {
+        console.error('Error adding default item unit:', error);
+    }
+}
+
+
+// Route for creating a new company
+router.post('/company', ensureAuthenticated, async (req, res) => {
+    try {
+        const { name, address, country, state, city, pan, phone, ward, email, dateFormat, tradeType } = req.body;
+        const owner = req.user._id;
+
+        if (!tradeType) {
+            return res.status(400).json({ error: 'Trade type is required' });
+        }
+
+        const newCompany = new Company({
+            name,
+            address,
+            country,
+            state,
+            city,
+            pan,
+            phone,
+            ward,
+            email,
+            tradeType,
+            dateFormat,
+            owner
+        });
+
+        const company = await newCompany.save();
+        await addDefaultAccountGroups(company._id); // Add default account groups and cash account
+        await addDefaultItemCategory(company._id);
+        await addDefaultItemUnit(company._id);
+        await User.findByIdAndUpdate(req.user._id, { $push: { companies: company._id } });
+
+        let redirectPath;
+        switch (tradeType) {
+            case 'Wholeseller':
+                redirectPath = '/wholesellerDashboard';
+                break;
+            case 'Retailer':
+                redirectPath = '/retailerDashboard';
+                break;
+            case 'Pharmacy':
+                redirectPath = '/pharmacyDashboard';
+                break;
+            default:
+                redirectPath = '/defaultDashboard';
+                break;
+        }
+
+        req.flash('success', 'Company created successfully');
+        res.redirect(redirectPath);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+router.get('/switch/:id/', ensureAuthenticated, async (req, res) => {
+    try {
+        const companyId = req.params.id;
+        const company = await Company.findById(companyId);
+
+        if (!company) {
+            req.flash('error', 'Company not found');
+            return res.redirect('/dashboard');
+        }
+        if (!company.owner.equals(req.user._id)) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        req.session.currentCompany = company._id.toString();
+        req.session.currentCompanyName = company.name;
+        req.session.firstVisit = true; // Set the flag for the first visit
+
+        let redirectPath;
+        switch (company.tradeType) {
+            case 'Wholeseller':
+                redirectPath = '/wholesellerDashboard';
+                break;
+            case 'Retailer':
+                redirectPath = '/retailerDashboard';
+                break;
+            case 'Pharmacy':
+                redirectPath = '/pharmacyDashboard';
+                break;
+            default:
+                redirectPath = '/defaultDashboard';
+                break;
+        }
+
+        req.flash('success', `Switched to company: ${company.name}`);
+        res.redirect(redirectPath);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+module.exports = router;

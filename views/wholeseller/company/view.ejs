@@ -1,0 +1,57 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: 'Account' , body: 'wholeseller >> account >> view' }) %>
+</div>
+<br>
+<div class="container" id="mainContainer">
+    <div class="card">
+        <div class="card-header">
+            <h2>
+                A/c Details
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="card-title">Details</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><strong>A/c Name:</strong>
+                            <%= accounts.name %>
+                        </li>
+                        <li class="list-group-item"><strong>A/c Group:</strong>
+                            <%= accounts.companyGroups ? accounts.companyGroups.name : 'No Group' %>
+                        </li>
+                        <li class="list-group-item"><strong>Opening Balance:</strong>
+                            <%= accounts.openingBalance.amount %>
+                                <%= accounts.openingBalance.type %>
+                        </li>
+                        <li class="list-group-item"><strong>Pan No.:</strong>
+                            <%= accounts.pan %>
+                        </li>
+                        <li class="list-group-item"><strong>Address:</strong>
+                            <%= accounts.address %>
+                        </li>
+                        <li class="list-group-item"><strong>Ward No.:</strong>
+                            <%= accounts.ward %>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="card-title">Contact Information</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><strong>Phone:</strong>
+                            <%= accounts.phone %>
+                        </li>
+                        <li class="list-group-item"><strong>Email:</strong>
+                            <%= accounts.email %>
+                        </li>
+                        <li class="list-group-item"><strong>Contact Person:</strong>
+                            <%= accounts.contactperson %>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <a href="/companies" class="btn btn-secondary mt-3">Back to All Accounts</a>
+</div>

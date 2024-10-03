@@ -1,0 +1,345 @@
+<%- include('../layouts/boilerplate') %>
+
+    <style>
+        .vatable-item {
+            background-color: lightgreen;
+        }
+
+        .non-vatable-item {
+            background-color: lightyellow;
+        }
+
+        .dropdown-menu {
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .dropdown-item {
+            cursor: pointer;
+        }
+    </style>
+
+    <div class="container">
+        <h1 class="mt-5">Sales Bills</h1>
+
+        <!-- Add Bill Form -->
+        <div class="card mt-4">
+            <div class="card-header">
+                Create New Bill
+            </div>
+            <div class="card-body">
+                <form action="/bills" method="post" id="billForm">
+                    <div class="form-group row">
+                        <label class="col-sm-2 col-form-label">Bill No:</label>
+                        <div class="col-sm-10">
+                            <p class="form-control-plaintext" id="billNumber">
+                                <%= nextBillNumber %>
+                            </p>
+                            <input type="hidden" name="billNumber" value="<%= nextBillNumber %>" readonly>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="billDate" class="col-sm-2 col-form-label">Bill Date</label>
+                        <div class="col-sm-10">
+                            <input type="date" name="billDate" id="billDate" class="form-control" required
+                                value="<%= new Date().toISOString().split('T')[0] %>">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-2 col-form-label">Company</label>
+                        <div class="col-sm-10">
+                            <select name="company" id="company" class="form-control" required
+                                onchange="fetchLastTransactionsForAllItems()">
+                                <% if (companies && companies.length> 0) { %>
+                                    <% companies.forEach(company=> { %>
+                                        <option value="<%= company._id %>">
+                                            <%= company.name %>
+                                        </option>
+                                        <% }); %>
+                                            <% } else { %>
+                                                <option disabled>No companies available</option>
+                                                <% } %>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="items">
+                        <div class="form-group row item">
+                            <label class="col-sm-2 col-form-label">Item</label>
+                            <div class="col-sm-3">
+                                <input type="text" class="form-control item-search" placeholder="Search Product"
+                                    oninput="filterItems(this)">
+                                <div class="dropdown-menu"></div>
+                                <select name="items[0][item]" class="form-control item-select mt-2" required
+                                    onchange="fetchLastTransactions(this); updateItemPrice(this);">
+                                    <% if (items && items.length> 0) { %>
+                                        <% items.forEach(item=> { %>
+                                            <option value="<%= item._id %>" data-price="<%= item.price %>"
+                                                data-vat="<%= item.vatStatus %>">
+                                                <%= item.name %> - <%= item.category.name %> - <%= item.stock %> - <%=
+                                                                item.unit ? item.unit.name : '' %> - $<%= item.price %>
+                                            </option>
+                                            <% }); %>
+                                                <% } else { %>
+                                                    <option disabled>No items available</option>
+                                                    <% } %>
+                                </select>
+                                <ul class="last-transactions mt-2"></ul>
+                            </div>
+                            <div class="col-sm-2">
+                                <input type="number" name="items[0][quantity]" class="form-control quantity-input"
+                                    placeholder="Quantity" required oninput="calculateTotal()">
+                            </div>
+                            <div class="col-sm-2">
+                                <input type="number" name="items[0][price]" class="form-control price-input"
+                                    placeholder="Price" required oninput="calculateTotal()">
+                            </div>
+                            <div class="col-sm-2">
+                                <span class="form-control-plaintext item-total">0</span>
+                                <button type="button" class="btn btn-danger btn-sm"
+                                    onclick="removeItem(this)">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary mb-3" onclick="addItem()">Add Item</button>
+                    <div class="form-group row">
+                        <label for="isVatExempt" class="col-sm-2 col-form-label">VAT Exempt</label>
+                        <div class="col-sm-10">
+                            <input type="checkbox" name="isVatExempt" id="isVatExempt" onchange="toggleVatInputs()">
+                        </div>
+                    </div>
+                    <div id="vatInputs">
+                        <div class="form-group row">
+                            <label for="vatPercentage" class="col-sm-2 col-form-label">VAT Percentage</label>
+                            <div class="col-sm-10">
+                                <input type="number" name="vatPercentage" id="vatPercentage" class="form-control"
+                                    value="13" oninput="calculateTotal()">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="vatAmount" class="col-sm-2 col-form-label">VAT Amount</label>
+                            <div class="col-sm-10">
+                                <p class="form-control-plaintext">$<span id="vatAmount">0</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="totalAmount" class="col-sm-2 col-form-label">Total Amount</label>
+                        <div class="col-sm-10">
+                            <p class="form-control-plaintext">$<span id="totalAmount">0</span></p>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="totalAmountWithVAT" class="col-sm-2 col-form-label">Total Amount with VAT</label>
+                        <div class="col-sm-10">
+                            <p class="form-control-plaintext">$<span id="totalAmountWithVAT">0</span></p>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Bill</button>
+                </form>
+            </div>
+        </div>
+
+        <h2 class="mt-5">Existing Bills</h2>
+        <ul class="list-group mt-3">
+            <% if (bills && bills.length> 0) { %>
+                <% bills.forEach(bill=> { %>
+                    <li class="list-group-item">
+                        Bill No: <%= bill.billNumber %> - <%= bill.company ? bill.company.name : 'Unknown Company' %> -
+                                $<%= bill.totalAmount %>
+                                    <% if (!bill.isVatExempt) { %>
+                                        - VAT: <%= bill.vatPercentage %>% - VAT Amount: $<%= (bill.totalAmount *
+                                                bill.vatPercentage / 100).toFixed(2) %> - Total with VAT: $<%=
+                                                    bill.totalAmountWithVAT %>
+                                                    <% } else { %>
+                                                        - VAT Exempt
+                                                        <% } %>
+                                                            - <%= bill.date.toDateString() %>
+                    </li>
+                    <% }); %>
+                        <% } else { %>
+                            <li class="list-group-item">No bills available</li>
+                            <% } %>
+        </ul>
+        <a href="/" class="btn btn-link mt-4">Back</a>
+    </div>
+
+    <!-- Transaction Modal -->
+    <div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="transactionModalLabel">Last Transactions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul id="transactionList" class="list-group">
+                        <!-- Transactions will be dynamically inserted here -->
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        function addItem() {
+            const itemsDiv = document.getElementById('items');
+            const index = itemsDiv.children.length;
+            const newItem = document.createElement('div');
+            newItem.className = 'form-group row item';
+            newItem.innerHTML = `
+            <label class="col-sm-2 col-form-label">Item</label>
+            <div class="col-sm-3">
+                <input type="text" class="form-control item-search" placeholder="Search Product" oninput="filterItems(this)">
+                <div class="dropdown-menu"></div>
+                <select name="items[${index}][item]" class="form-control item-select mt-2" required onchange="fetchLastTransactions(this); updateItemPrice(this);">
+                    <% if (items && items.length > 0) { %>
+                        <% items.forEach(item => { %>
+                            <option value="<%= item._id %>" data-price="<%= item.price %>" data-vat="<%= item.vatStatus %>"><%= item.name %></option>
+                        <% }); %>
+                    <% } else { %>
+                        <option disabled>No items available</option>
+                    <% } %>
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <input type="number" name="items[${index}][quantity]" class="form-control quantity-input" placeholder="Quantity" required oninput="calculateTotal()">
+            </div>
+            <div class="col-sm-2">
+                <input type="number" name="items[${index}][price]" class="form-control price-input" placeholder="Price" required oninput="calculateTotal()">
+            </div>
+            <div class="col-sm-2">
+                <span class="form-control-plaintext item-total">0</span>
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">Remove</button>
+            </div>
+        `;
+            itemsDiv.appendChild(newItem);
+            updateItemPrice(newItem.querySelector('.item-select'));
+        }
+
+        async function fetchLastTransactions(select) {
+            const itemId = select.value;
+            const companyId = document.getElementById('company').value;
+            const transactionList = document.getElementById('transactionList');
+
+            try {
+                const response = await fetch(`/api/transactions/${itemId}/${companyId}`);
+                const transactions = await response.json();
+
+                transactionList.innerHTML = transactions.map(transaction => `
+                <li class="list-group-item">${transaction.quantity} units at $${transaction.price} each on ${new Date(transaction.transactionDate).toLocaleDateString()}</li>
+            `).join('');
+
+                // Show the modal
+                $('#transactionModal').modal('show');
+            } catch (error) {
+                console.error('Error fetching transactions:', error);
+            }
+        }
+
+        function removeItem(button) {
+            const itemDiv = button.closest('.item');
+            itemDiv.remove();
+            calculateTotal();
+        }
+
+        function updateItemPrice(select) {
+            const price = select.options[select.selectedIndex].getAttribute('data-price');
+            const vatStatus = select.options[select.selectedIndex].getAttribute('data-vat');
+            const priceInput = select.closest('.row').querySelector('.price-input');
+            priceInput.value = price;
+            setRowColor(select, vatStatus); // Set row color based on VAT status
+            calculateTotal();
+        }
+
+        function setRowColor(select, vatStatus) {
+            const row = select.closest('.row');
+            if (vatStatus === 'vatable') {
+                row.classList.add('vatable-item');
+                row.classList.remove('non-vatable-item');
+            } else {
+                row.classList.add('non-vatable-item');
+                row.classList.remove('vatable-item');
+            }
+        }
+
+        function calculateTotal() {
+            let totalAmount = 0;
+            let vatAmount = 0;
+            document.querySelectorAll('.row .price-input').forEach((priceInput, index) => {
+                const price = parseFloat(priceInput.value);
+                const quantity = parseFloat(document.querySelectorAll('.row .quantity-input')[index].value);
+                const itemTotal = document.querySelectorAll('.row .item-total')[index];
+                const total = price * quantity || 0;
+                itemTotal.textContent = total.toFixed(2);
+                totalAmount += total;
+
+                const vatStatus = document.querySelectorAll('.row .item-select')[index].options[document.querySelectorAll('.row .item-select')[index].selectedIndex].getAttribute('data-vat');
+                const vatPercentage = parseFloat(document.getElementById('vatPercentage').value) || 13;
+
+                if (!document.getElementById('isVatExempt').checked && vatStatus === 'vatable') {
+                    vatAmount += (total * vatPercentage) / 100;
+                }
+            });
+
+            const totalAmountWithVAT = totalAmount + vatAmount;
+
+            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
+            document.getElementById('vatAmount').textContent = vatAmount.toFixed(2);
+            document.getElementById('totalAmountWithVAT').textContent = totalAmountWithVAT.toFixed(2);
+        }
+
+        function toggleVatInputs() {
+            const isVatExempt = document.getElementById('isVatExempt').checked;
+            const vatInputs = document.getElementById('vatInputs');
+            if (isVatExempt) {
+                vatInputs.style.display = 'none';
+            } else {
+                vatInputs.style.display = 'block';
+            }
+            calculateTotal(); // Recalculate totals when VAT exemption status changes
+        }
+
+        function filterItems(input) {
+            const filter = input.value.toLowerCase();
+            const itemsDiv = input.closest('.item').querySelector('.item-select');
+            const options = itemsDiv.querySelectorAll('option');
+            options.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                option.style.display = text.includes(filter) ? '' : 'none';
+            });
+            itemsDiv.value = ""; // Clear selection when searching
+        }
+
+        // JavaScript to handle checkbox value
+        document.getElementById('billForm').addEventListener('submit', function (event) {
+            const isVatExemptCheckbox = document.getElementById('isVatExempt');
+            if (isVatExemptCheckbox.checked) {
+                isVatExemptCheckbox.value = 'true'; // Set checkbox value to 'true' when checked
+            } else {
+                isVatExemptCheckbox.value = 'false'; // Set checkbox value to 'false' when unchecked
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.item-select').forEach(select => {
+                updateItemPrice(select);
+                select.addEventListener('change', function () {
+                    updateItemPrice(this);
+                });
+            });
+            document.querySelectorAll('.quantity-input').forEach(input => {
+                input.addEventListener('input', calculateTotal);
+            });
+            document.getElementById('isVatExempt').addEventListener('change', toggleVatInputs);
+            document.getElementById('vatPercentage').addEventListener('input', calculateTotal);
+            toggleVatInputs();
+        });
+    </script>

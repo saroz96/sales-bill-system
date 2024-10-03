@@ -1,0 +1,104 @@
+
+router.get('/statement/pdf', async (req, res) => {
+    try {
+        const selectedCompany = req.query.company;
+        const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
+        const toDate = req.query.toDate ? new Date(req.query.toDate) : null;
+
+        if (!selectedCompany) {
+            req.flash('error', 'No company selected');
+            return res.redirect('/statement');
+        }
+
+        let query = { company: selectedCompany };
+
+        if (fromDate && toDate) {
+            query.transactionDate = { $gte: fromDate, $lte: toDate };
+        } else if (fromDate) {
+            query.transactionDate = { $gte: fromDate };
+        } else if (toDate) {
+            query.transactionDate = { $lte: toDate };
+        }
+
+        const transactions = await Transaction.find(query).sort({ transactionDate: 1 });
+        const company = await Company.findById(selectedCompany);
+        if (!company) {
+            req.flash('error', 'Company not found');
+            return res.redirect('/statement');
+        }
+
+        const doc = new PDFDocument({ margin: 40, size: 'A4' });
+        const filename = `statement_${company.name.replace(/ /g, '_')}.pdf`;
+
+        res.setHeader('Content-disposition', `attachment; filename=${filename}`);
+        res.setHeader('Content-type', 'application/pdf');
+
+        doc.pipe(res);
+
+        doc.fontSize(25).text('Financial Statement', {
+            align: 'center'
+        });
+
+        doc.fontSize(20).text(`${company.name}`, {
+            align: 'center'
+        });
+        doc.fontSize(14).text(`PAN: ${company.pan}`, { align: 'center' });
+
+        // Write From and To dates in one line
+        if (fromDate && toDate) {
+            doc.text(`Period: ${fromDate.toLocaleDateString()} to ${toDate.toLocaleDateString()}`, { align: 'left' });
+        } else if (fromDate) {
+            doc.text(`From Date: ${fromDate.toLocaleDateString()}`, { align: 'left' });
+        } else if (toDate) {
+            doc.text(`To Date: ${toDate.toLocaleDateString()}`, { align: 'left' });
+        }
+
+        doc.moveDown();
+
+        // Table Header
+        const tableTop = 150;
+        const rowHeight = 20;
+        const marginLeft = 10;
+
+        doc.fontSize(12).text('Date', marginLeft, tableTop);
+        doc.text('Vouch/Type', marginLeft + 75, tableTop);
+        doc.text('Vouch/Bill', marginLeft + 160, tableTop);
+        doc.text('Account', marginLeft + 250, tableTop);
+        doc.text('Debit(Rs.)', marginLeft + 325, tableTop);
+        doc.text('Credit(Rs.)', marginLeft + 400, tableTop);
+        doc.text('Balance(Rs.)', marginLeft + 475, tableTop);
+
+        // Draw horizontal line after header
+        doc.moveTo(marginLeft, tableTop + 15)
+            .lineTo(590, tableTop + 15)
+            .stroke();
+
+        let balance = company.openingBalance;
+        let rowIndex = 1;
+
+        transactions.forEach(tx => {
+            const y = tableTop + rowIndex * rowHeight;
+            balance += (tx.debit || 0) - (tx.credit || 0);
+
+            doc.text(tx.transactionDate.toLocaleDateString(), marginLeft, y);
+            doc.text(tx.type, marginLeft + 80, y);
+            doc.text(tx.billNumber, marginLeft + 180, y);
+            doc.text(tx.account, marginLeft + 250, y);
+            doc.text(tx.debit ? `${tx.debit.toFixed(2)}` : '', marginLeft + 325, y);
+            doc.text(tx.credit ? `${tx.credit.toFixed(2)}` : '', marginLeft + 450, y);
+            doc.text(`${balance === 0 ? 'Nill' : balance.toFixed(2)}`, marginLeft + 475, y);
+
+            // Draw horizontal line after each row
+            doc.moveTo(marginLeft, y + 15)
+                .lineTo(590, y + 15)
+                .stroke();
+
+            rowIndex++;
+        });
+        doc.end();
+    } catch (error) {
+        console.error("Error generating PDF:", error);
+        req.flash('error', 'Error generating PDF');
+        res.redirect('/statement');
+    }
+});

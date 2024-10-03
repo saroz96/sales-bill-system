@@ -1,0 +1,187 @@
+router.get('/statement', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+
+        try {
+            const companyId = req.session.currentCompany;
+
+            const currentCompany = await Company.findById(companyId);
+            const companyDateFormat = currentCompany ? currentCompany.dateFormat : 'english'; // Default to 'english'
+            const accounts = await Account.find({ company: companyId });
+            const selectedCompany = req.query.account || '';
+            const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
+            const toDate = req.query.toDate ? new Date(req.query.toDate) : null;
+            const paymentMode = req.query.paymentMode || 'all'; // New parameter for payment mode
+            const currentCompanyName = req.session.currentCompanyName;
+            const today = new Date();
+            const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
+            if (!selectedCompany) {
+                return res.render('wholeseller/statements/statement', {
+                    statement: [], accounts, selectedCompany: null, fromDate: '',
+                    toDate: '', paymentMode, companyDateFormat, nepaliDate, currentCompanyName
+                });
+            }
+
+            // Fetch company details including opening balance and opening balance date
+            const account = await Account.findById(selectedCompany);
+
+            if (!account) {
+                return res.status(404).json({ error: 'Company not found' });
+            }
+
+            let query = { account: selectedCompany };
+
+            // Filter by payment mode
+            if (paymentMode !== 'all') {
+                query.paymentMode = paymentMode;
+            }
+
+            // Fetch all transactions for the company to calculate the final balance
+            const allTransactions = await Transaction.find(query).sort({ date: 1 });
+
+            // Calculate the final balance based on all transactions
+            let finalBalance = paymentMode !== 'cash' && account.openingBalance.type === 'Dr' ? account.openingBalance.amount : -account.openingBalance.amount;
+            allTransactions.forEach(tx => {
+                finalBalance += (tx.debit || 0) - (tx.credit || 0);
+            });
+
+            // Build the query to filter transactions within the date range
+            if (fromDate && toDate) {
+                query.date = { $gte: fromDate, $lte: toDate };
+            } else if (fromDate) {
+                query.date = { $gte: fromDate };
+            } else if (toDate) {
+                query.date = { $lte: toDate };
+            }
+
+            // Fetch filtered transactions within the date range
+            const filteredTransactions = await Transaction.find(query).sort({ date: 1 });
+
+            // Calculate the opening balance based on opening balance date and filtered transactions
+            const openingBalance = paymentMode !== 'cash' ? calculateOpeningBalance(account, allTransactions, fromDate) : 0;
+
+            // Prepare statement with opening balance row and calculate totals for filtered transactions
+            const { statement, totalDebit, totalCredit } = prepareStatementWithOpeningBalanceAndTotals(openingBalance, filteredTransactions, fromDate, paymentMode);
+
+            res.render('wholeseller/statements/statement', {
+                statement, accounts, selectedCompany, account, fromDate: req.query.fromDate, toDate: req.query.toDate, paymentMode,
+                company: companyId, totalDebit, totalCredit, finalBalance, currentCompanyName, companyDateFormat, nepaliDate,
+                currentCompanyName
+            });
+        } catch (error) {
+            console.error("Error fetching statement:", error);
+            res.status(500).json({ error: 'Error fetching statement' });
+        }
+    }
+});
+
+// Function to calculate opening balance based on opening balance date
+function calculateOpeningBalance(account, transactions, fromDate) {
+    const openingBalanceDate = fromDate || account.openingBalanceDate || new Date('July 17, 2023'); // Use fromDate if available
+    let openingBalance = account.openingBalance.type === 'Dr' ? account.openingBalance.amount : -account.openingBalance.amount;
+
+    transactions.forEach(tx => {
+        if (tx.date < openingBalanceDate) {
+            openingBalance += (tx.debit || 0) - (tx.credit || 0);
+        }
+    });
+
+    return openingBalance;
+}
+
+// Function to prepare statement with opening balance row and calculate totals
+function prepareStatementWithOpeningBalanceAndTotals(openingBalance, transactions, fromDate, toDate, paymentMode) {
+    let balance = openingBalance;
+    let totalDebit = paymentMode !== 'cash' && openingBalance > 0 ? openingBalance : 0;
+    let totalCredit = paymentMode !== 'cash' && openingBalance < 0 ? -openingBalance : 0;
+
+    const statement = paymentMode !== 'cash' ? [
+        {
+            date: fromDate ? fromDate.toISOString().split('T')[0] : 'July 17, 2023', // Use fromDate if available
+            type: '',
+            billNumber: '',
+            paymentMode: '',
+            accountType: 'Opening Balance',
+            debit: openingBalance > 0 ? openingBalance : null,
+            credit: openingBalance < 0 ? -openingBalance : null,
+            balance: formatBalance(openingBalance),
+            billId: '' // Ensure billId is included
+        }
+    ] : [];
+
+    const transactionsByBill = transactions.reduce((acc, tx) => {
+        let billId = tx.billId || tx.purchaseBillId; // Use billId for sales and purchaseBillId for purchases
+
+        if (!acc[billId]) {
+            acc[billId] = {
+                date: tx.date.toISOString().split('T')[0],
+                type: tx.type,
+                billId: billId,
+                billNumber: tx.billNumber,
+                partyBillNumber: tx.partyBillNumber,
+                paymentMode: tx.paymentMode,
+                accountType: tx.accountType,
+                debit: 0,
+                credit: 0,
+                balance: 0
+            };
+        }
+        acc[billId].debit += tx.debit || 0;
+        acc[billId].credit += tx.credit || 0;
+        return acc;
+    }, {});
+
+    Object.values(transactionsByBill).forEach(tx => {
+        balance += tx.debit - tx.credit;
+        totalDebit += tx.debit;
+        totalCredit += tx.credit;
+        statement.push({
+            date: tx.date,
+            type: tx.type,
+            billNumber: tx.billNumber,
+            partyBillNumber: tx.partyBillNumber,
+            paymentMode: tx.paymentMode,
+            accountType: tx.accountType,
+            debit: tx.debit,
+            credit: tx.credit,
+            balance: formatBalance(balance),
+            billId: tx.billId // Ensure billId is included
+        });
+    });
+
+    // transactions.forEach(tx => {
+    //     balance += (tx.debit || 0) - (tx.credit || 0);
+    //     totalDebit += tx.debit || 0;
+    //     totalCredit += tx.credit || 0;
+    //     statement.push({
+    //         date: tx.transactionDate.toISOString().split('T')[0],
+    //         type: tx.type,
+    //         billId: tx.billId, // Ensure this is set correctly
+    //         billNumber: tx.billNumber,
+    //         paymentMode: tx.paymentMode,
+    //         accountType: tx.accountType,
+    //         debit: tx.debit,
+    //         credit: tx.credit,
+    //         balance: formatBalance(balance)
+    //     });
+    // });
+
+    statement.push({
+        date: Date.now(),
+        type: '',
+        billNumber: '',
+        partyBillNumber: '',
+        paymentMode: '',
+        accountType: 'Total',
+        debit: totalDebit,
+        credit: totalCredit,
+        balance: formatBalance(balance),
+        billId: '' // Ensure billId is included
+    });
+
+    return { statement, totalDebit, totalCredit, finalBalance: balance };
+}
+
+function formatBalance(amount) {
+    return amount > 0 ? `${amount.toFixed(2)} Dr` : `${(-amount).toFixed(2)} Cr`;
+}
+

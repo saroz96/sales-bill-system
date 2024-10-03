@@ -1,0 +1,154 @@
+To create a settings feature that allows users to choose whether to automatically round off amounts in sales bills or not, you need to implement the following steps:
+
+Add a Setting in the Backend: Store the user's preference for automatic rounding.
+Create a Settings Page: Provide a UI for users to update their preference.
+Update Sales Bill Calculation: Use the setting to determine whether to apply automatic rounding when creating a sales bill.
+1. Add a Setting in the Backend
+First, you need a model to store the user's settings. You can add a Settings model in your backend.
+
+settingsModel.js
+javascript
+Copy code
+const mongoose = require('mongoose');
+
+const settingsSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    autoRoundOff: { type: Boolean, default: false }
+});
+
+module.exports = mongoose.model('Settings', settingsSchema);
+2. Create a Settings Page
+Create a route and a view for the settings page where users can update their preference.
+
+routes/settings.js
+javascript
+Copy code
+const express = require('express');
+const router = express.Router();
+const Settings = require('../models/settingsModel');
+const { ensureAuthenticated } = require('../middleware/auth');
+
+router.get('/settings', ensureAuthenticated, async (req, res) => {
+    const settings = await Settings.findOne({ userId: req.user._id });
+    res.render('settings', { settings });
+});
+
+router.post('/settings', ensureAuthenticated, async (req, res) => {
+    const { autoRoundOff } = req.body;
+    let settings = await Settings.findOne({ userId: req.user._id });
+    if (settings) {
+        settings.autoRoundOff = autoRoundOff === 'on';
+    } else {
+        settings = new Settings({ userId: req.user._id, autoRoundOff: autoRoundOff === 'on' });
+    }
+    await settings.save();
+    res.redirect('/settings');
+});
+
+module.exports = router;
+views/settings.ejs
+html
+Copy code
+<form action="/settings" method="POST">
+    <label for="autoRoundOff">Automatically round off amounts in sales bills:</label>
+    <input type="checkbox" id="autoRoundOff" name="autoRoundOff" <%= settings && settings.autoRoundOff ? 'checked' : '' %> >
+    <button type="submit">Save</button>
+</form>
+3. Update Sales Bill Calculation
+Modify your sales bill creation logic to consider the user's preference for automatic rounding.
+
+routes/salesBill.js
+javascript
+Copy code
+const express = require('express');
+const router = express.Router();
+const SalesBill = require('../models/SalesBill');
+const Account = require('../models/Account');
+const Settings = require('../models/settingsModel');
+const { ensureAuthenticated } = require('../middleware/auth');
+
+router.post('/sales-bill', ensureAuthenticated, async (req, res) => {
+    const { paymentMode, creditParty, discountPercentage, discountAmount, roundOffAmount, ...otherFields } = req.body;
+
+    try {
+        let account;
+        if (paymentMode === 'cash') {
+            account = await Account.findOne({ type: 'cash' });
+        } else if (paymentMode === 'credit') {
+            account = await Account.findById(creditParty);
+        }
+
+        let subTotal = calculateSubTotal(otherFields.items); // You need to implement this function to calculate subtotal
+        let discountValue = parseFloat(discountAmount) || (subTotal * parseFloat(discountPercentage)) / 100;
+        let taxableAmount = subTotal - discountValue;
+        let vatAmount = calculateVat(taxableAmount, req.body.isVatExempt, otherFields.items); // You need to implement this function to calculate VAT
+
+        // Retrieve user settings for auto round off
+        const settings = await Settings.findOne({ userId: req.user._id });
+        let finalAmount = taxableAmount + vatAmount;
+
+        if (settings && settings.autoRoundOff) {
+            // Apply automatic round off
+            const roundedAmount = Math.round(finalAmount);
+            roundOffAmount = (roundedAmount - finalAmount).toFixed(2);
+            finalAmount = roundedAmount;
+        } else if (roundOffAmount) {
+            finalAmount += parseFloat(roundOffAmount);
+        }
+
+        const salesBill = new SalesBill({
+            paymentMode,
+            account: account._id,
+            discountPercentage,
+            discountAmount: discountValue,
+            roundOffAmount: roundOffAmount ? parseFloat(roundOffAmount) : 0,
+            totalAmount: finalAmount,
+            ...otherFields
+        });
+
+        await salesBill.save();
+
+        // Optionally update the account's statement (for example, in account model)
+        account.transactions.push(salesBill._id);
+        await account.save();
+
+        res.redirect('/sales-bills');
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
+
+function calculateSubTotal(items) {
+    let subTotal = 0;
+    items.forEach(item => {
+        const { price, quantity } = item;
+        subTotal += price * quantity;
+    });
+    return subTotal;
+}
+
+function calculateVat(taxableAmount, isVatExempt, items) {
+    if (isVatExempt) return 0;
+    let vatAmount = 0;
+    const vatPercentage = 13; // You can adjust or retrieve this from a setting
+    items.forEach(item => {
+        if (item.vatStatus === 'vatable') {
+            vatAmount += (taxableAmount * vatPercentage) / 100;
+        }
+    });
+    return vatAmount;
+}
+
+module.exports = router;
+Explanation
+Settings Model: A Settings model is created to store user preferences.
+Settings Route and Page: A route and view are provided for users to update their preferences.
+Sales Bill Creation Logic: The sales bill creation logic is modified to consider the user's preference for automatic rounding.
+If autoRoundOff is enabled, the total amount is rounded and the round-off amount is calculated.
+If autoRoundOff is disabled, the round-off amount from the frontend is used if provided.
+This setup allows users to manage their preference for automatic rounding directly through a settings page, which is then applied during sales bill creation.
+
+
+
+
+

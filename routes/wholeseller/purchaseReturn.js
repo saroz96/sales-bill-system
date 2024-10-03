@@ -1,0 +1,646 @@
+const express = require('express');
+const router = express.Router();
+
+//npm install pdfkit fs
+const PDFDocument = require('pdfkit');
+//npm install pdfkit fs
+
+const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
+const Item = require('../../models/wholeseller/Item');
+const PurchaseReturn = require('../../models/wholeseller/PurchaseReturns');
+const Transaction = require('../../models/wholeseller/Transaction');
+const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware/auth');
+const BillCounter = require('../../models/wholeseller/purchaseReturnBillCounter');
+const Account = require('../../models/wholeseller/Account');
+const Settings = require('../../models/wholeseller/Settings');
+const Company = require('../../models/wholeseller/Company');
+const NepaliDate = require('nepali-date');
+const { ensureTradeType } = require('../../middleware/tradeType');
+const PurchaseBill = require('../../models/wholeseller/PurchaseBill');
+const FiscalYear = require('../../models/wholeseller/FiscalYear');
+const PurchaseReturns = require('../../models/wholeseller/PurchaseReturns');
+
+// Fetch all purchase bills
+router.get('/purchase-return/list', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+
+        const companyId = req.session.currentCompany;
+        const currentCompanyName = req.session.currentCompanyName;
+        const currentCompany = await Company.findById(new ObjectId(companyId));
+
+        const bills = await PurchaseReturn.find({ company: companyId }).populate('account').populate('items.item').populate('user');
+        res.render('wholeseller/purchaseReturn/allPurchaseReturn', {
+            bills,
+            currentCompany,
+            user: req.user,
+            currentCompanyName,
+            title: 'Purchase Return',
+            body: 'wholeseller >> purchase return >> bills',
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+        });
+    }
+});
+
+// Purchase Return Bill routes
+router.get('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        const companyId = req.session.currentCompany;
+        const items = await Item.find({ company: companyId }).populate('category').populate('unit');
+        const bills = await PurchaseReturn.find({ company: companyId }).populate('account').populate('items.item');
+        const purchaseInvoice = await PurchaseBill.find({ company: companyId });
+        const today = new Date();
+        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
+        const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
+        const company = await Company.findById(companyId).populate('fiscalYear');
+        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+
+        const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear });
+
+        // Get the next bill number
+        const billCounter = await BillCounter.findOne({ company: companyId });
+        const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
+        res.render('wholeseller/purchaseReturn/purchaseReturnEntry', {
+            company: companyId, accounts: accounts, items: items, bills: bills, nextBillNumber: nextBillNumber,
+            nepaliDate: nepaliDate, transactionDateNepali, companyDateFormat, purchaseInvoice,
+            user: req.user, currentCompanyName: req.session.currentCompanyName,
+            title: 'Purchase Return',
+            body: 'wholeseller >> purchase return >> add',
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+        });
+    }
+});
+
+// POST route to handle sales bill creation
+router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        try {
+            const { account, items, vatPercentage, purchaseSalesReturnType, transactionDateRoman, transactionDateNepali, billDate, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount, } = req.body;
+            const companyId = req.session.currentCompany;
+            const currentFiscalYear = req.session.currentFiscalYear.id
+            const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+            const userId = req.user._id;
+
+            console.log('Request Body:', req.body);
+
+            const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
+            const discount = parseFloat(discountPercentage) || 0;
+
+            let subTotal = 0;
+            let vatAmount = 0;
+            let totalTaxableAmount = 0;
+            let totalNonTaxableAmount = 0;
+            let hasVatableItems = false;
+            let hasNonVatableItems = false;
+
+            if (!companyId) {
+                return res.status(400).json({ error: 'Company ID is required' });
+            }
+
+            const accounts = await Account.findOne({ _id: account, company: companyId });
+            if (!accounts) {
+                return res.status(400).json({ error: 'Invalid account for this company' });
+            }
+
+            // Validate each item before processing
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const product = await Item.findById(item.item);
+
+                if (!product) {
+                    req.flash('error', `Item with id ${item.item} not found`);
+                    return res.redirect('/bills');
+                }
+
+                const itemTotal = parseFloat(item.puPrice) * parseFloat(item.quantity, 10);
+                subTotal += itemTotal;
+
+                if (product.vatStatus === 'vatable') {
+                    hasVatableItems = true;
+                    totalTaxableAmount += itemTotal;
+                } else {
+                    hasNonVatableItems = true;
+                    totalNonTaxableAmount += itemTotal;
+                }
+
+                // // Check stock quantity
+                // if (product.stock < item.quantity) {
+                //     req.flash('error', `Not enough stock for item: ${product.name}. Available: ${product.stock}, Required: ${item.quantity}`);
+                //     return res.redirect('/bills');
+                // }
+
+                // Check stock quantity using FIFO
+                const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+                if (availableStock < item.quantity) {
+                    req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
+                    return res.redirect('/bills');
+                }
+            }
+
+            // Check validation conditions after processing all items
+            if (isVatExempt !== 'all') {
+                if (isVatExemptBool && hasVatableItems) {
+                    req.flash('error', 'Cannot save VAT exempt bill with vatable items');
+                    return res.redirect('/bills');
+                }
+
+                if (!isVatExemptBool && hasNonVatableItems) {
+                    req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
+                    return res.redirect('/bills');
+                }
+            }
+            // Find the counter for the company
+            let billCounter = await BillCounter.findOne({ company: companyId });
+            if (!billCounter) {
+                billCounter = new BillCounter({ company: companyId });
+            }
+            // Increment the counter
+            billCounter.count += 1;
+            await billCounter.save();
+
+            // // Generate unique bill number
+            // const lastBill = await SalesBill.findOne().sort({ billNumber: -1 });
+            // const billNumber = lastBill ? lastBill.billNumber + 1 : 1;
+
+            // Apply discount proportionally to vatable and non-vatable items
+            const discountForTaxable = (totalTaxableAmount * discount) / 100;
+            const discountForNonTaxable = (totalNonTaxableAmount * discount) / 100;
+
+            const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
+            const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
+
+            // Calculate VAT only for vatable items
+            if (!isVatExemptBool || isVatExempt === 'all') {
+                vatAmount = (finalTaxableAmount * vatPercentage) / 100;
+            } else {
+                vatAmount = 0;
+            }
+
+            let totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
+            let finalAmount = totalAmount;
+
+            // Check if round off is enabled in settings
+            const roundOffForPurchaseReturn = await Settings.findOne({ companyId, userId }); // Assuming you have a single settings document
+
+            // Handle case where settings is null
+            if (!roundOffForPurchaseReturn) {
+                console.log('No settings found, using default settings or handling as required');
+                roundOffForPurchaseReturn = { roundOffPurchaseReturn: false }; // Provide default settings or handle as needed
+            }
+            let roundOffAmount = 0;
+            if (roundOffForPurchaseReturn.roundOffPurchaseReturn) {
+                finalAmount = Math.round(finalAmount.toFixed(2)); // Round off final amount
+                roundOffAmount = finalAmount - totalAmount;
+            } else if (manualRoundOffAmount && !roundOffForPurchaseReturn.roundOffPurchaseReturn) {
+                roundOffAmount = parseFloat(manualRoundOffAmount);
+                finalAmount = totalAmount + roundOffAmount;
+            }
+
+            // Create new bill
+            const newBill = new PurchaseReturn({
+                billNumber: billCounter.count,
+                account,
+                purchaseSalesReturnType: 'Purchase Return',
+                items: [], // We'll update this later
+                isVatExempt: isVatExemptBool,
+                vatPercentage: isVatExemptBool ? 0 : vatPercentage,
+                subTotal,
+                discountPercentage: discount,
+                discountAmount: discountForTaxable + discountForNonTaxable,
+                nonVatPurchaseReturn: finalNonTaxableAmount,
+                taxableAmount: finalTaxableAmount,
+                vatAmount,
+                totalAmount: finalAmount,
+                roundOffAmount: roundOffAmount,
+                paymentMode,
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                transactionDate: transactionDateNepali ? transactionDateNepali : new Date(transactionDateRoman),
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear,
+
+            });
+
+            // Create transactions
+            let previousBalance = 0;
+            const accountTransaction = await Transaction.findOne({ account: account }).sort({ transactionDate: -1 });
+            if (accountTransaction) {
+                previousBalance = accountTransaction.balance;
+            }
+
+            // FIFO stock reduction function
+            async function reduceStock(product, quantity) {
+                let remainingQuantity = quantity;
+                while (remainingQuantity > 0 && product.stockEntries.length > 0) {
+                    const oldestEntry = product.stockEntries[0];
+
+                    if (oldestEntry.quantity <= remainingQuantity) {
+                        remainingQuantity -= oldestEntry.quantity;
+                        product.stockEntries.shift(); // Remove the entry
+                    } else {
+                        oldestEntry.quantity -= remainingQuantity;
+                        remainingQuantity = 0;
+                    }
+                }
+            }
+
+            // Create transactions
+            const billItems = await Promise.all(items.map(async item => {
+                const product = await Item.findById(item.item);
+
+                // Calculate the total amount for this item
+                // const itemTotal = item.quantity * item.price;
+
+                // Create the transaction for this item
+                const transaction = new Transaction({
+                    item: product._id,
+                    account: account,
+                    billNumber: billCounter.count,
+                    quantity: item.quantity,
+                    puPrice: item.puPrice,
+                    unit: item.unit,  // Include the unit field                    type: 'Sale',
+                    purchaseReturnBillId: newBill._id,  // Set billId to the new bill's ID
+                    purchaseSalesReturnType: 'Purchase Return',
+                    type: 'PrRt',
+                    debit: finalAmount,  // Set debit to the item's total amount
+                    credit: 0,        // Credit is 0 for sales transactions
+                    paymentMode: paymentMode,
+                    balance: previousBalance - finalAmount, // Update the balance based on item total
+                    date: nepaliDate ? nepaliDate : new Date(billDate),
+                    company: companyId,
+                    user: userId,
+                    fiscalYear: currentFiscalYear,
+
+                });
+
+                await transaction.save();
+                console.log('Transaction', transaction);
+
+                // // Decrement stock quantity
+                // product.stock -= item.quantity;
+                // await product.save();
+
+                // Decrement stock quantity using FIFO
+                await reduceStock(product, item.quantity);
+                product.stock -= item.quantity;
+                await product.save();
+
+                return {
+                    item: product._id,
+                    quantity: item.quantity,
+                    puPrice: item.puPrice,
+                    unit: item.unit,  // Include the unit field in the bill items
+                    vatStatus: product.vatStatus
+                };
+            }));
+
+            // Update bill with items
+            newBill.items = billItems;
+            console.log('New Bill', newBill);
+            console.log('billItems', billItems);
+            await newBill.save();
+
+            // If payment mode is cash, also create a transaction for the "Cash in Hand" account
+            if (paymentMode === 'cash') {
+                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
+                if (cashAccount) {
+                    const cashTransaction = new Transaction({
+                        account: cashAccount._id,
+                        billNumber: billCounter.count,
+                        type: 'PrRt',
+                        purchaseReturnBillId: newBill._id,  // Set billId to the new bill's ID
+                        purchaseSalesReturnType: 'Purchase Return',
+                        debit: finalAmount,  // Debit is 0 for cash-in-hand as we're receiving cash
+                        credit: 0,  // Credit is the total amount since we're receiving cash
+                        paymentMode: paymentMode,
+                        balance: previousBalance + finalAmount, // Update the balance
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+
+                        company: companyId,
+                        user: userId
+                    });
+                    await cashTransaction.save();
+                }
+            }
+
+            if (req.query.print === 'true') {
+                // Redirect to the print route
+                res.redirect(`/purchase-return/${newBill._id}/direct-print`);
+            } else {
+                // Redirect to the bills list or another appropriate page
+                req.flash('success', 'Purchase return saved successfully!');
+                res.redirect('/purchase-return');
+            }
+        } catch (error) {
+            console.error("Error creating bill:", error);
+            req.flash('error', 'Error creating bill');
+            res.redirect('/bills');
+        }
+    }
+});
+
+router.get('/purchase-return/:id/print', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+
+        const currentCompanyName = req.session.currentCompanyName;
+        const companyId = req.session.currentCompany;
+        console.log("Company ID from session:", companyId); // Debugging line
+
+        const today = new Date();
+        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
+        const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
+        const company = await Company.findById(companyId);
+        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+
+        // const { selectedDate } = req.query; // Assume selectedDate is passed as a query parameter
+
+        // Validate the selectedDate
+        if (!nepaliDate || isNaN(new Date(nepaliDate).getTime())) {
+            throw new Error('Invalid date provided');
+        }
+
+        try {
+            const currentCompany = await Company.findById(new ObjectId(companyId));
+            console.log("Current Company:", currentCompany); // Debugging line
+
+            if (!currentCompany) {
+                req.flash('error', 'Company not found');
+                return res.redirect('/bills');
+            }
+
+            const purchaseReturnBillId = req.params.id;
+            const bill = await PurchaseReturn.findById(purchaseReturnBillId)
+                .populate({ path: 'account', select: 'name pan address email phone openingBalance' }) // Populate account and only select openingBalance
+                .populate('items.item')
+                .populate('user');
+
+            if (!bill) {
+                req.flash('error', 'Bill not found');
+                return res.redirect('/purchase-bills');
+            }
+
+            // Populate unit for each item in the bill
+            for (const item of bill.items) {
+                await item.item.populate('unit');
+            }
+
+            const firstBill = !bill.firstPrinted; // Inverse logic based on your implementation
+
+            if (firstBill) {
+                bill.firstPrinted = true;
+                await bill.save();
+            }
+            let finalBalance = null;
+            let balanceLabel = '';
+
+            // Fetch the latest transaction for the current company and bill
+            if (bill.paymentMode === 'credit') {
+                const latestTransaction = await Transaction.findOne({
+                    company: new ObjectId(companyId),
+                    purchaseReturnBillId: new ObjectId(purchaseReturnBillId)
+                }).sort({ transactionDate: -1 });
+
+                let lastBalance = 0;
+
+                // Calculate the last balance based on the latest transaction
+                if (latestTransaction) {
+                    lastBalance = Math.abs(latestTransaction.balance || 0); // Ensure balance is positive
+
+                    // Determine if the amount is receivable (dr) or payable (cr)
+                    if (latestTransaction.debit) {
+                        balanceLabel = 'Dr'; // Receivable amount
+                    } else if (latestTransaction.credit) {
+                        balanceLabel = 'Cr'; // Payable amount
+                    }
+                }
+
+                // Retrieve the opening balance from the account
+                const openingBalance = bill.account ? bill.account.openingBalance : null;
+
+                // Add opening balance if it exists
+                if (openingBalance) {
+                    lastBalance += (openingBalance.type === 'Dr' ? openingBalance.amount : -openingBalance.amount);
+                    balanceLabel = openingBalance.type;
+                }
+
+                finalBalance = lastBalance;
+            }
+
+            res.render('wholeseller/purchaseReturn/print', {
+                bill,
+                currentCompanyName,
+                currentCompany,
+                firstBill,
+                lastBalance: finalBalance,
+                balanceLabel,
+                paymentMode: bill.paymentMode, // Pass paymentMode to the view if needed
+                nepaliDate,
+                transactionDateNepali,
+                englishDate: bill.englishDate,
+                companyDateFormat,
+                title: 'Purchase Return Print',
+                body: 'wholeseller >> purchase return >> print',
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            });
+        } catch (error) {
+            console.error("Error fetching bill for printing:", error);
+            req.flash('error', 'Error fetching bill for printing');
+            res.redirect('/purchase-bills-list');
+        }
+    }
+});
+
+//for direct print purchase
+router.get('/purchase-return/:id/direct-print', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+
+        const currentCompanyName = req.session.currentCompanyName;
+        const companyId = req.session.currentCompany;
+        console.log("Company ID from session:", companyId); // Debugging line
+
+        const today = new Date();
+        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
+        const company = await Company.findById(companyId);
+        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+
+        // const { selectedDate } = req.query; // Assume selectedDate is passed as a query parameter
+
+        // Validate the selectedDate
+        if (!nepaliDate || isNaN(new Date(nepaliDate).getTime())) {
+            throw new Error('Invalid date provided');
+        }
+
+        try {
+            const currentCompany = await Company.findById(new ObjectId(companyId));
+            console.log("Current Company:", currentCompany); // Debugging line
+
+            if (!currentCompany) {
+                req.flash('error', 'Company not found');
+                return res.redirect('/bills');
+            }
+
+            const purchaseReturnBillId = req.params.id;
+            const bill = await PurchaseReturn.findById(purchaseReturnBillId)
+                .populate({ path: 'account', select: 'name pan address email phone openingBalance' }) // Populate account and only select openingBalance
+                .populate('items.item')
+                .populate('user');
+
+            if (!bill) {
+                req.flash('error', 'Bill not found');
+                return res.redirect('/purchase-return');
+            }
+
+            // Populate unit for each item in the bill
+            for (const item of bill.items) {
+                await item.item.populate('unit');
+            }
+
+            const firstBill = !bill.firstPrinted; // Inverse logic based on your implementation
+
+            if (firstBill) {
+                bill.firstPrinted = true;
+                await bill.save();
+            }
+            let finalBalance = null;
+            let balanceLabel = '';
+
+            // Fetch the latest transaction for the current company and bill
+            if (bill.paymentMode === 'credit') {
+                const latestTransaction = await Transaction.findOne({
+                    company: new ObjectId(companyId),
+                    purchaseReturnBillId: new ObjectId(purchaseReturnBillId)
+                }).sort({ transactionDate: -1 });
+
+                let lastBalance = 0;
+
+                // Calculate the last balance based on the latest transaction
+                if (latestTransaction) {
+                    lastBalance = Math.abs(latestTransaction.balance || 0); // Ensure balance is positive
+
+                    // Determine if the amount is receivable (dr) or payable (cr)
+                    if (latestTransaction.debit) {
+                        balanceLabel = 'Dr'; // Receivable amount
+                    } else if (latestTransaction.credit) {
+                        balanceLabel = 'Cr'; // Payable amount
+                    }
+                }
+
+                // Retrieve the opening balance from the account
+                const openingBalance = bill.account ? bill.account.openingBalance : null;
+
+                // Add opening balance if it exists
+                if (openingBalance) {
+                    lastBalance += (openingBalance.type === 'Dr' ? openingBalance.amount : -openingBalance.amount);
+                    balanceLabel = openingBalance.type;
+                }
+
+                finalBalance = lastBalance;
+            }
+
+            res.render('wholeseller/purchaseReturn/directPrint', {
+                bill,
+                currentCompanyName,
+                currentCompany,
+                firstBill,
+                lastBalance: finalBalance,
+                balanceLabel,
+                paymentMode: bill.paymentMode, // Pass paymentMode to the view if needed
+                nepaliDate,
+                englishDate: bill.englishDate,
+                companyDateFormat,
+
+            });
+        } catch (error) {
+            console.error("Error fetching bill for printing:", error);
+            req.flash('error', 'Error fetching bill for printing');
+            res.redirect('/purchase-bills-list');
+        }
+    }
+});
+
+router.get('/purchaseReturn-vat-report', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        const companyId = req.session.currentCompany;
+        const currentCompanyName = req.session.currentCompanyName;
+        const currentCompany = await Company.findById(new ObjectId(companyId));
+        const companyDateFormat = currentCompany ? currentCompany.dateFormat : '';
+        const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
+        const toDate = req.query.toDate ? new Date(req.query.toDate) : null;
+        const today = new Date();
+        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD');
+
+        // Build the query to filter transactions within the date range
+        let query = { company: companyId };
+
+        if (fromDate && toDate) {
+            query.date = { $gte: fromDate, $lte: toDate };
+        } else if (fromDate) {
+            query.date = { $gte: fromDate };
+        } else if (toDate) {
+            query.date = { $lte: toDate };
+        }
+
+        const purchaseReturn = await PurchaseReturn.find(query).populate('account').sort({ date: 1 });
+
+        // Prepare VAT report data
+        const purchaseReturnVatReport = await Promise.all(purchaseReturn.map(async bill => {
+            const account = await Account.findById(bill.account);
+            return {
+                billNumber: bill.billNumber,
+                date: bill.date,
+                account: account.name,
+                panNumber: account.pan,
+                totalAmount: bill.totalAmount,
+                discountAmount: bill.discountAmount,
+                nonVatPurchaseReturn: bill.nonVatPurchaseReturn,
+                taxableAmount: bill.taxableAmount,
+                vatAmount: bill.vatAmount,
+            };
+        }));
+
+        res.render('wholeseller/purchaseReturn/purchaseReturnVatReport', {
+            purchaseReturnVatReport,
+            companyDateFormat,
+            nepaliDate,
+            currentCompany,
+            fromDate: req.query.fromDate,
+            toDate: req.query.toDate,
+            currentCompanyName,
+        });
+    } else {
+        res.status(403).send('Access denied');
+    }
+});
+
+module.exports = router;

@@ -1,0 +1,548 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: 'Purchase Bill Print' , body: 'wholeseller >> purchase >> print' })
+        %>
+</div>
+
+<style id="printStyles">
+    @media print {
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+
+        /* Define your print styles */
+        .page-break {
+            page-break-before: always;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+
+        .container {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .card {
+            border: none;
+            margin: 0;
+        }
+
+        .card-header,
+        .card-body {
+            padding: 0;
+            margin: 0;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 16px;
+            /* text-decoration: underline; */
+        }
+
+        .header h2 {
+            /* margin: 5px 0; */
+            font-size: 20px;
+        }
+
+        .details-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .details-container .left,
+        .details-container .right {
+            width: 48%;
+        }
+
+        .details-container .right {
+            text-align: right;
+        }
+
+        .card-title {
+            text-decoration: underline;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .table th,
+        .table td {
+            font-size: 12px;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .table th {
+            background-color: #f2f2f2;
+            text-align: left;
+            /* font-size: 10px; */
+        }
+
+        .table td {
+            text-align: left;
+            /* font-size: 10pxs; */
+        }
+
+        .table .no-border {
+            border: none;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .btn {
+            display: none;
+        }
+
+        .user-details {
+            text-decoration: overline;
+            text-align: center;
+            display: block;
+            margin-top: 10px;
+            white-space: nowrap;
+            /* Prevent text from wrapping */
+        }
+
+        #row-container {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 50px;
+            border-top: 0.5px solid black;
+            text-align: center;
+        }
+
+        #row-container .col {
+            flex: 1;
+            text-align: center;
+        }
+
+    }
+
+    .card-title {
+        text-decoration: underline;
+    }
+
+    .header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .header h1 {
+        margin: 10px;
+        font-size: 36px;
+    }
+
+    .details-container {
+        display: flex;
+        justify-content: space-between;
+        /* width: 100%; */
+        margin-bottom: 10px;
+    }
+
+    .left,
+    .right {
+        width: 48%;
+    }
+
+    .left {
+        text-align: left;
+        margin-left: 20px;
+    }
+
+    .right {
+        flex: 1;
+    }
+
+    .right {
+        font-size: 15px;
+        text-align: right;
+        margin-right: 20px;
+    }
+
+    .user-details {
+        text-decoration: overline;
+        text-align: center;
+        display: block;
+        margin-top: 10px;
+        white-space: nowrap;
+        /* Prevent text from wrapping */
+    }
+
+    #row-container {
+        display: flex;
+        justify-content: space-between;
+        padding-top: 50px;
+        border-top: 0.5px solid black;
+        text-align: center;
+    }
+
+    #row-container .col {
+        flex: 1;
+        text-align: center;
+    }
+
+    .bordered-digit {
+        border: 1px solid black;
+        padding: 5px;
+        display: inline-block;
+        margin-right: -1px;
+    }
+</style>
+
+<div class="container">
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col d-flex justify-content-end align-items-start">
+                <a href="/purchase-bills" class="btn btn-secondary">Back to Purchase Entry</a>
+                <a href="/bills/<%= bill._id %>/pdf" class="btn btn-primary ml-2">Download PDF</a>
+                <button class="btn btn-info ml-2" onclick="printBill()">Print</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="printableContent">
+        <div class="card mt-4">
+            <div class="header">
+                <h2 class="card-title">
+                    Purchase Invoice
+                </h2>
+                <h2 class="card-subtitle mb-2">
+                    <%= currentCompanyName %>
+                </h2>
+                <b>
+                    <h4>
+                        <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
+                                    <%=currentCompany.country%> <br><br>
+                                        Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
+                                                <br><br>
+                                                VAT NO.: <span id="pan-vat-container">
+                                                </span>
+                    </h4>
+                </b>
+                <hr style="border: 0.5px solid;">
+            </div>
+            <div class="details-container">
+                <div class="left">
+                    <h3>
+                        Supplier A/c: <%= bill.account.name %>
+                    </h3>
+                    <strong>Address:</strong>
+                    <%= bill.account.address ? bill.account.address : 'Null' %>&nbsp;
+                        <br>
+                        <strong>Pan no.:</strong>
+                        <%= bill.account.pan ? bill.account.pan : 'Null' %>
+                            <br>
+                            <strong>Email:</strong>
+                            <%= bill.account.email ? bill.account.email : 'Null' %>&nbsp;
+                                <strong>Tel.:</strong>
+                                <%= bill.account.phone ? bill.account.phone : 'Null' %>&nbsp;
+                                    <br>
+                                    <strong>Mode of Payment:</strong>
+                                    <%= bill.paymentMode %>
+
+                </div>
+
+                <div class="right">
+                    <br>
+                    <strong>Invoice No:</strong>
+                    <%= bill.billNumber %>
+                        <br>
+                        <strong>Supplier Invoice No:</strong>
+                        <%=bill.partyBillNumber%>
+                            <br>
+                            <% if (companyDateFormat==='english' ) { %>
+                                <strong>Transaction Date:</strong>
+                                <%= new Date(bill.transactionDate).toLocaleDateString()%>
+                                    <br>
+                                    <strong>Invoice Issue Date:</strong>
+                                    <%= new Date(bill.date).toLocaleDateString() %>
+                                        <% } else { %>
+                                            <strong>Transaction Date:</strong>
+                                            <%= new Date(bill.transactionDate).toLocaleDateString()%>
+                                                <br>
+                                                <strong>Invoice Issue Date:</strong>
+                                                <%= new Date(bill.date).toLocaleDateString() %>
+                                                    <% } %>
+                                                        <br>
+                                                        <% if (paymentMode !=='cash' ) { %>
+                                                            <strong>Balance Upto:</strong>
+                                                            <%= lastBalance %>
+                                                                <%= balanceLabel %>
+                                                                    <% } %>
+
+                </div>
+            </div>
+
+            <hr style="border: 0.5px solid;">
+
+            <div class="container">
+                <table class="table items-table">
+                    <thead>
+                        <tr>
+                            <th>S.No.</th>
+                            <th>Item Code</th>
+                            <th>H.S. Code</th>
+                            <th>Description of Goods</th>
+                            <th>Quantity</th>
+                            <th>Unit</th>
+                            <th>Price (Rs.)</th>
+                            <th>Total (Rs.)</th>
+                        </tr>
+
+                    </thead>
+                    <tbody>
+                        <% for (let i=0; i < bill.items.length; i++) { %>
+
+                            <tr>
+                                <td>
+                                    <%= i + 1 %>
+                                </td>
+                                <td>
+                                    <%=bill.items[i].item.uniqueNumber%>
+                                </td>
+                                <td>
+                                    <%= bill.items[i].item.hscode %>
+                                </td>
+                                <td>
+                                    <%= bill.items[i].item.name %>
+                                </td>
+                                <td>
+                                    <%= bill.items[i].quantity %>
+                                </td>
+                                <td>
+                                    <%= bill.items[i].item.unit ? bill.items[i].item.unit.name : '' %>
+                                </td>
+                                <td>
+                                    <%= bill.items[i].puPrice %>
+                                </td>
+                                <td>
+                                    <%= (bill.items[i].quantity * bill.items[i].puPrice).toFixed(2) %>
+                                </td>
+                            </tr>
+
+                            <% } %>
+
+                    </tbody>
+                </table>
+                <table style="float: right;">
+                    <tbody>
+                        <tr>
+                            <td colspan="7" class="text-right"><strong>Sub-Total:</strong></td>
+                            <td class="text-right">
+                                <%= bill.subTotal.toFixed(2) %>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="7" class="text-right"><strong>Discount (<%= bill.discountPercentage %>
+                                        %):</strong></td>
+                            <td class="text-right">
+                                <%= bill.discountAmount.toFixed(2) %>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="7" class="text-right"><strong>Taxable Amount:</strong></td>
+                            <td class="text-right">
+                                <%= bill.taxableAmount.toFixed(2) %>
+                            </td>
+                        </tr>
+                        <% if (!bill.isVatExempt) { %>
+                            <tr>
+                                <td colspan="7" class="text-right"><strong>VAT (<%= bill.vatPercentage %> %):</strong>
+                                </td>
+                                <td class="text-right">
+                                    <%= (bill.taxableAmount * bill.vatPercentage / 100).toFixed(2) %>
+                                </td>
+                            </tr>
+                            <% } %>
+                                <tr>
+                                    <td colspan="7" class="text-right"><strong>Round Off:</strong></td>
+                                    <td class="text-right">
+                                        <%= bill.roundOffAmount.toFixed(2) %>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="7" class="text-right"><strong>Grand Total:</strong></td>
+                                    <td class="text-right">
+                                        <%= bill.totalAmount.toFixed(2) %>
+                                    </td>
+                                </tr>
+                    </tbody>
+                    <hr style="border: 0.5px solid;">
+                </table>
+                <td class="text-left"><strong>In Words:</strong>
+                    <span id="amountInWords"></span> Only.
+                </td>
+            </div>
+            <br><br><br>
+            <div class="row container" id="row-container">
+                <div class="col">
+                    <br>
+                    <br>
+                    <p><strong class="user-details">Received By:</strong></p>
+                </div>
+                <div class="col">
+                    <br>
+                    <br>
+                    <p><strong class="user-details">Checked By:</strong></p>
+                </div>
+                <div class="col">
+                    <p>
+                        <%= bill.user.name %>
+                    </p>
+                    <strong class="user-details">Prepared By:</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Exit Confirmation Modal -->
+<div class="modal fade" id="exitConfirmationModal" tabindex="-1" aria-labelledby="exitConfirmationModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exitConfirmationModalLabel">Exit Confirmation</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to exit without saving?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmExit" autofocus>Yes, Exit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function printBill() {
+        var printContents = document.getElementById('printableContent').innerHTML;
+        var styles = document.getElementById('printStyles').innerHTML;
+        var originalContents = document.body.innerHTML;
+        document.body.innerHTML = '<style>' + styles + '</style>' + printContents;
+        window.print();
+        document.body.innerHTML = originalContents;
+    }
+    // window.print();
+    const panVatNo = '<%= currentCompany.pan %>';
+    const container = document.getElementById('pan-vat-container');
+
+    for (let i = 0; i < panVatNo.length; i++) {
+        const digit = document.createElement('span');
+        digit.className = 'bordered-digit';
+        digit.textContent = panVatNo[i];
+        container.appendChild(digit);
+    }
+
+    function numberToWords(num) {
+        const ones = [
+            '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+            'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+            'Seventeen', 'Eighteen', 'Nineteen'
+        ];
+
+        const tens = [
+            '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'
+        ];
+
+        const scales = ['', 'Thousand', 'Million', 'Billion'];
+
+        function convertHundreds(num) {
+            let words = '';
+
+            if (num > 99) {
+                words += ones[Math.floor(num / 100)] + ' Hundred ';
+                num %= 100;
+            }
+
+            if (num > 19) {
+                words += tens[Math.floor(num / 10)] + ' ';
+                num %= 10;
+            }
+
+            if (num > 0) {
+                words += ones[num] + ' ';
+            }
+
+            return words.trim();
+        }
+
+        if (num === 0) return 'Zero';
+
+        if (num < 0) return 'Negative ' + numberToWords(Math.abs(num));
+
+        let words = '';
+
+        for (let i = 0; i < scales.length; i++) {
+            let unit = Math.pow(1000, scales.length - i - 1);
+            let currentNum = Math.floor(num / unit);
+
+            if (currentNum > 0) {
+                words += convertHundreds(currentNum) + ' ' + scales[scales.length - i - 1] + ' ';
+            }
+
+            num %= unit;
+        }
+
+        return words.trim();
+    }
+
+    function numberToWordsWithPaisa(amount) {
+        // Split the amount into rupees and paisa
+        const rupees = Math.floor(amount);
+        const paisa = Math.round((amount - rupees) * 100);
+
+        let result = numberToWords(rupees) + ' Rupees';
+
+        if (paisa > 0) {
+            result += ' and ' + numberToWords(paisa) + ' Paisa';
+        }
+
+        return result;
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        var netTotal = <%= bill.totalAmount %>;
+        document.getElementById("amountInWords").textContent = numberToWordsWithPaisa(netTotal);
+    });
+
+    //Handle scape buttons
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            event.preventDefault(); // Prevent default escape behavior
+            var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
+            exitModal.show();
+        }
+    });
+
+    // Handle the exit confirmation
+    document.getElementById('confirmExit').addEventListener('click', function () {
+        // Redirect to the home page
+        window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
+    });
+
+</script>

@@ -1,0 +1,168 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: 'Accounts' , body: 'wholeseller >> account >> accounts' }) %>
+</div>
+
+<style id="printStyles" media="print">
+    body {
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+        /* Use 'exact' for color adjustment */
+    }
+
+    .container {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .btn {
+        display: none;
+        /* Hide print button during print */
+    }
+
+    @media print {
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+
+        h1,
+        h5 {
+            margin: 0;
+            /* Remove margin for headers in print */
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col d-flex justify-content-end align-items-start">
+                <button class="btn btn-info ml-2" onclick="printBill()">Print</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="printableContent">
+    <div class="container" id="mainContainer">
+        <div class="card mb-4 text-center shadow">
+            <br>
+            <div class="header">
+                <h2 class="card-subtitle mb-2">
+                    <%= currentCompanyName %>
+                </h2>
+                <h4>
+                    <b>
+                        <%= currentCompany.address %>-<%= currentCompany.ward %>, <%= currentCompany.city %>, <%=
+                                        currentCompany.country %>
+                    </b>
+                </h4>
+                <h3>Ageing Receivables/Payables</h3>
+                <hr style="border: 0.5px solid;">
+            </div>
+            <!-- <h2 class="mb-4">Aging Report</h2> -->
+            <div>
+                <h4>Account: <%=account.name%>
+            </div>
+            <!-- Display Opening Balance -->
+            <div class="mb-3">
+                <strong>Opening Balance:</strong>
+                <span>
+                    <%= account.openingBalance.amount %>
+                        <%= account.openingBalance.type %>
+                </span>
+            </div>
+
+            <table class="table table-striped table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Date</th>
+                        <th>Age (Days)</th>
+                        <th>Details</th>
+                        <th>Debit</th>
+                        <th>Credit</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (agingData.transactions.length===0) { %>
+                        <tr>
+                            <td colspan="6" class="text-center">No transactions available.</td>
+                        </tr>
+                        <% } else { %>
+                            <% agingData.transactions.forEach(transaction=> { %>
+                                <tr>
+                                    <td title="Transaction Date: <%= transaction.transactionDate %>">
+                                        <%= new Date(transaction.date).toLocaleDateString(companyDateFormat==='nepali'
+                                            ? 'en-NP' : 'en-US' ) %>
+                                    </td>
+                                    <td title="Age in Days: <%= transaction.age %>">
+                                        <%= transaction.age %> days
+                                    </td>
+                                    <td title="Details: <%= transaction.details %>">
+                                        <% if (transaction.type==='Sale' ) { %>Sale<% } %>
+                                                <% if (transaction.type==='Purc' ) { %>Purchase<% } %>
+                                                        <% if (transaction.type==='PrRt' ) { %>Purchase Return<% } %>
+                                                                <% if (transaction.type==='Slrt' ) { %>Sales Return<% }
+                                                                        %>
+                                                                        <% if (transaction.type==='Pymt' ) { %>Payment<%
+                                                                                } %>
+                                                                                <% if (transaction.type==='Rcpt' ) { %>
+                                                                                    Receipt<% } %>
+                                                                                        <% if (transaction.type==='DrNt'
+                                                                                            ) { %>
+                                                                                            Debit Note<% } %>
+                                                                                                <% if
+                                                                                                    (transaction.type==='CrNt'
+                                                                                                    ) { %>Credit Note<%
+                                                                                                        } %>
+                                                                                                        <% if
+                                                                                                            (transaction.type==='Jrnl'
+                                                                                                            ) { %>
+                                                                                                            Journal<% }
+                                                                                                                %>
+                                    </td>
+                                    <td class="text-danger" title="Debit Amount: <%= transaction.debit %>">
+                                        <%= transaction.debit.toFixed(2) %>
+                                    </td>
+                                    <td class="text-success" title="Credit Amount: <%= transaction.credit %>">
+                                        <%= transaction.credit.toFixed(2) %>
+                                    </td>
+                                    <td title="Current Balance: <%= transaction.balance %>">
+                                        <%= (transaction.balance>= 0 ? transaction.balance.toFixed(2) + ' Cr' :
+                                            (-transaction.balance).toFixed(2) + ' Dr') %>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function printBill() {
+        var printContents = document.getElementById('printableContent').innerHTML;
+        var styles = document.getElementById('printStyles') ? document.getElementById('printStyles').innerHTML : '';
+        var originalContents = document.body.innerHTML;
+
+        // Debugging
+        console.log("Printing...");
+
+        document.body.innerHTML = '<style>' + styles + '</style>' + printContents;
+        window.print();
+        document.body.innerHTML = originalContents;
+
+        // Optional: refresh the page or keep original content
+        // location.reload(); 
+    }
+</script>

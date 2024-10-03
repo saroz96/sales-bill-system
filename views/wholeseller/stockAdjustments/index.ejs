@@ -1,0 +1,119 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: 'Stock Adjustment View' ,
+        body: 'wholeseller >> stock adjustment >> ledger' }) %>
+</div>
+<div class="container" id="mainContainer">
+    <h1 class="my-4">Stock Adjustments</h1>
+    <div class="card">
+        <div class="card-body">
+            <a href="/stockAdjustments/new" class="btn btn-primary mb-4">New Stock Adjustment</a>
+            <!-- Adjustment Type Filter and Search Form in One Row -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <form>
+                        <div class="form-group">
+                            <label for="searchInput">Search Items:</label>
+                            <input type="text" class="form-control" id="searchInput"
+                                placeholder="Search items by name...">
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <form id="filterForm">
+                        <div class="form-group">
+                            <label for="adjustmentTypeFilter">Filter by Adjustment Type:</label>
+                            <select class="form-control" id="adjustmentTypeFilter">
+                                <option value="">All</option>
+                                <option value="xcess">Xcess</option>
+                                <option value="short">Short</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <table class="table table-striped" id="adjustmentList">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Quantity</th>
+                        <th>Adjustment Type</th>
+                        <th>Reason</th>
+                        <th>Date</th>
+                        <th>User</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (stockAdjustments && stockAdjustments.length> 0) { %>
+                        <% stockAdjustments.forEach(adjustment=> { %>
+                            <tr class="searchClass" data-adjustment-type="<%= adjustment.adjustmentType %>">
+                                <td>
+                                    <%= adjustment.item.name %>
+                                </td>
+                                <td class="quantity">
+                                    <%= adjustment.quantity %>
+                                </td>
+                                <td>
+                                    <%= adjustment.adjustmentType %>
+                                </td>
+                                <td>
+                                    <%= adjustment.reason %>
+                                </td>
+                                <td>
+                                    <% if (companyDateFormat==='nepali' ) { %>
+                                        <%= new Date(nepaliDate).toLocaleDateString() %>
+                                            <% } else { %>
+                                                <%= new Date(adjustment.date).toLocaleDateString() %>
+                                                    <% } %>
+                                </td>
+                                <td>
+                                    <%= adjustment.user.name %>
+                                </td>
+                            </tr>
+                            <% }) %>
+                                <% } %>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5" class="text-right"><strong>Total Quantity:</strong></td>
+                        <td id="totalQuantity">0</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('searchInput').addEventListener('input', filterAdjustment);
+    document.getElementById('adjustmentTypeFilter').addEventListener('change', filterAdjustment);
+
+    function filterAdjustment() {
+        const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+        const selectedAdjustmentType = document.getElementById('adjustmentTypeFilter').value.trim().toLowerCase();
+        const adjustmentList = document.getElementById('adjustmentList');
+        const rows = adjustmentList.querySelectorAll('tbody tr.searchClass');
+        let totalQuantity = 0;
+
+        rows.forEach(row => {
+            const itemName = row.querySelector('td:nth-child(1)').textContent.trim().toLowerCase();
+            const adjustmentType = row.querySelector('td:nth-child(3)').textContent.trim().toLowerCase();
+            const quantity = parseFloat(row.querySelector('.quantity').textContent);
+
+            const matchesSearch = itemName.includes(searchQuery);
+            const matchesAdjustmentType = selectedAdjustmentType === '' || adjustmentType === selectedAdjustmentType;
+
+            if (matchesSearch && matchesAdjustmentType) {
+                row.style.display = '';
+                totalQuantity += quantity;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        document.getElementById('totalQuantity').textContent = totalQuantity;
+    }
+
+    // Initial calculation of total quantity
+    filterAdjustment();
+</script>

@@ -1,0 +1,253 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: 'Add Debit Note' ,
+        body: 'wholeseller >> debit note >> add debit note' }) %>
+</div>
+<div class="container mt-4" id="mainContainer">
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title">Debit Note Entry</h3>
+            <form action="/debit-note/new" method="POST">
+                <% if (companyDateFormat==='nepali' ) { %>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nepaliDate" class="form-label" data-bs-toggle="tooltip" data-bs-placement="top"
+                                title="Enter Nepali Date">Nepali Date:</label>
+                            <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
+                                value="<%= nepaliDate || '' %>" placeholder="YYYY/MM/DD" autofocus>
+                        </div>
+                        <div class="col-md-6 mb-3 d-none">
+                            <label for="billDate" class="form-label">English Date:</label>
+                            <input type="date" name="billDate" id="billDate" class="form-control"
+                                value="<%= new Date().toISOString().split('T')[0] %>" disabled>
+                        </div>
+                        <% } else { %>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="billDate" class="form-label" data-bs-toggle="tooltip"
+                                        data-bs-placement="top" title="Select Date">English Date:</label>
+                                    <input type="date" name="billDate" id="billDate" class="form-control" required
+                                        value="<%= new Date().toISOString().split('T')[0] %>" autofocus>
+                                </div>
+                                <div class="col-md-6 mb-3 d-none">
+                                    <label for="nepaliDate" class="form-label">Nepali Date:</label>
+                                    <input type="text" name="nepaliDate" id="nepaliDate" class="form-control"
+                                        value="<%= nepaliDate || '' %>" disabled>
+                                </div>
+                                <% } %>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="billNumber" class="form-label">Voucher Number:</label>
+                                        <input type="number" name="billNumber" id="billNumber" class="form-control"
+                                            required value="<%= nextBillNumber %>" readonly>
+                                    </div>
+                            </div>
+
+                            <h4 class="mt-4">Debit Accounts</h4>
+                            <div id="debit-accounts" class="mb-3">
+                                <div class="card mb-2">
+                                    <div class="card-body debit-account">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-4 mb-3">
+                                                <label for="debitAccount1" class="form-label">Debit Account:</label>
+                                                <select name="debitAccounts[0][account]" id="debitAccount1"
+                                                    class="form-select" required>
+                                                    <option value="" disabled selected>Select a party name</option>
+                                                    <% accounts.forEach(account=> { %>
+                                                        <option value="<%= account._id %>">
+                                                            <%= account.name %>
+                                                        </option>
+                                                        <% }) %>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label for="debitAmount1" class="form-label">Amount:</label>
+                                                <input type="number" name="debitAccounts[0][debit]" id="debitAmount1"
+                                                    class="form-control" required>
+                                            </div>
+                                            <div class="col-md-4 mb-3 text-end">
+                                                <br>
+                                                <button type="button" id="add-debit-account" class="btn btn-primary">
+                                                    <i class="fas fa-plus"></i> Add Debit Account
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <h4 class="mt-4">Credit Accounts</h4>
+                            <div id="credit-accounts" class="mb-3">
+                                <div class="card mb-2">
+                                    <div class="card-body credit-account">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-4 mb-3">
+                                                <label for="creditAccount1" class="form-label">Credit Account:</label>
+                                                <select name="creditAccounts[0][account]" id="creditAccount1"
+                                                    class="form-select" required>
+                                                    <option value="" disabled selected>Select a party name</option>
+                                                    <% accounts.forEach(account=> { %>
+                                                        <option value="<%= account._id %>">
+                                                            <%= account.name %>
+                                                        </option>
+                                                        <% }) %>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label for="creditAmount1" class="form-label">Amount:</label>
+                                                <input type="number" name="creditAccounts[0][credit]" id="creditAmount1"
+                                                    class="form-control" required>
+                                            </div>
+                                            <div class="col-md-4 mb-3 text-end">
+                                                <br>
+                                                <button type="button" id="add-credit-account" class="btn btn-primary">
+                                                    <i class="fas fa-plus"></i> Add Credit Account
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description:</label>
+                                <textarea name="description" id="description" class="form-control" required></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-success">Save Debit Note</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Exit Confirmation Modal -->
+<div class="modal fade" id="exitConfirmationModal" tabindex="-1" aria-labelledby="exitConfirmationModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exitConfirmationModalLabel">Exit Confirmation</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to exit without saving?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmExit" autofocus>Yes, Exit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+
+    $(document).ready(function () {
+        // Initialize Select2 for searchable dropdown
+        $('#debitAccount1').select2({
+            placeholder: "Select a party name",
+            allowClear: true,
+            width: '100%', // Ensure it takes the full width of the container
+        });
+    });
+
+    $(document).ready(function () {
+        // Initialize Select2 for searchable dropdown
+        $('#creditAccount1').select2({
+            placeholder: "Select a party name",
+            allowClear: true,
+            width: '100%', // Ensure it takes the full width of the container
+        });
+    });
+
+    document.getElementById('add-debit-account').addEventListener('click', function () {
+        const debitAccountsDiv = document.getElementById('debit-accounts');
+        const index = debitAccountsDiv.children.length;
+        const newDebitAccount = `
+            <div class="card mb-2">
+                <div class="card-body debit-account">
+                     <div class="row align-items-center">
+                                            <div class="col-md-4 mb-3">
+                    <label for="debitAccount${index + 1}" class="form-label">Debit Account:</label>
+                    <select name="debitAccounts[${index}][account]" id="debitAccount${index + 1}" class="form-select" required>
+                        <% accounts.forEach(account => { %>
+                            <option value="<%= account._id %>"><%= account.name %></option>
+                        <% }) %>
+                    </select>
+</div>
+                                            <div class="col-md-4 mb-3">
+
+                    <label for="debitAmount${index + 1}" class="form-label">Amount:</label>
+                    <input type="number" name="debitAccounts[${index}][debit]" id="debitAmount${index + 1}" class="form-control" required>
+                </div>
+                </div>
+                    </div>
+            </div>
+        `;
+        debitAccountsDiv.insertAdjacentHTML('beforeend', newDebitAccount);
+    });
+
+    document.getElementById('add-credit-account').addEventListener('click', function () {
+        const creditAccountsDiv = document.getElementById('credit-accounts');
+        const index = creditAccountsDiv.children.length;
+        const newCreditAccount = `
+            <div class="card mb-2">
+                <div class="card-body credit-account">
+                    <div class="row align-items-center">
+                                            <div class="col-md-4 mb-3">
+                    <label for="creditAccount${index + 1}" class="form-label">Credit Account:</label>
+                    <select name="creditAccounts[${index}][account]" id="creditAccount${index + 1}" class="form-select" required>
+                        <% accounts.forEach(account => { %>
+                            <option value="<%= account._id %>"><%= account.name %></option>
+                        <% }) %>
+                    </select>
+                        </div>
+                                            <div class="col-md-4 mb-3">
+                    <label for="creditAmount${index + 1}" class="form-label">Amount:</label>
+                    <input type="number" name="creditAccounts[${index}][credit]" id="creditAmount${index + 1}" class="form-control" required>
+                </div>
+            </div>
+               </div>
+            </div>
+        `;
+        creditAccountsDiv.insertAdjacentHTML('beforeend', newCreditAccount);
+    });
+
+    document.querySelector('form').addEventListener('submit', function (event) {
+        let totalDebit = 0;
+        let totalCredit = 0;
+
+        // Sum up debit amounts
+        document.querySelectorAll('input[name$="[debit]"]').forEach(function (input) {
+            totalDebit += parseFloat(input.value) || 0;
+        });
+
+        // Sum up credit amounts
+        document.querySelectorAll('input[name$="[credit]"]').forEach(function (input) {
+            totalCredit += parseFloat(input.value) || 0;
+        });
+
+        // Check if totals match
+        if (totalDebit !== totalCredit) {
+            event.preventDefault(); // Prevent form submission
+            alert('Total debit amount must be equal to total credit amount.');
+        }
+    });
+
+    //Handle scape buttons
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            event.preventDefault(); // Prevent default escape behavior
+            var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
+            exitModal.show();
+        }
+    });
+
+    // Handle the exit confirmation
+    document.getElementById('confirmExit').addEventListener('click', function () {
+        // Redirect to the home page
+        window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
+    });
+</script>

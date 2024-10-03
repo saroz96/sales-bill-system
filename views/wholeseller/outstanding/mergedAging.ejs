@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %>
+    </title>
+</head>
+
+<body>
+    <h1>Merged Aging Report</h1>
+
+    <!-- Display accounts selected for the report -->
+    <ul>
+        <% accounts.forEach(account=> { %>
+            <li>
+                <%= account.name %>
+            </li>
+            <% }) %>
+    </ul>
+
+    <!-- Display the merged aging data -->
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Total Outstanding</th>
+                <th>0-30 Days</th>
+                <th>31-60 Days</th>
+                <th>61-90 Days</th>
+                <th>90+ Days</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <%= mergedAgingData.totalOutstanding %>
+                </td>
+                <td>
+                    <%= mergedAgingData.oneToThirty %>
+                </td>
+                <td>
+                    <%= mergedAgingData.thirtyOneToSixty %>
+                </td>
+                <td>
+                    <%= mergedAgingData.sixtyOneToNinety %>
+                </td>
+                <td>
+                    <%= mergedAgingData.ninetyPlus %>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+
+</html>

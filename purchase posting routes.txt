@@ -1,0 +1,240 @@
+purchase bill posting routes
+
+
+router.post('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        try {
+            const { account, items, vatPercentage, purchaseSalesType, transactionDateNepali, transactionDateRoman, billDate, partyBillNumber, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount } = req.body;
+            const companyId = req.session.currentCompany;
+            const currentFiscalYear = req.session.currentFiscalYear.id
+            const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+            const userId = req.user._id;
+
+            console.log('Request Body:', req.body);
+
+            const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
+            const discount = parseFloat(discountPercentage) || 0;
+
+            let subTotal = 0;
+            let vatAmount = 0;
+            let totalTaxableAmount = 0;
+            let totalNonTaxableAmount = 0;
+            let hasVatableItems = false;
+            let hasNonVatableItems = false;
+
+            if (!companyId) {
+                return res.status(400).json({ error: 'Company ID is required' });
+            }
+
+            const accounts = await Account.findOne({ _id: account, company: companyId });
+            if (!accounts) {
+                return res.status(400).json({ error: 'Invalid account for this company' });
+            }
+
+            // Validate each item before processing
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const product = await Item.findById(item.item);
+
+                if (!product) {
+                    req.flash('error', `Item with id ${item.item} not found`);
+                    return res.redirect('/purchase-bills');
+                }
+
+                const itemTotal = parseFloat(item.puPrice) * parseFloat(item.quantity, 10);
+                subTotal += itemTotal;
+
+                if (product.vatStatus === 'vatable') {
+                    hasVatableItems = true;
+                    totalTaxableAmount += itemTotal;
+                } else {
+                    hasNonVatableItems = true;
+                    totalNonTaxableAmount += itemTotal;
+                }
+            }
+
+            // Find the counter for the company
+            let billCounter = await PurchaseBillCounter.findOne({ company: companyId });
+            if (!billCounter) {
+                billCounter = new PurchaseBillCounter({ company: companyId });
+            }
+            // Increment the counter
+            billCounter.count += 1;
+            await billCounter.save();
+
+            // Check validation conditions after processing all items
+            if (isVatExempt !== 'all') {
+                if (isVatExemptBool && hasVatableItems) {
+                    req.flash('error', 'Cannot save VAT exempt bill with vatable items');
+                    return res.redirect('/purchase-bills');
+                }
+
+                if (!isVatExemptBool && hasNonVatableItems) {
+                    req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
+                    return res.redirect('/purchase-bills');
+                }
+            }
+
+            // Apply discount proportionally to vatable and non-vatable items
+            const discountForTaxable = (totalTaxableAmount * discount) / 100;
+            const discountForNonTaxable = (totalNonTaxableAmount * discount) / 100;
+
+            const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
+            const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
+
+            // Calculate VAT only for vatable items
+            if (!isVatExemptBool || isVatExempt === 'all') {
+                vatAmount = (finalTaxableAmount * vatPercentage) / 100;
+            } else {
+                vatAmount = 0;
+            }
+
+            let totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
+            let finalAmount = totalAmount;
+
+            // Check if round off is enabled in settings
+            let roundOffForPurchase = await Settings.findOne({ companyId, userId });
+
+            if (!roundOffForPurchase) {
+                console.log('No settings found, using default settings or handling as required');
+                roundOffForPurchase = { roundOffPurchase: false }; // Provide default settings or handle as needed
+            }
+            let roundOffAmount = 0;
+            if (roundOffForPurchase.roundOffPurchase) {
+                finalAmount = Math.round(finalAmount.toFixed(2)); // Round off final amount
+                roundOffAmount = finalAmount - totalAmount;
+            } else if (manualRoundOffAmount && !roundOffForPurchase.roundOffPurchase) {
+                roundOffAmount = parseFloat(manualRoundOffAmount);
+                finalAmount = totalAmount + roundOffAmount;
+            }
+
+            // Create new purchase bill
+            const newBill = new PurchaseBill({
+                billNumber: billCounter.count,
+                partyBillNumber,
+                account,
+                purchaseSalesType: 'Purchase',
+                items: [], // We'll update this later
+                isVatExempt: isVatExemptBool,
+                vatPercentage: isVatExemptBool ? 0 : vatPercentage,
+                subTotal,
+                discountPercentage: discount,
+                discountAmount: discountForTaxable + discountForNonTaxable,
+                nonVatPurchase: finalNonTaxableAmount,
+                taxableAmount: finalTaxableAmount,
+                vatAmount,
+                totalAmount: finalAmount,
+                roundOffAmount: roundOffAmount,
+                paymentMode,
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                transactionDate: transactionDateNepali ? transactionDateNepali : new Date(transactionDateRoman),
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear
+            });
+
+            // Create transactions
+            let previousBalance = 0;
+            const accountTransaction = await Transaction.findOne({ account: account }).sort({ transactionDate: -1 });
+            if (accountTransaction) {
+                previousBalance = accountTransaction.balance;
+            }
+
+            // Calculate weighted average price function
+            async function calculateWeightedAverage(product, newQuantity, newPrice) {
+                const oldStockQuantity = product.stock || 0;
+                const oldPrice = product.puPrice || 0;
+
+                const totalQuantity = parseFloat(oldStockQuantity) + parseFloat(newQuantity);
+                const weightedPrice = ((parseFloat(oldStockQuantity) * parseFloat(oldPrice)) + (parseFloat(newQuantity) * parseFloat(newPrice))) / totalQuantity;
+
+                return { totalQuantity, weightedPrice };
+            }
+
+            // Update stock and transactions
+            const billItems = await Promise.all(items.map(async item => {
+                const product = await Item.findById(item.item);
+                const { quantity, puPrice } = item;
+
+                // Calculate weighted average purchase price
+                const { totalQuantity, weightedPrice } = await calculateWeightedAverage(product, parseFloat(quantity), parseFloat(puPrice));
+
+                // Update product with new stock and price
+                product.stock = totalQuantity;
+                product.puPrice = weightedPrice;
+                await product.save();
+
+                // Create transaction
+                const transaction = new Transaction({
+                    item: product._id,
+                    account: account,
+                    billNumber: billCounter.count,
+                    partyBillNumber,
+                    purchaseSalesType: 'Purchase',
+                    quantity: parseFloat(quantity),
+                    puPrice: weightedPrice,
+                    type: 'Purc',
+                    purchaseBillId: newBill._id,
+                    debit: 0,
+                    credit: finalAmount,
+                    paymentMode: paymentMode,
+                    balance: previousBalance + finalAmount,
+                    date: nepaliDate ? nepaliDate : new Date(billDate),
+                    company: companyId,
+                    user: userId,
+                    fiscalYear: currentFiscalYear
+
+                });
+
+                await transaction.save();
+                console.log(transaction);
+                return {
+                    item: product._id,
+                    quantity: parseFloat(quantity),
+                    puPrice: weightedPrice,
+                    unit: item.unit,
+                    vatStatus: product.vatStatus
+                };
+            }));
+
+            // Update bill with items
+            newBill.items = billItems;
+            await newBill.save();
+
+            if (paymentMode === 'cash') {
+                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
+                if (cashAccount) {
+                    const cashTransaction = new Transaction({
+                        account: cashAccount._id,
+                        billNumber: billCounter.count,
+                        partyBillNumber,
+                        type: 'Purc',
+                        purchaseBillId: newBill._id,
+                        purchaseSalesType: 'Purchase',
+                        debit: 0,
+                        credit: finalAmount,
+                        paymentMode: paymentMode,
+                        balance: previousBalance + finalAmount,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+
+                    });
+                    await cashTransaction.save();
+                }
+            }
+
+            if (req.query.print === 'true') {
+                res.redirect(`/purchase-bills/${newBill._id}/direct-print`);
+            } else {
+                req.flash('success', 'Purchase bill saved successfully!');
+                res.redirect('/purchase-bills');
+            }
+        } catch (error) {
+            console.error("Error creating purchase bill:", error);
+            req.flash('error', 'Error creating purchase bill');
+            res.redirect('/purchase-bills');
+        }
+    }
+});

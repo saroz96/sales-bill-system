@@ -1,0 +1,313 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: 'Sales VAT Report' ,
+        body: 'wholeseller >> report >> sales vat report' }) %>
+</div>
+
+<style>
+    @media print {
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+        }
+
+        .container {
+            width: 100%;
+            margin: 0;
+        }
+
+        .card-body {
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .report-container {
+            page-break-after: always;
+        }
+
+        .report-container h1,
+        .report-container h3,
+        .report-container h5 {
+            margin: 0;
+        }
+    }
+</style>
+
+<div class="container" id="mainContainer">
+    <h1 style="text-align: center;">Sales Return VAT Report</h1>
+    <div class="card mt-4">
+        <div class="card-body">
+            <form action="/salesReturn-vat-report" method="get" class="mb-4">
+                <div class="row">
+                    <% if (companyDateFormat==='english' ) { %>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="fromDate">From</label>
+                                <input type="text" name="fromDate" id="fromDate" class="form-control"
+                                    value="<%= fromDate ? fromDate : '2023-07-17' %>">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="toDate">To</label>
+                                <input type="text" name="toDate" id="toDate" class="form-control"
+                                    value="<%= new Date().toISOString().split('T')[0] %>">
+                            </div>
+                        </div>
+                        <% } else { %>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label for="fromDate">From</label>
+                                    <input type="text" name="fromDate" id="fromDate" class="form-control"
+                                        value="<%= fromDate ? fromDate : '2081-04-01' %>">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label for="toDate">To</label>
+                                    <input type="text" name="toDate" id="toDate" class="form-control"
+                                        value="<%= nepaliDate %>">
+                                </div>
+                            </div>
+                            <% } %>
+                                <div class="col">
+                                    <label for=""><i class="fas fa-chart-line"></i></label>
+                                    <div class="form-group">
+                                        <button type="submit" class="btn btn-primary">Generate Report</button>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <label for=""><i class="fas fa-print"></i></label>
+                                    <div class="form-group">
+                                        <button type="button" class="btn btn-info" onclick="printReport()">Print
+                                            Report</button>
+                                    </div>
+                                </div>
+                                <!-- Add this button inside your form or wherever appropriate in your HTML -->
+                                <div class="col">
+                                    <label for=""><i class="fas fa-sync-alt"></i></label>
+                                    <div class="form-group">
+                                        <button type="button" class="btn btn-secondary" onclick="refreshPage()">Refresh
+                                            Page</button>
+                                    </div>
+                                </div>
+
+                </div>
+            </form>
+
+            <% if (salesReturnVatReport.length> 0) { %>
+                <div class="report-container">
+                    <strong>
+                        <h1 style="text-align: center;">
+                            <%= currentCompanyName %>
+                        </h1>
+                    </strong>
+                    <h5 style="text-align: center;">
+                        <%= currentCompany.address %>-<%= currentCompany.ward %>, <%= currentCompany.city %>, <%=
+                                        currentCompany.country %>
+                    </h5>
+                    <p style="text-align: center;">
+                        <strong>PAN:</strong> <strong>
+                            <%= currentCompany.pan %>
+                        </strong>
+                    </p>
+                    <p><strong>Sales Book</strong></p>
+
+                    <div class="form-group row">
+                        <div class="col" style="display: flex; justify-content: space-between;">
+                            <p><strong>From:</strong>
+                                <%= fromDate %>
+                            </p>
+                            <p><strong>To:</strong>
+                                <%= toDate %>
+                            </p>
+                        </div>
+                    </div>
+
+                    <table class="table table-bordered table-hover" id="billsList">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Bill No.</th>
+                                <th>Buyer's Name</th>
+                                <th>Buyer's PAN</th>
+                                <th>Total Sales Return</th>
+                                <th>Discount Amt</th>
+                                <th>Non VAT Sales Return</th>
+                                <th>Taxable Amount</th>
+                                <th>VAT Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (salesReturnVatReport.length> 0) { %>
+                                <% salesReturnVatReport.forEach(report=> { %>
+                                    <tr>
+                                        <td>
+                                            <%= new Date(report.date).toLocaleDateString() %>
+                                        </td>
+                                        <td>
+                                            <%= report.billNumber %>
+                                        </td>
+                                        <td>
+                                            <%= report.account %>
+                                        </td>
+                                        <td>
+                                            <%= report.panNumber %>
+                                        </td>
+                                        <td>
+                                            <%= report.totalAmount.toFixed(2) %>
+                                        </td>
+                                        <td>
+                                            <%= report.discountAmount.toFixed(2) %>
+                                        </td>
+                                        <td>
+                                            <%= report.nonVatSalesReturn %>
+                                        </td>
+                                        <td>
+                                            <%= report.taxableAmount.toFixed(2) %>
+                                        </td>
+                                        <td>
+                                            <%= report.vatAmount.toFixed(2) %>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                                        <% } else { %>
+                                            <tr>
+                                                <td colspan="9">No transactions found for the selected date range.</td>
+                                            </tr>
+                                            <% } %>
+                        </tbody>
+                        <tfoot>
+                            <tr id="totalsRow">
+                                <td colspan="4"><strong>Total:</strong></td>
+                                <td><strong id="totalSalesReturnAmount">0.00</strong></td>
+                                <td><strong id="totalDiscountAmount">0.00</strong></td>
+                                <td><strong id="totalNonVatSalesReturn">0.00</strong></td>
+                                <td><strong id="totalTaxableAmount">0.00</strong></td>
+                                <td><strong id="totalVatAmount">0.00</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <% } %>
+        </div>
+    </div>
+</div>
+
+<!-- Exit Confirmation Modal -->
+<div class="modal fade" id="exitConfirmationModal" tabindex="-1" aria-labelledby="exitConfirmationModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exitConfirmationModalLabel">Exit Confirmation</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to exit without saving?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmExit" autofocus>Yes, Exit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function refreshPage() {
+        // Reload the current page
+        window.location.reload();
+    }
+
+    function printReport() {
+        var printContents = document.querySelector('.report-container').innerHTML;
+        var originalContents = document.body.innerHTML;
+
+        document.body.innerHTML = '<html><head><title>Print Report</title><style>@media print { @page { size: A4 landscape; margin: 10mm; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #000; padding: 8px; text-align: left; } th { background-color: #f2f2f2; } } </style></head><body>' + printContents + '</body></html>';
+
+        window.print();
+
+        document.body.innerHTML = originalContents;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const companyDateFormat = "<%= companyDateFormat %>";
+        if (companyDateFormat === "nepali") {
+            const fromDateInput = document.getElementById('fromDate');
+            const toDateInput = document.getElementById('toDate');
+
+            if (fromDateInput.value) {
+                const nepaliFromDate = new NepaliDate(new Date(fromDateInput.value)).format('YYYY-MM-DD');
+                fromDateInput.value = nepaliFromDate;
+            }
+
+            if (toDateInput.value) {
+                const nepaliToDate = new NepaliDate(new Date(toDateInput.value)).format('YYYY-MM-DD');
+                toDateInput.value = nepaliToDate;
+            }
+        }
+    });
+
+    function updateTotals() {
+        let totalSalesReturnAmount = 0;
+        let totalDiscountAmount = 0;
+        let totalNonVatSalesReturn = 0;
+        let totalTaxableAmount = 0;
+        let totalVatAmount = 0;
+
+        const visibleRows = document.querySelectorAll('#billsList tbody tr');
+
+        visibleRows.forEach(row => {
+            totalSalesReturnAmount += parseFloat(row.cells[4].textContent) || 0;
+            totalDiscountAmount += parseFloat(row.cells[5].textContent) || 0;
+            totalNonVatSalesReturn += parseFloat(row.cells[6].textContent) || 0;
+            totalTaxableAmount += parseFloat(row.cells[7].textContent) || 0;
+            totalVatAmount += parseFloat(row.cells[8].textContent) || 0;
+        });
+
+        document.getElementById('totalSalesReturnAmount').textContent = totalSalesReturnAmount.toFixed(2);
+        document.getElementById('totalDiscountAmount').textContent = totalDiscountAmount.toFixed(2);
+        document.getElementById('totalNonVatSalesReturn').textContent = totalNonVatSalesReturn.toFixed(2);
+        document.getElementById('totalTaxableAmount').textContent = totalTaxableAmount.toFixed(2);
+        document.getElementById('totalVatAmount').textContent = totalVatAmount.toFixed(2);
+    }
+
+    document.addEventListener('DOMContentLoaded', updateTotals);
+
+    //Handle scape buttons
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            event.preventDefault(); // Prevent default escape behavior
+            var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
+            exitModal.show();
+        }
+    });
+
+    // Handle the exit confirmation
+    document.getElementById('confirmExit').addEventListener('click', function () {
+        // Redirect to the home page
+        window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
+    });
+</script>

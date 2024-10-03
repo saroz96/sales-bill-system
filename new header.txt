@@ -1,0 +1,372 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: 'index' , body: '' }) %>
+</div>
+<br><br>
+<style>
+    .card {
+        margin-bottom: 20px;
+    }
+
+    .custom-modal .modal-dialog {
+        max-width: 90%;
+    }
+
+    .vatable {
+        background-color: lightgreen;
+    }
+
+    .vatExempt {
+        background-color: lightyellow;
+    }
+
+    .footer {
+        text-align: center;
+        margin-top: 20px;
+        padding: 10px 0;
+        background-color: #f0f2f5;
+    }
+
+    .modal-backdrop {
+        z-index: 1040 !important;
+    }
+
+    .modal {
+        z-index: 1050;
+    }
+
+    /* Increase the z-index of the purchasePriceModal */
+    #purchasePriceModal {
+        z-index: 1060;
+    }
+
+    /* Ensure that the modal content is scrollable */
+    .modal-dialog {
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    /* Highlight the active row */
+    .table .active {
+        background-color: #007bff !important;
+        /* Ensure blue color */
+        color: white !important;
+        /* White text color for active row */
+        cursor: pointer;
+    }
+
+    /* Add some padding to the active row for better visibility */
+    .table .active td {
+        padding: 10px;
+        cursor: pointer;
+    }
+
+    /* Add hover effect for rows */
+    .table tbody tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    /* Optional: Style for the table headers */
+    .table thead th {
+        background-color: #343a40;
+        color: white;
+        padding: 10px;
+    }
+
+    /* Optional: Style for the table */
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    /* Optional: Style for table borders */
+    .table,
+    .table th,
+    .table td {
+        border: 1px solid #dee2e6;
+    }
+
+    /* Ensure table rows are visually separated */
+    .table tbody tr:nth-child(odd) {
+        background-color: #f9f9f9;
+    }
+
+    .table tbody tr:nth-child(even) {
+        background-color: #ffffff;
+    }
+
+    /* Ensure all rows have padding */
+    .table td {
+        padding: 10px;
+    }
+</style>
+
+<br>
+<!-- Main Content -->
+<div class="container" id="mainContainer">
+    <div class="row">
+        <div class="col-sm-4">
+            <div class="card">
+                <div class="card-body bg-primary text-white text-center">
+                    <h5 class="card-title">To see products price, qty</h5>
+                    <p class="card-text">Press F9 Key</p>
+                    <a href="#" class="btn btn-secondary" id="productsButton">View Products</a>
+                </div>
+            </div>
+        </div>
+        <% if (isAdminOrSupervisor) { %>
+            <div class="col-sm-4">
+                <div class="card">
+                    <div class="card-body bg-success text-white text-center">
+                        <h5 class="card-title">Total Sales</h5>
+                        <p class="card-text">Rs.<%= totalSales %>
+                        </p>
+                        <a href="/bills" class="btn btn-primary">Create Sales</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="card">
+                    <div class="card-body bg-secondary text-white text-center">
+                        <h5 class="card-title">Total Purchase</h5>
+                        <p class="card-text">Rs.<%= totalPurchase %>
+                        </p>
+                        <a href="/purchase-bills" class="btn btn-primary">Create Purchase</a>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+                <div class="col-sm-4">
+                    <div class="card">
+                        <div class="card-body bg-info text-white text-center">
+                            <h5 class="card-title">To see party statement</h5>
+                            <p class="card-text">Press F5 Key</p>
+                            <a href="/statement" class="btn btn-warning">View Statements</a>
+                        </div>
+                    </div>
+                </div>
+    </div>
+
+    <!-- Modal for Product Details -->
+    <div class="modal fade" id="productsModal" tabindex="-1" aria-labelledby="productsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl custom-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productsModalLabel">Product Details</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <form class="mb-4">
+                        <div class="form-group">
+                            <input type="text" class="form-control" id="searchInput"
+                                placeholder="Search items by name & category...">
+                        </div>
+                    </form>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>H.S. Code</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Unit</th>
+                                <th>Vat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productDetailsTableBody">
+                            <!-- Product details will be dynamically inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Price Modal -->
+    <div class="modal fade" id="purchasePriceModal" tabindex="-1" aria-labelledby="purchasePriceModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="purchasePriceModalLabel">Purchase Price</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="purchasePriceDisplay">Purchase Price: Rs.0</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="row">
+            <div class="col">
+                <%= currentCompanyName %>
+            </div>
+            |
+            <div class="col">
+                User: <%= user.name %> ( <%= user.role %> )
+            </div>
+            |
+            <div class="col">
+                Fiscal Year: <%= currentFiscalYear ? currentFiscalYear.name : (initialCurrentFiscalYear ?
+                    initialCurrentFiscalYear.name : 'Not selected' ) %>
+            </div>
+
+        </div>
+    </footer>
+</div>
+<script>
+
+    $(document).ready(function () {
+        $(' #productsModal').on('shown.bs.modal', function () { $('#searchInput').focus(); });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        let products = [];
+        let currentFocus = -1; // Track the currently selected item
+        document.getElementById('productsButton').addEventListener('click', function () {
+            fetch('/products')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    products = data; // Store the fetched products
+                    displayProducts(data);
+                    $('#productsModal').modal('show');
+                })
+                .catch(error => console.error('Error fetching product details:', error));
+        });
+
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const searchQuery = this.value.toLowerCase();
+            const filteredProducts = products.filter(product =>
+                product.name.toLowerCase().includes(searchQuery) ||
+                (product.category && product.category.name.toLowerCase().includes(searchQuery)) ||
+                product.price.toString().includes(searchQuery) ||
+                product.stock.toString().includes(searchQuery)
+            );
+            displayProducts(filteredProducts);
+        });
+
+        function displayProducts(products) {
+            const tableBody = document.getElementById('productDetailsTableBody');
+            tableBody.innerHTML = '';
+            products.forEach(product => {
+                const row = document.createElement('tr');
+                row.className = product.vatStatus === 'vatable' ? 'vatable' : 'vatExempt';
+                row.innerHTML = `
+            <td>${product._id}</td>
+            <td>${product.hscode}</td>
+            <td>${product.name}</td>
+            <td>${product.category ? product.category.name : 'No Category'}</td>
+            <td>${product.price}</td>
+            <td>${product.stock}</td>
+            <td>${product.unit.name}</td>
+            <td>${product.vatStatus}</td>
+            `;
+
+                row.addEventListener('click', () => {
+                    openPurchasePriceModal(product);
+                });
+
+
+                tableBody.appendChild(row);
+            });
+            // Handle key navigation and enter selection
+            document.removeEventListener('keydown', handleKeyNavigation); // Remove existing event listener
+            document.addEventListener('keydown', handleKeyNavigation); // Add a new event listener
+
+            function handleKeyNavigation(event) {
+                const rows = tableBody.querySelectorAll('tr');
+
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    currentFocus++;
+                    if (currentFocus >= rows.length) currentFocus = 0;
+                    addActive(rows);
+                } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    currentFocus--;
+                    if (currentFocus < 0) currentFocus = rows.length - 1;
+                    addActive(rows);
+                } else if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (currentFocus > -1) {
+                        rows[currentFocus].click(); // Trigger the click event
+                    }
+                }
+            }
+
+            function addActive(rows) {
+                if (!rows) return false;
+                removeActive(rows);
+                if (currentFocus >= rows.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = rows.length - 1;
+                rows[currentFocus].classList.add('active');
+                rows[currentFocus].scrollIntoView({ block: "center" }); // Scroll into view
+            }
+
+            function removeActive(rows) {
+                rows.forEach(row => row.classList.remove('active'));
+            }
+            function openPurchasePriceModal(product) {
+                // Show the purchase price modal with the selected product's details
+                const purchasePriceDisplay = document.getElementById('purchasePriceDisplay');
+                if (purchasePriceDisplay) {
+                    purchasePriceDisplay.textContent = `Purchase Price: Rs.${product.puPrice.toFixed(2) || '0'}`;
+
+                    // Show purchasePriceModal without hiding productsModal
+                    $('#purchasePriceModal').modal({
+                        backdrop: false, // Prevents from closing when clicking outside
+                        show: true,
+                    });
+                }
+            }
+
+
+        }
+        // Handle F9 key press
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'F9') {
+                event.preventDefault(); // Prevent default behavior of the F9 key
+                fetch('/products')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok ' + response.statusText);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        products = data; // Store the fetched products
+                        displayProducts(data);
+                        $('#productsModal').modal('show');
+                    })
+                    .catch(error => console.error('Error fetching product details:', error));
+            }
+
+            // Handle F5 key press
+            if (event.key === 'F5') {
+                event.preventDefault(); // Prevent default behavior of the F5 key
+                window.location.href = '/statement'; // Redirect to the statement page
+            }
+        });
+
+    })
+</script>

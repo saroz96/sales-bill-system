@@ -1,0 +1,239 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: 'Outstanding Analysis' , body: 'wholeseller >> account >> aging' })
+        %>
+</div>
+
+<style id="printStyles" media="print">
+    body {
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+        /* Use 'exact' for color adjustment */
+    }
+
+    .container {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .btn {
+        display: none;
+        /* Hide print button during print */
+    }
+
+    @media print {
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 8px;
+        }
+
+        h1,
+        h5 {
+            margin: 0;
+            /* Remove margin for headers in print */
+        }
+
+        .header {
+            text-align: center;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            white-space: nowrap;
+            /* Ensure no wrapping in print */
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col d-flex justify-content-end align-items-start">
+                <button class="btn btn-info ml-2" onclick="printBill()">Print</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="printableContent">
+        <div class="card mb-4 text-center shadow">
+            <br>
+            <div class="header">
+                <h1></h1>
+                <h2 class="card-subtitle mb-2">
+                    <%= currentCompanyName %>
+                </h2>
+                <h4>
+                    <b>
+                        <%= currentCompany.address %>-<%= currentCompany.ward %>, <%= currentCompany.city %>, <%=
+                                        currentCompany.country %>
+                    </b>
+                </h4>
+                <h3>Ageing Receivables/Payables</h3>
+                <h4>Account: <%=account.name%>
+                </h4>
+                <hr style="border: 0.5px solid;">
+            </div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Total Outstanding: Rs. <%= agingData.totalOutstanding.toFixed(2) %>
+                </h5>
+                <h5 class="card-title mb-0">Opening Balance: Rs. <%= (account.openingBalance.amount || 0).toFixed(2) %>
+                        (<%= account.openingBalance.type %>)</h5>
+            </div>
+
+
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Period</th>
+                            <th>Outstanding Amount (Rs.)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Opening Balance</td>
+                            <td>
+                                <%= Math.abs(account.openingBalance.amount || 0).toFixed(2) %>
+                                    <%= account.openingBalance.type %>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Current (0 days)</td>
+                            <td>
+                                <%= Math.abs(agingData.current).toFixed(2) %>
+                                    <% if (agingData.current < 0) { %> Cr <% } else if (agingData.current> 0) { %> Dr <%
+                                                } %>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>1 - 30 Days</td>
+                            <td>
+                                <%= Math.abs(agingData.oneToThirty).toFixed(2) %>
+                                    <% if (agingData.oneToThirty < 0) { %> Cr <% } else if (agingData.oneToThirty> 0) {
+                                            %> Dr <% } %>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>31 - 60 Days</td>
+                            <td>
+                                <%= Math.abs(agingData.thirtyOneToSixty).toFixed(2) %>
+                                    <% if (agingData.thirtyOneToSixty < 0) { %> Cr <% } else if
+                                            (agingData.thirtyOneToSixty> 0) { %> Dr <% } %>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>61 - 90 Days</td>
+                            <td>
+                                <%= Math.abs(agingData.sixtyOneToNinety).toFixed(2) %>
+                                    <% if (agingData.sixtyOneToNinety < 0) { %> Cr <% } else if
+                                            (agingData.sixtyOneToNinety> 0) { %> Dr <% } %>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Over 90 Days</td>
+                            <td>
+                                <%= Math.abs(agingData.ninetyPlus).toFixed(2) %>
+                                    <% if (agingData.ninetyPlus < 0) { %> Cr <% } else if (agingData.ninetyPlus> 0) { %>
+                                            Dr <% } %>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h5 class="mt-4">Detailed Transactions</h5>
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Debit (Rs.)</th>
+                        <th>Credit (Rs.)</th>
+                        <th>Balance (Rs.)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Opening Balance Row -->
+                    <tr>
+                        <td></td>
+                        <td colspan="1">Opening Balance</td>
+                        <td>
+                            <%= (account.openingBalance.amount> 0 ? Math.abs(account.openingBalance.amount).toFixed(2) :
+                                '0.00') %>
+                        </td>
+                        <td>
+                            <%= (account.openingBalance.amount < 0 ? Math.abs(account.openingBalance.amount).toFixed(2)
+                                : '0.00' ) %>
+                        </td>
+                        <td>
+                            <%= (account.openingBalance.amount>= 0 ? account.openingBalance.amount.toFixed(2) + ' Dr' :
+                                Math.abs(account.openingBalance.amount).toFixed(2) + ' Cr') %>
+                        </td>
+                    </tr>
+
+                    <% agingData.transactions .forEach(transaction=> { %>
+                        <tr>
+                            <td>
+                                <%= new Date(transaction.date).toLocaleDateString(companyDateFormat==='nepali' ? 'en-NP'
+                                    : 'en-US' ) %>
+                            </td>
+                            <td>
+                                <% if (transaction.type==='Sale' ) { %>Sale<% } %>
+                                        <% if (transaction.type==='Purc' ) { %>Purchase<% } %>
+                                                <% if (transaction.type==='PrRt' ) { %>Purchase Return<% } %>
+                                                        <% if (transaction.type==='Slrt' ) { %>Sales Return<% } %>
+                                                                <% if (transaction.type==='Pymt' ) { %>Payment<% } %>
+                                                                        <% if (transaction.type==='Rcpt' ) { %>Receipt<%
+                                                                                } %>
+                                                                                <% if (transaction.type==='DrNt' ) { %>
+                                                                                    Debit Note<% } %>
+                                                                                        <% if (transaction.type==='CrNt'
+                                                                                            ) { %>Credit Note<% } %>
+                                                                                                <% if
+                                                                                                    (transaction.type==='Jrnl'
+                                                                                                    ) { %>Journal<% } %>
+                            </td>
+                            <td>
+                                <%= transaction.debit ? transaction.debit.toFixed(2) : '0.00' %>
+                            </td>
+                            <td>
+                                <%= transaction.credit ? transaction.credit.toFixed(2) : '0.00' %>
+                            </td>
+                            <td>
+                                <%= (transaction.balance>= 0 ? transaction.balance.toFixed(2) + ' Cr' :
+                                    (-transaction.balance).toFixed(2) + ' Dr') %>
+                            </td>
+                        </tr>
+                        <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function printBill() {
+        var printContents = document.getElementById('printableContent').innerHTML;
+        var styles = document.getElementById('printStyles') ? document.getElementById('printStyles').innerHTML : '';
+        var originalContents = document.body.innerHTML;
+
+        // Debugging
+        console.log("Printing...");
+
+        document.body.innerHTML = '<style>' + styles + '</style>' + printContents;
+        window.print();
+        document.body.innerHTML = originalContents;
+
+        // Optional: refresh the page or keep original content
+        // location.reload(); 
+    }
+</script>

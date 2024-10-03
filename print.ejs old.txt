@@ -1,0 +1,506 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: 'Sales Bill Print' , body: 'wholeseller >> sales >> print' }) %>
+</div>
+<style id="printStyles">
+    @media print {
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+
+        /* Define your print styles */
+        .page-break {
+            page-break-before: always;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+        }
+
+        .container {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .card {
+            border: none;
+            margin: 0;
+        }
+
+        .card-header,
+        .card-body {
+            padding: 0;
+            margin: 0;
+        }
+
+        h5.card-title {
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .card-text {
+            font-size: 20px;
+        }
+
+        .table {
+            width: 100%;
+            margin-top: 10px;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            font-size: 12px;
+            padding: 8px;
+            border-right: 2px solid #000;
+            /* Ensure 1px solid border for table cells */
+        }
+
+        .table thead th:first-child .table thead td:first-child {
+            border-left: 2px solid #000;
+            /* Thicker border for table headers */
+        }
+
+        .table th,
+        .table td {
+            border-top: none;
+            border-bottom: none;
+            border: none;
+        }
+
+        /* Hide border for empty <td> elements */
+        .table td:empty {
+            border: none;
+        }
+
+        /* Hide border for <tr> if all <td> elements are empty */
+        tr:has(td:empty) {
+            border: none;
+        }
+
+        /* Optional: To remove border for <table> as well if needed */
+        .table {
+            border-collapse: collapse;
+        }
+
+        .table tbody tr {
+            border-bottom: none;
+            /* Border for rows */
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+        }
+
+        .btn {
+            display: none;
+        }
+    }
+
+    .header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .header h1 {
+        margin: 10px;
+        font-size: 36px;
+        /* text-decoration: underline; */
+    }
+
+    .card-title {
+        text-decoration: underline;
+    }
+
+    .header h2 {
+        margin: 20px;
+        font-size: 26px;
+    }
+
+    .details {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-size: 12px;
+    }
+
+    .left {
+        font-size: 15px;
+        margin-left: 20px;
+    }
+
+    .right {
+        flex: 1;
+    }
+
+    .right {
+        font-size: 15px;
+        text-align: right;
+        margin-right: 20px;
+    }
+
+    /* .content {
+            margin-top: 20px;
+        } */
+
+    .user-details {
+        text-decoration: overline;
+        text-align: center;
+        margin-left: 120px;
+    }
+
+    .bordered-digit {
+        border: 1px solid black;
+        /* Adjust the thickness and color of the border as needed */
+        padding: 5px;
+        /* Add padding for spacing inside the border */
+        display: inline-block;
+        /* Ensure the border wraps tightly around the content */
+        margin-right: -1px;
+        /* Remove the gap between borders */
+    }
+
+    .details-container {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .left,
+    .right {
+        width: 48%;
+        /* Adjust the width as needed */
+    }
+
+    .left {
+        text-align: left;
+    }
+
+    .right {
+        text-align: right;
+    }
+</style>
+
+<div class="container" id="mainContainer">
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col d-flex justify-content-end align-items-start">
+                <a href="/bills" class="btn btn-secondary">Back to Bills</a>
+                <a href="/bills/<%= bill._id %>/pdf" class="btn btn-primary ml-2">Download PDF</a>
+                <button class="btn btn-info ml-2" onclick="printBill()">Print</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="printableContent">
+        <div class="card mt-4">
+            <div class="header">
+                <h1 class="card-title">
+                    <%= firstBill ? 'Tax-Invoice' : 'Invoice' %>
+                </h1>
+                <h1 class="card-subtitle mb-2">
+                    <%= currentCompanyName %>
+                </h1>
+                <h5>
+                    <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
+                                <%=currentCompany.country%>
+                </h5>
+                <b>
+                    <h6>Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
+                    </h6>
+                </b>
+                <h5>VAT NO.: <span id="pan-vat-container"></span></h5>
+                </h5>
+                <hr style="border: 0.5px solid;">
+            </div>
+            <div class="details-container">
+                <div class="left">
+                    <h4>
+                        Name: <%= bill.account.name %>
+                    </h4>
+                    <strong>Address:</strong>
+                    <%= bill.account.address ? bill.account.address : 'Null' %>&nbsp;
+                        <br>
+                        <strong>Pan no.:</strong>
+                        <%= bill.account.pan ? bill.account.pan : 'Null' %>
+                            <br>
+                            <strong>Email:</strong>
+                            <%= bill.account.email ? bill.account.email : 'Null' %>&nbsp;
+                                <strong>Tel.:</strong>
+                                <%= bill.account.phone ? bill.account.phone : 'Null' %>&nbsp;
+                                    <br>
+                                    <strong>Mode of Payment:</strong>
+                                    <%= bill.paymentMode %>
+
+                </div>
+
+                <div class="right">
+                    <strong>Invoice No:</strong>
+                    <%= bill.billNumber %>
+                        <br>
+                        <br>
+                        <% if (companyDateFormat==='english' ) { %>
+                            <strong>Roman Date:</strong>
+                            <%= new Date(bill.date).toLocaleDateString() %>
+                                <br>
+                                <strong>Nepali Date:</strong>
+                                <%= new Date(nepaliDate).toLocaleDateString() %>
+
+                                    <% } else { %>
+                                        <strong>Nepali Date:</strong>
+                                        <%= new Date(bill.date).toLocaleDateString() %>
+                                            <br>
+                                            <strong>Roman Date:</strong>
+                                            <%= new Date(englishDate).toLocaleDateString() %>
+
+                                                <% } %>
+                                                    <br>
+                                                    <% if (paymentMode !=='cash' ) { %>
+                                                        <strong>Balance Upto:</strong>
+                                                        <%= lastBalance %>
+                                                            <%= balanceLabel %>
+                                                                <% } %>
+
+                </div>
+            </div>
+
+
+            <hr style="border: 0.5px solid;">
+
+            <div class="container">
+                <table class="table table-bordered items-table">
+                    <thead>
+                        <tr>
+                            <th>S.No.</th>
+                            <th>H.S. Code</th>
+                            <th style="width: 50%;">Description of Goods</th>
+                            <th>Quantity</th>
+                            <th>Unit</th>
+                            <th>Price (Rs.)</th>
+                            <th>Total (Rs.)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% for (let i=0; i < 18; i++) { %>
+                            <% if (i < bill.items.length) { %>
+                                <tr>
+                                    <td>
+                                        <%= i + 1 %>
+                                    </td>
+                                    <td>
+                                        <%= bill.items[i].item.hscode %>
+                                    </td>
+                                    <td>
+                                        <%= bill.items[i].item.name %>
+                                    </td>
+                                    <td>
+                                        <%= bill.items[i].quantity %>
+                                    </td>
+                                    <td>
+                                        <%= bill.items[i].item.unit ? bill.items[i].item.unit.name : '' %>
+                                    </td>
+                                    <td>
+                                        <%= bill.items[i].price.toFixed(2) %>
+                                    </td>
+                                    <td>
+                                        <%= (bill.items[i].quantity * bill.items[i].price).toFixed(2) %>
+                                    </td>
+                                </tr>
+
+                                <% } else { %>
+                                    <tr>
+                                        <td>
+                                            <!-- <%= i + 1 %> -->
+                                        </td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                    <% } %>
+                                        <% } %>
+                                            <tr>
+                                                <td colspan="6" class="text-right"><strong>Sub-Total:</strong></td>
+                                                <td>
+                                                    <%= bill.subTotal.toFixed(2) %>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="6" class="text-right"><strong>Discount <%=
+                                                            bill.discountPercentage %>
+                                                            %:</strong></td>
+                                                <td>
+                                                    <%= bill.discountAmount.toFixed(2) %>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="6" class="text-right"><strong>Taxable Amount:</strong></td>
+                                                <td>
+                                                    <%= bill.taxableAmount.toFixed(2) %>
+                                                </td>
+                                            </tr>
+                                            <% if (!bill.isVatExempt) { %>
+                                                <tr>
+                                                    <td colspan="6" class="text-right"><strong>VAT (<%=
+                                                                bill.vatPercentage %>
+                                                                %):</strong></td>
+                                                    <td>
+                                                        <%= (bill.taxableAmount * bill.vatPercentage / 100).toFixed(2)
+                                                            %>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="6" class="text-right"><strong>Round Off:</strong></td>
+                                                    <td>
+                                                        <%= bill.roundOffAmount.toFixed(2) %>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="6" class="text-right"><strong>Grand Total:</strong>
+                                                    </td>
+                                                    <td>
+                                                        <%= bill.totalAmount.toFixed(2) %>
+                                                    </td>
+                                                </tr>
+                                                <% } else { %>
+                                                    <tr>
+                                                        <td colspan="6" class="text-right"><strong>Round Off:</strong>
+                                                        </td>
+                                                        <td>
+                                                            <%= bill.roundOffAmount.toFixed(2) %>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="6" class="text-right"><strong>Grand Total:</strong>
+                                                        </td>
+                                                        <td>
+                                                            <%= bill.totalAmount.toFixed(2) %>
+                                                        </td>
+                                                    </tr>
+
+                                                    <% } %>
+                                                        <tr>
+                                                            <td colspan="6" class="text-left"><strong>In Words:</strong>
+                                                                <span id="amountInWords"></span> Only.
+                                                            </td>
+                                                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="row container">
+                    <div class="col">
+                        <br>
+                        <br>
+                        <p><strong class="user-details">Received By:</strong></p>
+                    </div>
+                    <div class="col">
+                        <br>
+                        <br>
+                        <p><strong class="user-details">Checked By:</strong></p>
+                    </div>
+                    <div class="col">
+                        <p style="margin-left: 120px;">
+                            <%= bill.user.name %>
+                        </p>
+                        <strong class="user-details">Prepared By:</strong>
+                    </div>
+                </div>
+                <br>
+                <div class="footer text-center" style="text-decoration: underline;">
+                    <p>Thank you for your business!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    const panVatNo = '<%= currentCompany.pan %>';
+    const container = document.getElementById('pan-vat-container');
+
+    for (let i = 0; i < panVatNo.length; i++) {
+        const digit = document.createElement('span');
+        digit.className = 'bordered-digit';
+        digit.textContent = panVatNo[i];
+        container.appendChild(digit);
+    }
+
+
+    function printBill() {
+        var printContents = document.getElementById('printableContent').innerHTML;
+        var styles = document.getElementById('printStyles').innerHTML;
+        var originalContents = document.body.innerHTML;
+        document.body.innerHTML = '<style>' + styles + '</style>' + printContents;
+        window.print();
+        document.body.innerHTML = originalContents;
+    }
+
+    function numberToWords(num) {
+        const ones = [
+            '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+            'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+            'Seventeen', 'Eighteen', 'Nineteen'
+        ];
+
+        const tens = [
+            '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'
+        ];
+
+        const scales = ['', 'Thousand', 'Million', 'Billion'];
+
+        function convertHundreds(num) {
+            let words = '';
+
+            if (num > 99) {
+                words += ones[Math.floor(num / 100)] + ' Hundred ';
+                num %= 100;
+            }
+
+            if (num > 19) {
+                words += tens[Math.floor(num / 10)] + ' ';
+                num %= 10;
+            }
+
+            if (num > 0) {
+                words += ones[num] + ' ';
+            }
+
+            return words.trim();
+        }
+
+        if (num === 0) return 'Zero';
+
+        if (num < 0) return 'Negative ' + numberToWords(Math.abs(num));
+
+        let words = '';
+
+        for (let i = 0; i < scales.length; i++) {
+            let unit = Math.pow(1000, scales.length - i - 1);
+            let currentNum = Math.floor(num / unit);
+
+            if (currentNum > 0) {
+                words += convertHundreds(currentNum) + ' ' + scales[scales.length - i - 1] + ' ';
+            }
+
+            num %= unit;
+        }
+
+        return words.trim();
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        var netTotal = <%= bill.totalAmount %>;
+        document.getElementById("amountInWords").textContent = numberToWords(netTotal);
+    });
+</script>

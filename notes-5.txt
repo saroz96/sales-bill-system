@@ -1,0 +1,56 @@
+
+router.get('/statement', async (req, res) => {
+    try {
+        const companies = await Company.find();
+        const selectedCompany = req.query.company || '';
+        const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
+        const toDate = req.query.toDate ? new Date(req.query.toDate) : null;
+
+        if (!selectedCompany) {
+            return res.render('statements/statement', { statement: [], companies, selectedCompany: null, fromDate: '', toDate: '' });
+        }
+
+        // Retrieve the selected company including its opening amount
+        const company = await Company.findById(selectedCompany);
+        if (!company) {
+            return res.status(404).json({ error: 'Company not found' });
+        }
+
+        let query = { company: selectedCompany };
+
+        if (fromDate && toDate) {
+            query.transactionDate = { $gte: fromDate, $lte: toDate };
+        } else if (fromDate) {
+            query.transactionDate = { $gte: fromDate };
+        } else if (toDate) {
+            query.transactionDate = { $lte: toDate };
+        }
+
+        console.log('Query:', query); // Debug: Print the query
+
+        // Fetch transactions for the selected company within the date range
+        const transactions = await Transaction.find(query).sort({ transactionDate: 1 });
+
+        console.log('Transactions:', transactions); // Debug: Print the transactions
+
+        let balance = company.openingBalance; // Initialize balance with opening amount
+        const statement = transactions.map(tx => {
+            // Update balance based on transaction type (debit or credit)
+            balance += (tx.debit || 0) - (tx.credit || 0);
+            return {
+                date: tx.transactionDate,
+                type: tx.type,
+                billNumber: tx.billNumber,
+                account: tx.account,
+                debit: tx.debit,
+                credit: tx.credit,
+                balance: balance === 0 ? 'Nill' : balance.toFixed(2) // Display 'Nill' if balance is zero
+            };
+        });
+
+        res.render('statements/statement', { statement, companies, selectedCompany, fromDate: req.query.fromDate, toDate: req.query.toDate });
+    } catch (error) {
+        console.error("Error fetching statement:", error);
+        res.status(500).json({ error: 'Error fetching statement' });
+    }
+});

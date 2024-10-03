@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validation</title>
+    <!-- Include Bootstrap for modal support -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Error Modal Structure -->
+    <div class="modal fade" id="errorModal" tabindex="-1" role="dialog" aria-labelledby="errorModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="errorModalLabel">Error</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="modalErrorMessage">
+                    <!-- Display error message here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal Structure -->
+    <div class="modal fade" id="successModal" tabindex="-1" role="dialog" aria-labelledby="successModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="successModalLabel">Success</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="modalSuccessMessage">
+                    <!-- Display success message here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" data-dismiss="modal" autofocus>Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden field to store the redirect URL (set dynamically) -->
+    <input type="hidden" id="redirectUrl" value="<%= redirectUrl %>" />
+
+    <!-- Your page content here -->
+
+    <!-- Include Bootstrap's JavaScript and jQuery for modal functionality -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+    <script>
+    // Check if there's an error and trigger the error modal
+    <% if (typeof error !== 'undefined' && error) { %>
+            $('#modalErrorMessage').text('<%= error %>');
+            $('#errorModal').modal('show');
+    <% } %>
+
+    // Check if there's a success message and trigger the success modal
+    <% if (typeof success !== 'undefined' && success) { %>
+            $('#modalSuccessMessage').text('<%= success %>');
+            $('#successModal').modal('show');
+    <% } %>
+
+
+    // Fetch the redirect URL from the hidden input
+    var redirectUrl = $('#redirectUrl').val();
+
+        // When the success modal is fully hidden, redirect to the appropriate entry page
+        $('#successModal').on('hidden.bs.modal', function () {
+            window.location.href = redirectUrl; // Redirect to the entry page (sales, purchase, etc.)
+        });
+
+        // When the error modal is fully hidden, redirect to the appropriate entry page
+        $('#errorModal').on('hidden.bs.modal', function () {
+            window.location.href = redirectUrl; // Redirect to the entry page (sales, purchase, etc.)
+        });
+    </script>
+
+</body>
+
+</html>

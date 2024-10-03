@@ -1,0 +1,80 @@
+router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        try {
+            const { billDate, nepaliDate, paymentAccount, account, debit } = req.body;
+            const companyId = req.session.currentCompany;
+            const userId = req.user._id;
+
+            // Validation checks
+            if (!account || !debit) {
+                return res.status(400).json({ message: 'All fields are required' });
+            }
+
+            // Ensure account and debit are provided
+            if (!mongoose.Types.ObjectId.isValid(account)) {
+                return res.status(400).json({ message: 'Invalid account ID.' });
+            }
+
+            if (isNaN(debit) || debit <= 0) {
+                return res.status(400).json({ message: 'Debit amount must be a positive number.' });
+            }
+
+            // Find the counter for the company
+            let billCounter = await BillCounter.findOne({ company: companyId });
+            if (!billCounter) {
+                billCounter = new BillCounter({ company: companyId });
+            }
+            // Increment the counter
+            billCounter.count += 1;
+            await billCounter.save();
+
+            // Create transactions
+            let previousBalance = 0;
+            const accountTransaction = await Transaction.findOne({ account }).sort({ transactionDate: -1 });
+            if (accountTransaction) {
+                previousBalance = accountTransaction.balance;
+            }
+
+            // Create and save the payment
+            const payment = new Payment({
+                billNumber: billCounter.count,
+                date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),
+                account,
+                debit,
+                credit: 0,  // Assuming credit is always 0 for payments
+                // notes,
+                paymentAccount,
+                user: userId,
+                companyGroups: companyId
+            });
+
+            const transaction = new Transaction({
+                account,
+                type: 'Pymt',
+                billId: payment._id,  // Set billId to the new payment's ID
+                billNumber: billCounter.count,
+                accountType: 'Payment',
+                debit,
+                credit: 0,  // Credit is 0 for payments
+                paymentAccount,
+                balance: previousBalance - debit, // Update the balance based on debit
+                date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),
+                company: companyId,
+                user: userId
+            });
+
+            await transaction.save();
+            console.log('Transaction:', transaction);
+
+            await payment.save();
+            console.log('Payment:', payment);
+            req.flash('success', 'Payment saved successfully!');
+            res.redirect('/payments');
+        } catch (error) {
+            console.error('Error creating payment:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    } else {
+        res.status(403).json({ message: 'Unauthorized trade type.' });
+    }
+});

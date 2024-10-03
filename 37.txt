@@ -1,0 +1,254 @@
+<%- include('../layouts/boilerplate') %>
+
+    <style>
+        .modal-dialog {
+            position: fixed;
+            left: 25%;
+            bottom: 0;
+            transform: translateY(0);
+            width: 100%;
+        }
+
+        .modal-content {
+            height: 75vh;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+        }
+    </style>
+
+    <div class="container mt-4">
+        <h1 class="mb-4">New Stock Adjustment</h1>
+
+        <!-- Display Added Items -->
+        <input type="text" class="form-control col-4" data-toggle="modal" data-target="#itemModal"
+            placeholder="Add Items" />
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Adjustment Type</th>
+                    <th>Reason</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="addedItemsList"></tbody>
+        </table>
+        <!-- Form to Submit All Items -->
+        <form id="stockAdjustmentForm" action="/stockAdjustments" method="POST">
+            <div id="itemsList"></div>
+            <button type="submit" class="btn btn-success mt-4">Submit All Items</button>
+        </form>
+    </div>
+
+    <!-- The Modal -->
+    <div class="modal fade" id="itemModal" tabindex="-1" role="dialog" aria-labelledby="itemModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h4 class="modal-title">Select Item and Enter Details</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <!-- Modal Body -->
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="modalItemSearch">Search Items</label>
+                        <input type="text" id="modalItemSearch" class="form-control" placeholder="Search items...">
+                    </div>
+                    <table class="table table-striped" id="itemSearchResults">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Category</th>
+                                <th>Current Stock</th>
+                                <th>Unit</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div class="form-group row mt-3">
+                        <div class="col">
+                            <label for="modalSelectedItem">Selected Item</label>
+                            <select id="modalSelectedItem" class="form-control" required>
+                                <option value="">Select Item</option>
+                                <% items.forEach(item=> { %>
+                                    <option value="<%= item._id %>">
+                                        <%= item.name %>
+                                    </option>
+                                    <% }) %>
+                            </select>
+                        </div>
+                        <div class="col">
+                            <label for="modalQuantity">Quantity</label>
+                            <input type="number" id="modalQuantity" class="form-control" required>
+                        </div>
+                        <div class="col">
+                            <label for="modalAdjustmentType">Adjustment Type</label>
+                            <select id="modalAdjustmentType" class="form-control" required>
+                                <option value="xcess">Xcess</option>
+                                <option value="short">Short</option>
+                            </select>
+                        </div>
+                        <div class="col">
+                            <label for="modalReason">Reason</label>
+                            <input type="text" id="modalReason" class="form-control" required>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- Modal Footer -->
+                <div class="modal-footer">
+                    <div id="alertContainer"></div>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="addItemButton">Add Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let itemIndex = 0;
+
+        // Function to fetch item search results
+        function fetchItemSearchResults(query) {
+            fetch(`/items/search?q=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    const itemSearchResults = document.querySelector('#itemSearchResults tbody');
+                    itemSearchResults.innerHTML = ''; // Clear previous results
+
+                    data.items.forEach(item => {
+                        const resultItem = document.createElement('tr');
+                        resultItem.classList.add('item-search-result');
+                        resultItem.innerHTML = `
+                        <td>
+                            <a href="#" class="item-select-link" data-item-id="${item._id}">${item.name}</a>
+                        </td>
+                        <td>${item.category.name}</td>
+                        <td>${item.stock}</td>
+                        <td>${item.unit.name}</td>`;
+                        itemSearchResults.appendChild(resultItem);
+                    });
+
+                    // Add event listeners to select items from search results
+                    document.querySelectorAll('.item-select-link').forEach(link => {
+                        link.addEventListener('click', function (event) {
+                            event.preventDefault();
+                            const itemId = this.getAttribute('data-item-id');
+                            const itemName = this.textContent.trim();
+                            document.getElementById('modalSelectedItem').value = itemId;
+                            document.getElementById('modalItemSearch').value = ''; // Clear search input
+                            document.getElementById('modalQuantity').value = ''; // Clear quantity input
+                            document.getElementById('modalAdjustmentType').selectedIndex = 0; // Reset adjustment type
+                            document.getElementById('modalReason').value = ''; // Clear reason input
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching items:', error);
+                });
+        }
+
+        // Function to show alert messages
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+            alertContainer.innerHTML = alertHtml;
+            // Automatically hide the alert after 3 seconds
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 3000);
+        }
+
+        // Event listener for item search input
+        document.getElementById('modalItemSearch').addEventListener('input', function () {
+            const searchQuery = this.value.trim();
+            if (searchQuery.length >= 2) { // Adjust as needed
+                fetchItemSearchResults(searchQuery);
+            } else {
+                const itemSearchResults = document.querySelector('#itemSearchResults tbody');
+                itemSearchResults.innerHTML = ''; // Clear search results
+            }
+        });
+
+        // Add item button click event listener
+        document.getElementById('addItemButton').addEventListener('click', function () {
+            const itemSelect = document.getElementById('modalSelectedItem');
+            const quantityInput = document.getElementById('modalQuantity');
+            const adjustmentTypeSelect = document.getElementById('modalAdjustmentType');
+            const reasonInput = document.getElementById('modalReason');
+
+            const itemId = itemSelect.value;
+            const itemName = itemSelect.options[itemSelect.selectedIndex].text;
+            const quantity = quantityInput.value;
+            const adjustmentType = adjustmentTypeSelect.value;
+            const reason = reasonInput.value;
+
+            // Validate inputs
+            if (!itemId || !quantity || !adjustmentType || !reason) {
+                showAlert("Please select an item and fill out all fields.", "danger");
+                return;
+            }
+
+            // Add item to the form
+            const itemHtml = `
+            <input type="hidden" name="items[${itemIndex}][item]" value="${itemId}">
+            <input type="hidden" name="items[${itemIndex}][quantity]" value="${quantity}">
+            <input type="hidden" name="items[${itemIndex}][adjustmentType]" value="${adjustmentType}">
+            <input type="hidden" name="items[${itemIndex}][reason]" value="${reason}">
+        `;
+            document.getElementById('itemsList').insertAdjacentHTML('beforeend', itemHtml);
+
+            // Add item to the display table
+            const tableRowHtml = `
+            <tr data-index="${itemIndex}">
+                <td>${itemIndex + 1}</td>
+                <td>${itemName}</td>
+                <td>${quantity}</td>
+                <td>${adjustmentType}</td>
+                <td>${reason}</td>
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm removeItemButton">Remove</button>
+                </td>
+            </tr>
+        `;
+            document.getElementById('addedItemsList').insertAdjacentHTML('beforeend', tableRowHtml);
+
+            // Reset modal fields
+            itemSelect.selectedIndex = 0;
+            quantityInput.value = '';
+            adjustmentTypeSelect.selectedIndex = 0;
+            reasonInput.value = '';
+
+            // Clear search input after adding item
+            document.getElementById('modalItemSearch').value = '';
+
+            // Increment the item index
+            itemIndex++;
+
+            // Add event listener to the remove button
+            document.querySelectorAll('.removeItemButton').forEach(button => {
+                button.addEventListener('click', function () {
+                    const row = this.closest('tr');
+                    const index = row.getAttribute('data-index');
+                    row.remove();
+                    document.querySelectorAll(`[name^="items[${index}]"]`).forEach(input => input.remove());
+                });
+            });
+
+            // Show success message
+            showAlert('Item added successfully!', 'success');
+        });
+    </script>

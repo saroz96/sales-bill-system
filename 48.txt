@@ -1,0 +1,28 @@
+stock: openingStock,
+        stockEntries: openingStock > 0 ? [{ quantity: openingStock, date: new Date() }] : [],
+
+ // Adjust the stock quantity
+            if (adjustmentType === 'xcess') {
+                itemToAdjust.stock += parseInt(quantity);
+            } else if (adjustmentType === 'short') {
+                itemToAdjust.stock -= parseInt(quantity);
+                if (itemToAdjust.stock < 0) {
+                    req.flash('error', 'Insufficient stock');
+                    return res.redirect('/stockAdjustments/new');
+                }
+            }
+
+   if (adjustmentType === 'excess') {
+                itemToAdjust.stock += quantity;
+                itemToAdjust.stockEntries.push({ date: new Date(), quantity });
+            } else if (adjustmentType === 'short') {
+                if (itemToAdjust.stock < quantity) {
+                    req.flash('error', 'Insufficient stock');
+                    return res.redirect('/stockAdjustments/new');
+                }
+                itemToAdjust.stock -= quantity;
+                itemToAdjust.stockEntries.push({ date: new Date(), quantity: -quantity });
+            }
+
+            await itemToAdjust.save();
+        }

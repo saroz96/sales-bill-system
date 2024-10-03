@@ -1,0 +1,80 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: 'Items List' , body: 'wholeseller >> Items >> all items' }) %>
+</div>
+<style>
+    .vatable-item {
+        background-color: lightgreen;
+    }
+
+    .non-vatable-item {
+        background-color: lightyellow;
+    }
+</style>
+
+<div class="container" id="mainContainer">
+    <h1 class="mt-5">Items</h1>
+    <a href="/items" class="btn btn-primary mb-4">Add New Item</a>
+
+    <!-- Search Form -->
+    <form class="mb-4">
+        <div class="form-group">
+            <input type="text" class="form-control" id="searchInput" placeholder="Search items by name...">
+        </div>
+    </form>
+
+    <!-- Existing Items List -->
+    <h2 class="mt-5">Existing Items</h2>
+    <ul class="list-group mt-3" id="itemsList">
+        <% if (items && items.length> 0) { %>
+            <% items.forEach(item=> { %>
+                <div class="searchClass">
+                    <% let vatClass='' ; %>
+                        <% if (item.vatStatus==='vatExempt' ) { %>
+                            <% vatClass='non-vatable-item' ; %>
+                                <% } else if (item.vatStatus==='vatable' ) { %>
+                                    <% vatClass='vatable-item' ; %>
+                                        <% } %>
+
+                                            <li
+                                                class="list-group-item d-flex justify-content-between align-items-center <%= vatClass %>">
+                                                <div>
+                                                    <strong>
+                                                        <%= item.name %>
+                                                    </strong><br>
+                                                    <small>Category: <%= item.category.name %></small><br>
+                                                    <small>Sales price: <%= item.price %>&nbsp; Purchase price:
+                                                            <%=item.puPrice%>
+                                                    </small><br>
+                                                    <small>Stock: <%= item.stock %></small><br>
+                                                    <small>VAT Status: <%= item.vatStatus %></small>
+                                                </div>
+                                                <div>
+                                                    <a href="/items-ledger/<%=item._id%>"
+                                                        class="btn btn-sm btn-warning">View Item Ledger</a>
+                                                </div>
+                                            </li>
+                </div>
+                <% }); %>
+                    <% } else { %>
+                        <li class="list-group-item">No items available</li>
+                        <% } %>
+    </ul>
+</div>
+
+<script>
+    // Function to handle search input changes
+    document.getElementById('searchInput').addEventListener('input', function () {
+        const searchQuery = this.value.toLowerCase();
+        const itemsList = document.getElementById('itemsList');
+        const items = itemsList.getElementsByClassName('searchClass');
+
+        Array.from(items).forEach(function (item) {
+            const itemName = item.textContent.toLowerCase();
+            if (itemName.includes(searchQuery)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+</script>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/2.8.2/alpine.min.js" defer></script>
+    <style>
+        /* Add custom styles if needed */
+        .sidebar-hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div x-data="{ sidebarOpen: true }" class="flex h-screen bg-gray-100">
+        <!-- Sidebar -->
+        <aside :class="{ 'sidebar-hidden': !sidebarOpen }"
+            class="w-64 bg-white shadow-md h-full transition-transform duration-300">
+            <div class="p-6">
+                <h2 class="text-2xl font-semibold text-gray-800">Admin Panel</h2>
+                <nav class="mt-6">
+                    <ul>
+                        <li><a href="/admin/dashboard"
+                                class="flex items-center p-3 text-gray-700 hover:bg-gray-200 rounded-lg">
+                                <i class="fas fa-tachometer-alt mr-3"></i> Dashboard
+                            </a></li>
+                        <li><a href="/admin/clients"
+                                class="flex items-center p-3 text-gray-700 hover:bg-gray-200 rounded-lg">
+                                <i class="fas fa-users mr-3"></i> Clients
+                            </a></li>
+                        <li><a href="/admin/users"
+                                class="flex items-center p-3 text-gray-700 hover:bg-gray-200 rounded-lg">
+                                <i class="fas fa-users mr-3"></i> Users
+                            </a></li>
+                        <li><a href="/admin/settings"
+                                class="flex items-center p-3 text-gray-700 hover:bg-gray-200 rounded-lg">
+                                <i class="fas fa-cogs mr-3"></i> Settings
+                            </a></li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <header class="flex items-center p-6 bg-white shadow-md">
+                <button @click="sidebarOpen = !sidebarOpen" class="text-gray-500 focus:outline-none lg:hidden">
+                    <i class="fas fa-bars fa-2x"></i>
+                </button>
+                <h1 class="text-3xl font-bold text-gray-800 flex-1">Welcome, <%= user.name %>
+                </h1>
+                <div>
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600">
+                        <i class="fas fa-bell"></i> Notifications
+                    </button>
+                </div>
+            </header>
+
+            <main class="flex-1 p-6">
+                <!-- Dashboard Content -->
+                <section>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Card 1 -->
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h3 class="text-lg font-semibold text-gray-700">Overview</h3>
+                            <p class="mt-2 text-gray-600">Quick glance at the key metrics and statistics.</p>
+                            <!-- Add more content here -->
+                        </div>
+
+                        <!-- Card 2 -->
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h3 class="text-lg font-semibold text-gray-700">Recent Activity</h3>
+                            <p class="mt-2 text-gray-600">Check out the latest activities in your system.</p>
+                            <!-- Add more content here -->
+                        </div>
+
+                        <!-- Card 3 -->
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h3 class="text-lg font-semibold text-gray-700">System Health</h3>
+                            <p class="mt-2 text-gray-600">Monitor the health and performance of your system.</p>
+                            <!-- Add more content here -->
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white shadow-md py-4 text-center">
+        <p class="text-gray-600">&copy; 2024 Admin Panel. All rights reserved.</p>
+    </footer>
+</body>
+
+</html>
