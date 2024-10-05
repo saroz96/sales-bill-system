@@ -20,5 +20,6 @@ module.exports = {
     ensureAdminAuthenticated,
     ensureNotAdministrator
 };
+
 //To create a default admin user
 //node config/createDefaultUser.js

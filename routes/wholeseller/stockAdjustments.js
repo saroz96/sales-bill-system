@@ -65,6 +65,8 @@ router.post('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ens
             const { items, adjustmentType, note, nepaliDate, billDate } = req.body;
             const companyId = req.session.currentCompany;
             const userId = req.user._id;
+            const currentFiscalYear = req.session.currentFiscalYear.id
+            const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
 
             // Fetch company settings to determine date format
             const company = await Company.findById(companyId);
@@ -109,7 +111,8 @@ router.post('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ens
                     note,
                     date,
                     company: companyId,
-                    user: userId
+                    user: userId,
+                    fiscalYear: currentFiscalYear,
                 });
                 console.log(newStockAdjustment);
                 console.log(`Adjustment Type: ${adjustmentType}`);

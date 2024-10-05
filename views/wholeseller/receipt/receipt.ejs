@@ -78,7 +78,7 @@
                             <input type="number" name="serialNumber" class="form-control serial-number" readonly>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col">
                             <label for="account">Account:</label>
                             <select name="account" class="form-control account-select" required>
                                 <option value="" disabled selected>Select an account</option>
@@ -93,8 +93,28 @@
                                                 <% } %>
                             </select>
                         </div>
+                        <!-- Institution Type and Number (initially hidden) -->
+                        <div class="bank-details col-md-4 d-none">
+                            <div>
+                                <label for="InstType">Inst. Type</label>
+                                <select name="InstType" id="InstType" class="form-control">
+                                    <option value="" disabled selected>Select an InstType</option>
+                                    <option value="N/A">N/A</option>
+                                    <option value="RTGS">RTGS</option>
+                                    <option value="Fonepay">Fonepay</option>
+                                    <option value="Cheque">Cheque</option>
+                                    <option value="Connect-Ips">Connect-Ips</option>
+                                    <option value="Esewa">Esewa</option>
+                                    <option value="Khalti">Khalti</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="InstNo">Inst. No.</label>
+                                <input type="text" name="InstNo" id="InstNo" class="form-control">
+                            </div>
+                        </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-2">
                             <label for="credit">Amount:</label>
                             <input type="number" name="credit" class="form-control" placeholder="Credit Amount"
                                 required>
@@ -119,7 +139,7 @@
                         <button type="button" class="btn btn-primary" id="saveBill" onclick="submitBillForm(false)">
                             <i class="fas fa-save"></i> Save
                         </button>
-                        <button type="button" class="btn btn-secondary" onclick="showPrintModal()">
+                        <button type="button" class="btn btn-secondary" onclick="submitBillForm(true)">
                             <i class="fas fa-print"></i> Save & Print
                         </button>
                     </div>
@@ -240,4 +260,21 @@
             saveButton.disabled = false;
         }, 2000); // Simulating a delay; adjust or remove as needed
     }
+
+
+    // Show/hide institution type and number based on payment account selection
+    const receiptAccountSelect = document.getElementById('receiptAccount');
+    const bankDetailsContainer = document.querySelector('.bank-details');
+
+    receiptAccountSelect.addEventListener('change', function () {
+        const selectedValue = this.value;
+        const selectedOption = this.options[this.selectedIndex];
+
+        // Check if selected option is from the Cash group or Bank group
+        if (selectedOption.parentElement.label === 'Cash') {
+            bankDetailsContainer.classList.add('d-none'); // Hide bank details
+        } else {
+            bankDetailsContainer.classList.remove('d-none'); // Show bank details
+        }
+    });
 </script>

@@ -109,6 +109,8 @@ router.post('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensur
             const { account, items, vatPercentage, purchaseSalesType, transactionDateNepali, transactionDateRoman, billDate, partyBillNumber, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount } = req.body;
             const companyId = req.session.currentCompany;
             const userId = req.user._id;
+            const currentFiscalYear = req.session.currentFiscalYear.id
+            const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
 
             console.log('Request Body:', req.body);
 
@@ -229,7 +231,8 @@ router.post('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensur
                 date: nepaliDate ? nepaliDate : new Date(billDate),
                 transactionDate: transactionDateNepali ? transactionDateNepali : new Date(transactionDateRoman),
                 company: companyId,
-                user: userId
+                user: userId,
+                fiscalYear: currentFiscalYear
             });
 
             // Create transactions
@@ -283,7 +286,8 @@ router.post('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensur
                     balance: previousBalance + finalAmount, // Update the balance based on item total
                     date: nepaliDate ? nepaliDate : new Date(billDate),
                     company: companyId,
-                    user: userId
+                    user: userId,
+                    fiscalYear: currentFiscalYear
                 });
 
                 await transaction.save();
@@ -325,7 +329,8 @@ router.post('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensur
                         balance: previousBalance + finalAmount, // Update the balance
                         date: nepaliDate ? nepaliDate : new Date(billDate),
                         company: companyId,
-                        user: userId
+                        user: userId,
+                        fiscalYear: currentFiscalYear
                     });
                     await cashTransaction.save();
                 }

@@ -328,7 +328,8 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
                         balance: previousBalance + finalAmount, // Update the balance
                         date: nepaliDate ? nepaliDate : new Date(billDate),
                         company: companyId,
-                        user: userId
+                        user: userId,
+                        fiscalYear: currentFiscalYear,
                     });
                     await cashTransaction.save();
                 }

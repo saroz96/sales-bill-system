@@ -11,6 +11,13 @@ const receiptSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Account', // References a specific account (e.g., Cash in Hand, Bank Account)
     },
+    InstType: {
+        type: String,
+        enum: ['N/A', 'RTGS', 'Fonepay', 'Cheque', 'Connect-Ips', 'Esewa', 'Khalti']
+    },
+    InstNo: {
+        type: String
+    },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     companyGroups: { type: mongoose.Schema.Types.ObjectId, ref: 'CompanyGroup' },
     company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' } // Add company reference for uniqueness

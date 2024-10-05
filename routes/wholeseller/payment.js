@@ -16,6 +16,26 @@ const FiscalYear = require('../../models/wholeseller/FiscalYear');
 const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
 const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRange');
 
+// GET - Show list of journal vouchers
+router.get('/payments-list', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        const companyId = req.session.currentCompany;
+        const currentCompanyName = req.session.currentCompanyName;
+        const currentCompany = await Company.findById(new ObjectId(companyId));
+        const payments = await Payment.find()
+            .populate('account', 'name') // Assuming 'name' field exists in Account schema
+            .populate('user', 'name') // Assuming 'username' field exists in User schema
+            .populate('paymentAccount', 'name') // Assuming 'name' field exists in Account schema for paymentAccount
+            .exec();
+        res.render('wholeseller/payment/list', {
+            payments, currentCompanyName, currentCompany,
+            title: 'View Payment',
+            body: 'wholeseller >> payment >> view payments',
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+        });
+    }
+});
+
 // Get payment form
 router.get('/payments', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
@@ -133,7 +153,7 @@ router.get('/payments', ensureAuthenticated, ensureCompanySelected, ensureTradeT
 router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
-            const { billDate, nepaliDate, paymentAccount, account, debit } = req.body;
+            const { billDate, nepaliDate, paymentAccount, account, debit, InstType, InstNo } = req.body;
             const companyId = req.session.currentCompany;
             const currentFiscalYear = req.session.currentFiscalYear.id
             const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -178,6 +198,8 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 billNumber: billCounter.count,
                 date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),
                 account,
+                InstType,
+                InstNo,
                 debit,
                 credit: 0,
                 paymentAccount,
@@ -237,8 +259,17 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
             console.log(creditTransaction);
             console.log(debitTransaction);
             await payment.save();
-            req.flash('success', 'Payment saved successfully!');
-            res.redirect('/payments');
+            console.log(payment);
+            // req.flash('success', 'Payment saved successfully!');
+            // res.redirect('/payments');
+            if (req.query.print === 'true') {
+                // Redirect to the print route
+                res.redirect(`/payments/${payment._id}/direct-print`);
+            } else {
+                // Redirect to the bills list or another appropriate page
+                req.flash('success', 'Payment saved successfully!');
+                res.redirect('/payments');
+            }
         } catch (error) {
             console.error('Error creating payment:', error);
             res.status(500).json({ message: 'Internal server error' });
@@ -248,7 +279,128 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
     }
 });
 
+// View individual payment voucher
+router.get('/payments/:id/print', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
 
+        try {
+            const paymentId = req.params.id;
+            const currentCompanyName = req.session.currentCompanyName;
+            const companyId = req.session.currentCompany;
+            console.log("Company ID from session:", companyId); // Debugging line
 
+            const today = new Date();
+            const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
+            const company = await Company.findById(companyId);
+            const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+
+            // Validate the selectedDate
+            if (!nepaliDate || isNaN(new Date(nepaliDate).getTime())) {
+                throw new Error('Invalid invoice date provided');
+            }
+            const currentCompany = await Company.findById(new ObjectId(companyId));
+            console.log("Current Company:", currentCompany); // Debugging line
+
+            if (!currentCompany) {
+                req.flash('error', 'Company not found');
+                return res.redirect('/bills');
+            }
+
+            // Validate payment ID
+            if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+                return res.status(400).json({ message: 'Invalid payment ID.' });
+            }
+
+            // Find the payment record
+            const payment = await Payment.findById(paymentId).populate('account paymentAccount user'); // Populate fields if necessary
+
+            if (!payment) {
+                return res.status(404).json({ message: 'Payment voucher not found.' });
+            }
+
+            // Optionally, you can also retrieve related transactions
+            const debitTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Pymt' }).populate('account');
+            const creditTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Rcpt' }).populate('receiptAccount');
+
+            // Render the payment voucher view (using EJS or any other view engine)
+            res.render('wholeseller/payment/print', {
+                payment, debitTransaction, creditTransaction,
+                currentCompanyName,
+                currentCompany,
+                date: new Date().toISOString().split('T')[0], // Today's date in ISO format
+                company: companyId,
+                user: req.user,
+                title: 'Print Payment',
+                body: 'wholeseller >> payment >> print',
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            }); // Change 'paymentVoucher' to your view file name
+        } catch (error) {
+            console.error('Error retrieving payment voucher:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+});
+
+// View individual payment voucher
+router.get('/payments/:id/direct-print', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+
+        try {
+            const paymentId = req.params.id;
+            const currentCompanyName = req.session.currentCompanyName;
+            const companyId = req.session.currentCompany;
+            console.log("Company ID from session:", companyId); // Debugging line
+
+            const today = new Date();
+            const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
+            const company = await Company.findById(companyId);
+            const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+
+            // Validate the selectedDate
+            if (!nepaliDate || isNaN(new Date(nepaliDate).getTime())) {
+                throw new Error('Invalid invoice date provided');
+            }
+            const currentCompany = await Company.findById(new ObjectId(companyId));
+            console.log("Current Company:", currentCompany); // Debugging line
+
+            if (!currentCompany) {
+                req.flash('error', 'Company not found');
+                return res.redirect('/bills');
+            }
+
+            // Validate payment ID
+            if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+                return res.status(400).json({ message: 'Invalid payment ID.' });
+            }
+
+            // Find the payment record
+            const payment = await Payment.findById(paymentId).populate('account paymentAccount user'); // Populate fields if necessary
+
+            if (!payment) {
+                return res.status(404).json({ message: 'Payment voucher not found.' });
+            }
+
+            // Optionally, you can also retrieve related transactions
+            const debitTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Pymt' }).populate('account');
+            const creditTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Rcpt' }).populate('receiptAccount');
+
+            // Render the payment voucher view (using EJS or any other view engine)
+            res.render('wholeseller/payment/direct-print', {
+                payment, debitTransaction, creditTransaction,
+                currentCompanyName,
+                currentCompany,
+                date: new Date().toISOString().split('T')[0], // Today's date in ISO format
+                company: companyId,
+                user: req.user,
+                title: 'Print Payment',
+                body: 'wholeseller >> payment >> print',
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            }); // Change 'paymentVoucher' to your view file name
+        } catch (error) {
+            console.error('Error retrieving payment voucher:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+});
 
 module.exports = router;

@@ -473,7 +473,7 @@ router.get('/switch/:id/', ensureAuthenticated, async (req, res) => {
                 break;
         }
 
-        req.flash('success', `Switched to company: ${company.name}, Fiscal year: ${latestFiscalYear.name}, and date format: ${latestFiscalYear.dateFormat}`);
+        req.flash('success', `Switched: ${company.name}, Fiscal year: ${latestFiscalYear.name}`);
         res.redirect(redirectPath);
     } catch (err) {
         console.error(err);

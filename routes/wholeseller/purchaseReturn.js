@@ -346,9 +346,9 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
                         paymentMode: paymentMode,
                         balance: previousBalance + finalAmount, // Update the balance
                         date: nepaliDate ? nepaliDate : new Date(billDate),
-
                         company: companyId,
-                        user: userId
+                        user: userId,
+                        fiscalYear: currentFiscalYear,
                     });
                     await cashTransaction.save();
                 }

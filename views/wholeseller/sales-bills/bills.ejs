@@ -281,7 +281,7 @@
                 <div style="float: right;">
                     <button type="button" class="btn btn-primary" id="saveBill" onclick="submitBillForm(false)">Save
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="showPrintModal()">Save & Print
+                    <button type="button" class="btn btn-secondary" onclick="submitBillForm(true)">Save & Print
                     </button>
                 </div>
             </form>
@@ -672,9 +672,9 @@
         calculateTotal();
     }
 
-    function showPrintModal() {
-        $('#printModal').modal('show');
-    }
+    // function showPrintModal() {
+    //     $('#printModal').modal('show');
+    // }
 
     function submitBillForm(print) {
         shouldPrint = print;
@@ -705,7 +705,7 @@
     document.getElementById('billForm').addEventListener('submit', function (event) {
         if (!shouldPrint && event.submitter && event.submitter.innerText === 'Save & Print Bill') {
             event.preventDefault();
-            showPrintModal();
+            // showPrintModal();
         }
     });
     function numberToWords(num) {
