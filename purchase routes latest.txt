@@ -9,15 +9,13 @@ const Account = require("../../models/wholeseller/Account");
 const Item = require("../../models/wholeseller/Item");
 const PurchaseBill = require("../../models/wholeseller/PurchaseBill");
 const Company = require("../../models/wholeseller/Company");
-// const PurchaseBillCounter = require('../../models/wholeseller/purchaseBillCounter');
+const PurchaseBillCounter = require('../../models/wholeseller/purchaseBillCounter');
 const NepaliDate = require('nepali-date');
 const Settings = require('../../models/wholeseller/Settings');
 const Transaction = require('../../models/wholeseller/Transaction');
 const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
 const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRange');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
-const BillCounter = require('../../models/wholeseller/billCounter');
-const { getNextBillNumber } = require('../../middleware/getNextBillNumber');
 
 
 // Fetch all purchase bills
@@ -89,25 +87,11 @@ router.get('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensure
 
         const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear });
 
-        // // Get the next bill number
-        // const purchaseBillCounter = await PurchaseBillCounter.findOne({ company: companyId });
-        // const nextPurchaseBillNumber = purchaseBillCounter ? purchaseBillCounter.count + 1 : 1;
-
-        // Get the next bill number based on company, fiscal year, and transaction type ('sales')
-        let billCounter = await BillCounter.findOne({
-            company: companyId,
-            fiscalYear: fiscalYear,
-            transactionType: 'Purchase' // Specify the transaction type for sales bill
-        });
-
-        let nextBillNumber;
-        if (billCounter) {
-            nextBillNumber = billCounter.currentBillNumber + 1; // Increment the current bill number
-        } else {
-            nextBillNumber = 1; // Start with 1 if no bill counter exists for this fiscal year and company
-        }
+        // Get the next bill number
+        const purchaseBillCounter = await PurchaseBillCounter.findOne({ company: companyId });
+        const nextPurchaseBillNumber = purchaseBillCounter ? purchaseBillCounter.count + 1 : 1;
         res.render('wholeseller/purchase/purchaseEntry', {
-            company: companyId, accounts: accounts, items: items, purchasebills: purchasebills, nextPurchaseBillNumber: nextBillNumber,
+            company: companyId, accounts: accounts, items: items, purchasebills: purchasebills, nextPurchaseBillNumber: nextPurchaseBillNumber,
             nepaliDate: nepaliDate, transactionDateNepali, companyDateFormat,
             user: req.user, currentCompanyName: req.session.currentCompanyName,
             title: 'Purchase Entry',
@@ -172,16 +156,13 @@ router.post('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensur
             }
 
             // Find the counter for the company
-            // let billCounter = await PurchaseBillCounter.findOne({ company: companyId });
-            // if (!billCounter) {
-            //     billCounter = new PurchaseBillCounter({ company: companyId });
-            // }
-            // // Increment the counter
-            // billCounter.count += 1;
-            // await billCounter.save();
-
-            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Purchase')
-
+            let billCounter = await PurchaseBillCounter.findOne({ company: companyId });
+            if (!billCounter) {
+                billCounter = new PurchaseBillCounter({ company: companyId });
+            }
+            // Increment the counter
+            billCounter.count += 1;
+            await billCounter.save();
 
             // Check validation conditions after processing all items
             if (isVatExempt !== 'all') {
@@ -231,8 +212,7 @@ router.post('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensur
             }
             // Create new purchase bill
             const newBill = new PurchaseBill({
-                // billNumber: billCounter.count,
-                billNumber: billNumber,
+                billNumber: billCounter.count,
                 partyBillNumber,
                 account,
                 purchaseSalesType: 'Purchase',
@@ -292,8 +272,7 @@ router.post('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensur
                     item: product._id,
                     account: account,
                     // purchaseBillNumber: billCounter.count,
-                    // billNumber: billCounter.count,
-                    billNumber: billNumber,
+                    billNumber: billCounter.count,
                     partyBillNumber,
                     purchaseSalesType: 'Purchase',
                     quantity: item.quantity,
@@ -338,8 +317,7 @@ router.post('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensur
                 if (cashAccount) {
                     const cashTransaction = new Transaction({
                         account: cashAccount._id,
-                        // billNumber: billCounter.count,
-                        billNumber: billNumber,
+                        billNumber: billCounter.count,
                         partyBillNumber,
                         type: 'Purc',
                         purchaseBillId: newBill._id,  // Set billId to the new bill's ID

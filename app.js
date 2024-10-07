@@ -32,6 +32,7 @@ const debitNoteRoutes = require('./routes/wholeseller/debitNote');
 const creditNoteRoutes = require('./routes/wholeseller/creditNote');
 const fiscalYearRoutes = require('./routes/wholeseller/fiscalYear');
 const ageingReportRoutes = require('./routes/wholeseller/ageingReport');
+const stockStatusRoutes = require('./routes/wholeseller/stockStatus');
 
 //Admin Panel
 const systemAdminDashboardRoutes = require('./routes/systemAdmin/adminDashboard');
@@ -111,6 +112,7 @@ app.use('/', debitNoteRoutes);
 app.use('/', creditNoteRoutes);
 app.use('/', fiscalYearRoutes);
 app.use('/', ageingReportRoutes);
+app.use('/wholeseller', stockStatusRoutes);
 
 //Admin Panel
 app.use('/', systemAdminDashboardRoutes);

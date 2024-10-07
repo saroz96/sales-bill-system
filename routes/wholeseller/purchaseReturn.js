@@ -11,7 +11,7 @@ const Item = require('../../models/wholeseller/Item');
 const PurchaseReturn = require('../../models/wholeseller/PurchaseReturns');
 const Transaction = require('../../models/wholeseller/Transaction');
 const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware/auth');
-const BillCounter = require('../../models/wholeseller/purchaseReturnBillCounter');
+// const BillCounter = require('../../models/wholeseller/purchaseReturnBillCounter');
 const Account = require('../../models/wholeseller/Account');
 const Settings = require('../../models/wholeseller/Settings');
 const Company = require('../../models/wholeseller/Company');
@@ -20,6 +20,8 @@ const { ensureTradeType } = require('../../middleware/tradeType');
 const PurchaseBill = require('../../models/wholeseller/PurchaseBill');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
 const PurchaseReturns = require('../../models/wholeseller/PurchaseReturns');
+const BillCounter = require('../../models/wholeseller/billCounter');
+const { getNextBillNumber } = require('../../middleware/getNextBillNumber');
 
 // Fetch all purchase bills
 router.get('/purchase-return/list', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
@@ -89,8 +91,22 @@ router.get('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensur
         const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear });
 
         // Get the next bill number
-        const billCounter = await BillCounter.findOne({ company: companyId });
-        const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
+        // const billCounter = await BillCounter.findOne({ company: companyId });
+        // const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
+
+        // Get the next bill number based on company, fiscal year, and transaction type ('sales')
+        let billCounter = await BillCounter.findOne({
+            company: companyId,
+            fiscalYear: fiscalYear,
+            transactionType: 'PurchaseReturn' // Specify the transaction type for sales bill
+        });
+
+        let nextBillNumber;
+        if (billCounter) {
+            nextBillNumber = billCounter.currentBillNumber + 1; // Increment the current bill number
+        } else {
+            nextBillNumber = 1; // Start with 1 if no bill counter exists for this fiscal year and company
+        }
         res.render('wholeseller/purchaseReturn/purchaseReturnEntry', {
             company: companyId, accounts: accounts, items: items, bills: bills, nextBillNumber: nextBillNumber,
             nepaliDate: nepaliDate, transactionDateNepali, companyDateFormat, purchaseInvoice,
@@ -181,13 +197,14 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
                 }
             }
             // Find the counter for the company
-            let billCounter = await BillCounter.findOne({ company: companyId });
-            if (!billCounter) {
-                billCounter = new BillCounter({ company: companyId });
-            }
-            // Increment the counter
-            billCounter.count += 1;
-            await billCounter.save();
+            // let billCounter = await BillCounter.findOne({ company: companyId });
+            // if (!billCounter) {
+            //     billCounter = new BillCounter({ company: companyId });
+            // }
+            // // Increment the counter
+            // billCounter.count += 1;
+            // await billCounter.save();
+            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'PurchaseReturn')
 
             // // Generate unique bill number
             // const lastBill = await SalesBill.findOne().sort({ billNumber: -1 });
@@ -229,7 +246,8 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
 
             // Create new bill
             const newBill = new PurchaseReturn({
-                billNumber: billCounter.count,
+                // billNumber: billCounter.count,
+                billNumber: billNumber,
                 account,
                 purchaseSalesReturnType: 'Purchase Return',
                 items: [], // We'll update this later
@@ -286,7 +304,8 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
                 const transaction = new Transaction({
                     item: product._id,
                     account: account,
-                    billNumber: billCounter.count,
+                    // billNumber: billCounter.count,
+                    billNumber: billNumber,
                     quantity: item.quantity,
                     puPrice: item.puPrice,
                     unit: item.unit,  // Include the unit field                    type: 'Sale',
@@ -337,7 +356,8 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
                 if (cashAccount) {
                     const cashTransaction = new Transaction({
                         account: cashAccount._id,
-                        billNumber: billCounter.count,
+                        // billNumber: billCounter.count,
+                        billNumber: billNumber,
                         type: 'PrRt',
                         purchaseReturnBillId: newBill._id,  // Set billId to the new bill's ID
                         purchaseSalesReturnType: 'Purchase Return',

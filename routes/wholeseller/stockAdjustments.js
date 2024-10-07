@@ -5,13 +5,18 @@ const StockAdjustment = require('../../models/wholeseller/StockAdjustment');
 const Item = require('../../models/wholeseller/Item');
 const NepaliDate = require('nepali-date');
 const Company = require('../../models/wholeseller/Company');
-const BillCounter = require('../../models/wholeseller/stockAdjustmentBillCounter');
+// const BillCounter = require('../../models/wholeseller/stockAdjustmentBillCounter');
 
 const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware/auth');
 const { ensureTradeType } = require('../../middleware/tradeType');
+const BillCounter = require('../../models/wholeseller/billCounter');
+const { getNextBillNumber } = require('../../middleware/getNextBillNumber');
+const FiscalYear = require('../../models/wholeseller/FiscalYear');
+const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRange');
+const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
 
 // Get all stock adjustments for the current company
-router.get('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+router.get('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
         const currentCompanyName = req.session.currentCompanyName;
@@ -32,7 +37,7 @@ router.get('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ensu
 });
 
 // Get form to create a new stock adjustment
-router.get('/stockAdjustments/new', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+router.get('/stockAdjustments/new', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
 
         const companyId = req.session.currentCompany;
@@ -42,12 +47,58 @@ router.get('/stockAdjustments/new', ensureAuthenticated, ensureCompanySelected, 
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
         const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
-        const company = await Company.findById(companyId);
+        const company = await Company.findById(companyId).populate('fiscalYear');
         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+
         // Get the next bill number
-        const billCounter = await BillCounter.findOne({ company: companyId });
-        const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
+        // const billCounter = await BillCounter.findOne({ company: companyId });
+        // const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
+
+        // Get the next bill number based on company, fiscal year, and transaction type ('sales')
+        let billCounter = await BillCounter.findOne({
+            company: companyId,
+            fiscalYear: fiscalYear,
+            transactionType: 'StockAdjustment' // Specify the transaction type for sales bill
+        });
+
+        let nextBillNumber;
+        if (billCounter) {
+            nextBillNumber = billCounter.currentBillNumber + 1; // Increment the current bill number
+        } else {
+            nextBillNumber = 1; // Start with 1 if no bill counter exists for this fiscal year and company
+        }
+
         res.render('wholeseller/stockAdjustments/new', {
             items, nextBillNumber, transactionDateNepali, companyDateFormat, nepaliDate, currentCompanyName,
             title: 'Stock Adjustment',
@@ -58,7 +109,7 @@ router.get('/stockAdjustments/new', ensureAuthenticated, ensureCompanySelected, 
 });
 
 // Create a new stock adjustment
-router.post('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+router.post('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
 
         try {
@@ -92,16 +143,19 @@ router.post('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ens
                     return res.status(404).send('Item not found');
                 }
                 // Find the counter for the company
-                let billCounter = await BillCounter.findOne({ company: companyId });
-                if (!billCounter) {
-                    billCounter = new BillCounter({ company: companyId });
-                }
-                // Increment the counter
-                billCounter.count += 1;
-                await billCounter.save();
+                // let billCounter = await BillCounter.findOne({ company: companyId });
+                // if (!billCounter) {
+                //     billCounter = new BillCounter({ company: companyId });
+                // }
+                // // Increment the counter
+                // billCounter.count += 1;
+                // await billCounter.save();
+
+                const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'StockAdjustment')
 
                 const newStockAdjustment = new StockAdjustment({
-                    billNumber: billCounter.count,
+                    // billNumber: billCounter.count,
+                    billNumber: billNumber,
                     item,
                     unit,
                     quantity,

@@ -7,8 +7,10 @@ const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware
 const { ensureTradeType } = require('../../middleware/tradeType');
 const Company = require('../../models/wholeseller/Company');
 const Transaction = require('../../models/wholeseller/Transaction');
-const BillCounter = require('../../models/wholeseller/creditNoteBillCounter');
+// const BillCounter = require('../../models/wholeseller/creditNoteBillCounter');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
+const { getNextBillNumber } = require('../../middleware/getNextBillNumber');
+const BillCounter = require('../../models/wholeseller/billCounter');
 
 // GET - Show form to create a new journal voucher
 router.get('/credit-note/new', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
@@ -54,8 +56,22 @@ router.get('/credit-note/new', ensureAuthenticated, ensureCompanySelected, ensur
         const accounts = await Account.find({ company: req.session.currentCompany, fiscalYear: fiscalYear });
 
         // Get the next bill number
-        const billCounter = await BillCounter.findOne({ company: companyId });
-        const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
+        // const billCounter = await BillCounter.findOne({ company: companyId });
+        // const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
+
+        // Get the next bill number based on company, fiscal year, and transaction type ('sales')
+        let billCounter = await BillCounter.findOne({
+            company: companyId,
+            fiscalYear: fiscalYear,
+            transactionType: 'CreditNote' // Specify the transaction type for sales bill
+        });
+
+        let nextBillNumber;
+        if (billCounter) {
+            nextBillNumber = billCounter.currentBillNumber + 1; // Increment the current bill number
+        } else {
+            nextBillNumber = 1; // Start with 1 if no bill counter exists for this fiscal year and company
+        }
         res.render('wholeseller/creditNote/new',
             {
                 accounts,
@@ -81,16 +97,19 @@ router.post('/credit-note/new', ensureAuthenticated, ensureCompanySelected, ensu
         const userId = req.user._id;
 
         try {
-            let billCounter = await BillCounter.findOne({ company: companyId });
-            if (!billCounter) {
-                billCounter = new BillCounter({ company: companyId });
-            }
-            billCounter.count += 1;
-            await billCounter.save();
+            // let billCounter = await BillCounter.findOne({ company: companyId });
+            // if (!billCounter) {
+            //     billCounter = new BillCounter({ company: companyId });
+            // }
+            // billCounter.count += 1;
+            // await billCounter.save();
+
+            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'CreditNote')
 
             // Create the Journal Voucher
             const creditNote = new CreditNote({
-                billNumber: billCounter.count,
+                // billNumber: billCounter.count,
+                billNumber: billNumber,
                 date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),
                 debitAccounts,
                 creditAccounts,
@@ -123,7 +142,8 @@ router.post('/credit-note/new', ensureAuthenticated, ensureCompanySelected, ensu
                     account: credit.account,
                     type: 'CrNt',
                     creditNoteId: creditNote._id,
-                    billNumber: billCounter.count,
+                    // billNumber: billCounter.count,
+                    billNumber: billNumber,
                     drCrNoteAccountType: (await Promise.all(debitAccountNames)).join(', '),  // Save debit account names as a string
                     debit: 0,
                     credit: credit.credit,
@@ -160,7 +180,8 @@ router.post('/credit-note/new', ensureAuthenticated, ensureCompanySelected, ensu
                     account: debit.account,
                     type: 'DrNt',
                     creditNoteId: creditNote._id,
-                    billNumber: billCounter.count,
+                    // billNumber: billCounter.count,
+                    billNumber: billNumber,
                     drCrNoteAccountType: (await Promise.all(creditAccountNames)).join(', '),  // Save credit account names as a string
                     debit: debit.debit,
                     credit: 0,

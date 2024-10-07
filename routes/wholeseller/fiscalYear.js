@@ -11,6 +11,7 @@ const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRa
 const Item = require('../../models/wholeseller/Item');
 const Transaction = require('../../models/wholeseller/Transaction');
 const Account = require('../../models/wholeseller/Account');
+const BillCounter = require('../../models/wholeseller/billCounter');
 
 let progress = 0; // 0 to 100
 
@@ -376,6 +377,26 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
                     } else {
                         throw saveError;
                     }
+                }
+            }
+
+            // Initialize bill counters for the new fiscal year
+            const transactionTypes = [
+                'Sales', 'Purchase', 'SalesReturn', 'PurchaseReturn',
+                'Payment', 'Receipt', 'Journal', 'DebitNote', 'CreditNote', 'StockAdjustment'
+            ];
+
+            for (let transactionType of transactionTypes) {
+                try {
+                    await BillCounter.create({
+                        company: companyId,
+                        fiscalYear: newFiscalYear._id,
+                        transactionType: transactionType,
+                        currentBillNumber: 0 // Initialize to 1 for the new fiscal year
+                    });
+                    console.log(`Initialized ${transactionType} bill counter for fiscal year ${newFiscalYear.name}`);
+                } catch (err) {
+                    console.error(`Failed to initialize ${transactionType} bill counter:`, err);
                 }
             }
 

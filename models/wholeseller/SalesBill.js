@@ -22,6 +22,11 @@ const SalesBillSchema = new Schema({
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     unit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
     settings: { type: mongoose.Schema.Types.ObjectId, ref: 'Settings' },
+    fiscalYear: {
+        type: Schema.Types.ObjectId,
+        ref: 'FiscalYear',
+        required: true
+    },
     items: [{
         item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
         quantity: Number,
@@ -62,7 +67,7 @@ const SalesBillSchema = new Schema({
 });
 
 // //This means each company can have accounts with the same name, but account names must be unique within a company.
-SalesBillSchema.index({ billNumber: 1, company: 1 }, { unique: true });
+SalesBillSchema.index({ billNumber: 1, company: 1, fiscalYear: 1 }, { unique: true });
 // //---------------------------------------------------------------------------------------------------------------
 
 

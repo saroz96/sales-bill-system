@@ -11,7 +11,7 @@ const Item = require('../../models/wholeseller/Item');
 const SalesReturn = require('../../models/wholeseller/SalesReturn');
 const Transaction = require('../../models/wholeseller/Transaction');
 const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware/auth');
-const BillCounter = require('../../models/wholeseller/salesReturnBillCounter');
+// const BillCounter = require('../../models/wholeseller/salesReturnBillCounter');
 const Account = require('../../models/wholeseller/Account');
 const Settings = require('../../models/wholeseller/Settings');
 const Company = require('../../models/wholeseller/Company');
@@ -21,6 +21,8 @@ const SalesBill = require('../../models/wholeseller/SalesBill');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
 const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
 const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRange');
+const BillCounter = require('../../models/wholeseller/billCounter');
+const { getNextBillNumber } = require('../../middleware/getNextBillNumber');
 
 
 // Fetch all sales return bills
@@ -91,9 +93,23 @@ router.get('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureTr
         const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear });
 
 
-        // Get the next bill number
-        const billCounter = await BillCounter.findOne({ company: companyId });
-        const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
+        // // Get the next bill number
+        // const billCounter = await BillCounter.findOne({ company: companyId });
+        // const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
+
+        // Get the next bill number based on company, fiscal year, and transaction type ('sales')
+        let billCounter = await BillCounter.findOne({
+            company: companyId,
+            fiscalYear: fiscalYear,
+            transactionType: 'SalesReturn' // Specify the transaction type for sales bill
+        });
+
+        let nextBillNumber;
+        if (billCounter) {
+            nextBillNumber = billCounter.currentBillNumber + 1; // Increment the current bill number
+        } else {
+            nextBillNumber = 1; // Start with 1 if no bill counter exists for this fiscal year and company
+        }
         res.render('wholeseller/salesReturn/salesReturnEntry', {
             company: companyId, accounts: accounts, items: items, bills: bills, nextBillNumber: nextBillNumber,
             nepaliDate: nepaliDate, transactionDateNepali, companyDateFormat, salesInvoice,
@@ -158,14 +174,15 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
                 }
             }
 
-            // Find the counter for the company
-            let billCounter = await BillCounter.findOne({ company: companyId });
-            if (!billCounter) {
-                billCounter = new BillCounter({ company: companyId });
-            }
-            // Increment the counter
-            billCounter.count += 1;
-            await billCounter.save();
+            // // Find the counter for the company
+            // let billCounter = await BillCounter.findOne({ company: companyId });
+            // if (!billCounter) {
+            //     billCounter = new BillCounter({ company: companyId });
+            // }
+            // // Increment the counter
+            // billCounter.count += 1;
+            // await billCounter.save();
+            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'SalesReturn')
 
             // Check validation conditions after processing all items
             if (isVatExempt !== 'all') {
@@ -214,7 +231,8 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
             }
             // Create new purchase bill
             const newBill = new SalesReturn({
-                billNumber: billCounter.count,
+                // billNumber: billCounter.count,
+                billNumber: billNumber,
                 salesBillNumber,
                 account,
                 purchaseSalesReturnType: 'Sales Return',
@@ -273,7 +291,8 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
                 const transaction = new Transaction({
                     item: product._id,
                     account: account,
-                    billNumber: billCounter.count,
+                    // billNumber: billCounter.count,
+                    billNumber: billNumber,
                     salesBillNumber,
                     purchaseSalesReturnType: 'Sales Return',
                     quantity: item.quantity,
@@ -316,7 +335,8 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
                 if (cashAccount) {
                     const cashTransaction = new Transaction({
                         account: cashAccount._id,
-                        billNumber: billCounter.count,
+                        // billNumber: billCounter.count,
+                        billNumber: billNumber,
                         salesBillNumber,
                         type: 'Slrt',
                         salesReturnBillId: newBill._id,  // Set billId to the new bill's ID

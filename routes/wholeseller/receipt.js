@@ -9,12 +9,14 @@ const Company = require('../../models/wholeseller/Company');
 const CompanyGroup = require('../../models/wholeseller/CompanyGroup')
 const Transaction = require('../../models/wholeseller/Transaction')
 const NepaliDate = require('nepali-date');
-const BillCounter = require('../../models/wholeseller/receiptBillCounter');
+// const BillCounter = require('../../models/wholeseller/receiptBillCounter');
 const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware/auth');
 const { ensureTradeType } = require('../../middleware/tradeType');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
 const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
 const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRange');
+const BillCounter = require('../../models/wholeseller/billCounter');
+const { getNextBillNumber } = require('../../middleware/getNextBillNumber');
 
 // GET - Show list of journal vouchers
 router.get('/receipts-list', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
@@ -122,8 +124,23 @@ router.get('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTradeT
         // const newVoucherNumber = lastPayment ? lastPayment.voucherNumber + 1 : 1;
 
         // Get the next bill number
-        const billCounter = await BillCounter.findOne({ company: companyId });
-        const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
+        // const billCounter = await BillCounter.findOne({ company: companyId });
+        // const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
+
+        // Get the next bill number based on company, fiscal year, and transaction type ('sales')
+        let billCounter = await BillCounter.findOne({
+            company: companyId,
+            fiscalYear: fiscalYear,
+            transactionType: 'Receipt' // Specify the transaction type for sales bill
+        });
+
+        let nextBillNumber;
+        if (billCounter) {
+            nextBillNumber = billCounter.currentBillNumber + 1; // Increment the current bill number
+        } else {
+            nextBillNumber = 1; // Start with 1 if no bill counter exists for this fiscal year and company
+        }
+
         res.render('wholeseller/receipt/receipt', {
             accounts, // All accounts excluding 'Cash in Hand' and 'Bank Accounts'
             cashAccounts,
@@ -167,12 +184,14 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 return res.status(400).json({ message: 'Debit amount must be a positive number.' });
             }
 
-            let billCounter = await BillCounter.findOne({ company: companyId });
-            if (!billCounter) {
-                billCounter = new BillCounter({ company: companyId });
-            }
-            billCounter.count += 1;
-            await billCounter.save();
+            // let billCounter = await BillCounter.findOne({ company: companyId });
+            // if (!billCounter) {
+            //     billCounter = new BillCounter({ company: companyId });
+            // }
+            // billCounter.count += 1;
+            // await billCounter.save();
+
+            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Receipt')
 
             const creditedAccount = await Account.findById(account);
             if (!creditedAccount) {
@@ -191,7 +210,8 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
             }
 
             const receipt = new Receipt({
-                billNumber: billCounter.count,
+                // billNumber: billCounter.count,
+                billNumber: billNumber,
                 date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),
                 account,
                 InstType,
@@ -209,7 +229,8 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 account,
                 type: 'Rcpt',
                 receiptAccountId: receipt._id,
-                billNumber: billCounter.count,
+                // billNumber: billCounter.count,
+                billNumber: billNumber,
                 accountType: receiptAccount,
                 credit,
                 debit: 0,
@@ -235,7 +256,8 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 paymentAccount: receiptAccount,
                 type: 'Pymt',
                 receiptAccountId: receipt._id,
-                billNumber: billCounter.count,
+                // billNumber: billCounter.count,
+                billNumber: billNumber,
                 accountType: account,
                 credit: 0,
                 debit: credit,
