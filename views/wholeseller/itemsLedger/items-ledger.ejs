@@ -59,6 +59,7 @@
                                                     <th>Unit</th>
                                                     <th>Rate (Rs.)</th>
                                                     <th>Balance</th>
+                                                    <th>Batch & Expiry</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -108,6 +109,10 @@
                                                                     </td>
                                                                     <td>
                                                                         <%= entry.balance.toFixed(2) %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= entry.batchNumber %> -
+                                                                            <%= entry.expiryDate %>
                                                                     </td>
                                                                 </tr>
                                                                 <% }) %>

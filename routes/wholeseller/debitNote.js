@@ -213,7 +213,7 @@ router.post('/debit-note/new', ensureAuthenticated, ensureCompanySelected, ensur
 // GET - Show list of journal vouchers
 router.get('/debit-note/list', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
-        const DebitNotes = await DebitNote.find({ company: req.session.currentCompany }).populate('debitAccount creditAccount');
+        const DebitNotes = await DebitNote.find({ company: req.session.currentCompany }).populate('debitAccounts creditAccounts');
         res.render('wholeseller/debitNote/list', {
             DebitNotes, currentCompanyName: req.session.currentCompanyName,
             title: 'View Debit Note',

@@ -427,17 +427,92 @@
         }
     }
 
+    // async function filterItems(input) {
+    //     const query = input.value.trim().toLowerCase();
+    //     const vatStatus = document.getElementById('isVatExempt').value; // Get the VAT status from the select input
+    //     const dropdownMenu = input.nextElementSibling;
+    //     //to exculde already present items from search
+    //     const existingItemIds = Array.from(document.querySelectorAll('input[name^="items["]'))
+    //         .filter(input => input.name.includes('[item]'))
+    //         .map(input => input.value);
+    //     //to exculde already present items from search
+
+
+    //     if (query.length === 0) {
+    //         dropdownMenu.innerHTML = '';
+    //         dropdownMenu.classList.remove('show'); // Hide the dropdown if input is blank
+    //         return;
+    //     }
+
+    //     const items = await fetchItems(query, vatStatus, existingItemIds);
+
+    //     console.log('Filtered items:', items);
+
+    //     // Clear existing dropdown items
+    //     dropdownMenu.innerHTML = '';
+
+    //     // Create and add table header
+    //     const header = document.createElement('div');
+    //     header.classList.add('dropdown-header');
+    //     header.innerHTML = `
+    //     <div><strong>Item Code</strong></div>
+    //     <div><strong>H.S. Code</strong></div>
+    //     <div><strong>Item Name</strong></div>
+    //     <div><strong>Category</strong></div>
+    //     <div><strong>Quantity</strong></div>
+    //     <div><strong>Unit</strong></div>
+    //     <div><strong>S.Price</strong></div>
+    //     <div><strong>Pu.Price</strong></div>
+
+    // `;
+    //     dropdownMenu.appendChild(header);
+
+    //     // Create and add dropdown items
+    //     items.forEach(item => {
+    //         const dropdownItem = document.createElement('div');
+    //         dropdownItem.classList.add('dropdown-item');
+    //         dropdownItem.tabIndex = 0; // Make the item focusable
+
+    //         // Add class based on VAT status
+    //         if (item.vatStatus === 'vatable') {
+    //             dropdownItem.classList.add('vatable-item');
+    //         } else {
+    //             dropdownItem.classList.add('non-vatable-item');
+    //         }
+    //         dropdownItem.innerHTML = `
+    //         <div>${item.uniqueNumber || 'N/A'}</div>
+    //         <div>${item.hscode || 'N/A'}</div>
+    //         <div>${item.name}</div>
+    //         <div>${item.category ? item.category.name : 'No Category'}</div>
+    //         <div>${item.stock}</div>
+    //         <div>${item.unit ? item.unit.name : ''}</div>
+    //         <div>Rs.${item.price.toFixed()}</div>
+    //         <div>Rs.${item.puPrice.toFixed()}</div>
+
+    //     `;
+    //         dropdownItem.addEventListener('click', () => addItemToBill(item, dropdownMenu));
+    //         dropdownMenu.appendChild(dropdownItem);
+    //     });
+
+    //     // Show or hide the dropdown menu based on the number of items
+    //     if (items.length > 0) {
+    //         dropdownMenu.classList.add('show');
+    //     } else {
+    //         dropdownMenu.classList.remove('show');
+    //     }
+    // }
+
     async function filterItems(input) {
         const query = input.value.trim().toLowerCase();
         const vatStatus = document.getElementById('isVatExempt').value; // Get the VAT status from the select input
         const dropdownMenu = input.nextElementSibling;
-        //to exculde already present items from search
+
+        // To exclude already present items from search
         const existingItemIds = Array.from(document.querySelectorAll('input[name^="items["]'))
             .filter(input => input.name.includes('[item]'))
             .map(input => input.value);
-        //to exculde already present items from search
 
-
+        // To exclude already present items from search
         if (query.length === 0) {
             dropdownMenu.innerHTML = '';
             dropdownMenu.classList.remove('show'); // Hide the dropdown if input is blank
@@ -445,7 +520,6 @@
         }
 
         const items = await fetchItems(query, vatStatus, existingItemIds);
-
         console.log('Filtered items:', items);
 
         // Clear existing dropdown items
@@ -463,7 +537,6 @@
         <div><strong>Unit</strong></div>
         <div><strong>S.Price</strong></div>
         <div><strong>Pu.Price</strong></div>
-
     `;
         dropdownMenu.appendChild(header);
 
@@ -479,17 +552,21 @@
             } else {
                 dropdownItem.classList.add('non-vatable-item');
             }
+
+            // Calculate the total available stock from stockEntries
+            const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+
             dropdownItem.innerHTML = `
             <div>${item.uniqueNumber || 'N/A'}</div>
             <div>${item.hscode || 'N/A'}</div>
             <div>${item.name}</div>
             <div>${item.category ? item.category.name : 'No Category'}</div>
-            <div>${item.stock}</div>
+            <div>${totalStock}</div> <!-- Display total available stock -->
             <div>${item.unit ? item.unit.name : ''}</div>
             <div>Rs.${item.price.toFixed()}</div>
             <div>Rs.${item.puPrice.toFixed()}</div>
-
         `;
+
             dropdownItem.addEventListener('click', () => addItemToBill(item, dropdownMenu));
             dropdownMenu.appendChild(dropdownItem);
         });
@@ -775,10 +852,6 @@
             updateDiscountFromAmount();
             calculateTotal();
         });
-
-        // document.querySelectorAll('.price-input, .quantity-input, .item-select').forEach(element => {
-        //     element.addEventListener('input', calculateTotal);
-        // });
 
         document.getElementById('roundOffAmount').addEventListener('input', function () {
             calculateTotal();

@@ -264,13 +264,15 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
             }
 
             // FIFO stock addition function
-            async function addStock(product, quantity, price) {
+            async function addStock(product, quantity, price, batchNumber, expiryDate) {
                 // Ensure quantity is treated as a number
                 const quantityNumber = Number(quantity);
 
                 product.stockEntries.push({
                     quantity: quantityNumber,
                     price: price,
+                    batchNumber: batchNumber,  // Add batch number
+                    expiryDate: expiryDate,  // Add expiry date
                     date: nepaliDate ? nepaliDate : new Date(billDate),
                 });
 
@@ -313,11 +315,13 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
                 console.log('Transaction', transaction);
 
                 // Increment stock quantity using FIFO
-                await addStock(product, item.quantity, item.price);
+                await addStock(product, item.quantity, item.price, item.batchNumber, item.expiryDate);
 
                 return {
                     item: product._id,
                     quantity: item.quantity,
+                    batchNumber: item.batchNumber,  // Add batch number
+                    expiryDate: item.expiryDate,  // Add expiry date
                     price: item.price,
                     vatStatus: product.vatStatus
                 };

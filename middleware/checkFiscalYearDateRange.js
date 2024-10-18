@@ -32,9 +32,13 @@ async function checkFiscalYearDateRange(req, res, next) {
         const routePath = req.route.path; // Get the current route path
 
         if (routePath.includes('purchase-bills')) {
-            redirectUrl = '/purchase-bills'; // Redirect to sales entry page
+            redirectUrl = '/purchase-bills'; // Redirect to purchase entry page
         } else if (routePath.includes('bills')) {
-            redirectUrl = '/bills'; // Redirect to purchase entry page
+            redirectUrl = '/bills'; // Redirect to sales entry page
+        } else if (routePath.includes('billsTrackBatch')) {
+            redirectUrl = '/billsTrackBatch'
+        } else if (routePath.includes('billsTrackBatchOpen')) {
+            redirectUrl = '/billsTrackBatchOpen'
         } else {
             redirectUrl = '/'; // Default redirect URL
         }

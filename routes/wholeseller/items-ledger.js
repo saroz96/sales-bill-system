@@ -117,6 +117,8 @@ router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensu
                             qtyOut: 0,
                             price: itemEntry.puPrice,
                             unit: itemEntry.item.unit.name,
+                            batchNumber: itemEntry.batchNumber || 'N/A',
+                            expiryDate: itemEntry.expiryDate ? itemEntry.expiryDate : 'N/A',
                             balance: 0,
                         });
                         itemsLedger[itemId].qtyBalance += itemEntry.quantity;
@@ -137,6 +139,8 @@ router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensu
                             qtyOut: itemEntry.quantity,
                             price: itemEntry.puPrice,
                             unit: itemEntry.item.unit.name,
+                            batchNumber: itemEntry.batchNumber || 'N/A',
+                            expiryDate: itemEntry.expiryDate ? itemEntry.expiryDate.toISOString().split('T')[0] : 'N/A',
                             balance: 0,
                         });
                         itemsLedger[itemId].qtyBalance -= itemEntry.quantity;
@@ -157,6 +161,8 @@ router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensu
                             qtyOut: itemEntry.quantity,
                             price: itemEntry.price,
                             unit: itemEntry.item.unit.name,
+                            batchNumber: itemEntry.batchNumber || 'N/A',
+                            expiryDate: itemEntry.expiryDate ? itemEntry.expiryDate.toISOString().split('T')[0] : 'N/A',
                             balance: 0,
                         });
                         itemsLedger[itemId].qtyBalance -= itemEntry.quantity;
@@ -177,6 +183,8 @@ router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensu
                             qtyOut: 0,
                             price: itemEntry.price,
                             unit: itemEntry.item.unit.name,
+                            batchNumber: itemEntry.batchNumber || 'N/A',
+                            expiryDate: itemEntry.expiryDate ? itemEntry.expiryDate.toISOString().split('T')[0] : 'N/A',
                             balance: 0,
                         });
                         itemsLedger[itemId].qtyBalance += itemEntry.quantity;
@@ -197,6 +205,8 @@ router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensu
                     qtyOut: qtyOut,
                     unit: adjustment.item.unit.name,
                     price: adjustment.puPrice,
+                    batchNumber: adjustment.batchNumber || 'N/A',
+                    expiryDate: adjustment.expiryDate ? itemEntry.expiryDate : "N/A",
                     balance: 0,
                 });
                 itemsLedger[itemId].qtyBalance += qtyIn;

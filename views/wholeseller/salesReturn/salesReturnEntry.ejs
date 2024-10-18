@@ -234,6 +234,8 @@
                             <th>H.S. Code</th>
                             <th>Qty</th>
                             <th>Unit</th>
+                            <th>B.No.</th>
+                            <th>Exp.Date</th>
                             <th>Price</th>
                             <th>Amount</th>
                             <th>Action</th>
@@ -510,12 +512,16 @@
             } else {
                 dropdownItem.classList.add('non-vatable-item');
             }
+
+            // Calculate the total available stock from stockEntries
+            const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+
             dropdownItem.innerHTML = `
             <div>${item.uniqueNumber || 'N/A'}</div>
             <div>${item.hscode || 'N/A'}</div>
             <div>${item.name}</div>
             <div>${item.category ? item.category.name : 'No Category'}</div>
-            <div>${item.stock}</div>
+            <div>${totalStock}</div>
             <div>${item.unit ? item.unit.name : ''}</div>
             <div>Rs.${item.price}</div>
             <div>Rs.${item.puPrice}</div>
@@ -548,7 +554,7 @@
         tr.innerHTML = `
             <td>${serialNumber}</td>
             <td>${item.uniqueNumber}</td>
-        <td class="col-4">
+        <td>
             <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
             ${item.name}
         </td>
@@ -558,6 +564,12 @@
         </td>
         <td><input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)"></td>
         <td>${item.unit ? item.unit.name : ''}</td>
+        <td>
+            <input type="text" name="items[${itemIndex}][batchNumber]" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" step="any" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+        </td>
+        <td>
+            <input type="date" name="items[${itemIndex}][expiryDate]" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)" required>
+        </td>
         <td><input type="number" name="items[${itemIndex}][price]" value="${item.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
         <td class="item-amount">0.00</td>
         <td>
@@ -974,10 +986,25 @@
             // Focus on the price input field
             // document.getElementById('price').focus();
             // document.getElementById(`price-${itemIndex}`).focus();
-            const priceInput = document.getElementById(`price-${itemIndex - 1}`);
+            const batchNumberInput = document.getElementById(`batchNumber-${itemIndex - 1}`);
+            batchNumberInput.focus();
+            batchNumberInput.select();
+
+        }
+    }
+    function handleBatchKeydown(event) {
+        if (event.key === 'Enter') {
+            const expDateInput = document.getElementById(`expiryDate-${itemIndex - 1}`);
+            expDateInput.focus();
+            expDateInput.select();
+        }
+    }
+
+    function handleExpDateKeydown(event) {
+        if (event.key === 'Enter') {
+            const priceInput = document.getElementById(`puPrice-${itemIndex - 1}`);
             priceInput.focus();
             priceInput.select();
-
         }
     }
 

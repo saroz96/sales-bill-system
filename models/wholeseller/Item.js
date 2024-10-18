@@ -8,6 +8,14 @@ const stockEntrySchema = new mongoose.Schema({
     quantity: {
         type: Number,
     },
+    batchNumber: {
+        type: String,
+    },
+    expiryDate: {
+        type: String,
+    },
+    price: { type: Number },
+    puPrice: { type: Number },
     fiscalYear: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'FiscalYear'
@@ -82,6 +90,9 @@ const itemSchema = new mongoose.Schema({
     }],
     purchase: [{
         type: mongoose.Schema.Types.ObjectId, ref: 'PurchaseBill'
+    }],
+    PurchaseReturn: [{
+        type: mongoose.Schema.Types.ObjectId, ref: 'PurchaseReturns'
     }],
     stockAdjustments: [{
         type: mongoose.Schema.Types.ObjectId, ref: 'StockAdjustment'

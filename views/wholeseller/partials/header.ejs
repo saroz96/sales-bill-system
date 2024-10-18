@@ -658,6 +658,36 @@
             color: white;
         }
 
+        /*for inventory/stock-status header*/
+        #inventoryHeader {
+            cursor: pointer;
+            background-color: #f2f2f2;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        #inventoryHeader:hover {
+            background-color: #007bff;
+            /* Blue background */
+            color: white;
+        }
+
+        #inventoryHeaderContent .subheader {
+            display: block;
+            margin: 5px 0;
+            padding: 10px;
+            background-color: gray;
+            /* Remove background color */
+            border: none;
+            cursor: pointer;
+            color: white;
+            text-decoration: none;
+        }
+
+        #inventoryHeaderContent .subheader:hover {
+            background-color: lightgreen;
+            color: white;
+        }
 
 
         /* for Logout header */
@@ -750,6 +780,8 @@
             <li id="salesHeader">Sales
                 <div id="salesHeaderContent" class="hidden">
                     <a class="subheader" href="/bills">Add Sales</a>
+                    <a class="subheader" href="/billsTrackBatch">Add Sales-Track Batch</a>
+                    <a class="subheader" href="/billsTrackBatchOpen">Add Sales Open</a>
                     <a class="subheader" href="/bills-list">View Sales</a>
                 </div>
             </li>
@@ -823,6 +855,11 @@
             <li id="ageingHeader">Outstanding report
                 <div id="ageingHeaderContent" class="hidden">
                     <a class="subheader" href="/aging/accounts">Accounts</a>
+                </div>
+            </li>
+            <li id="inventoryHeader">Inventory
+                <div id="inventoryHeaderContent" class="hidden">
+                    <a class="subheader" href="/wholeseller/stock-status">Stock Status</a>
                 </div>
             </li>
 
@@ -907,6 +944,7 @@
             setupToggle('fiscalYearHeader', 'fiscalYearHeaderContent');
             setupToggle('userManagementHeader', 'userManagementHeaderContent');
             setupToggle('ageingHeader', 'ageingHeaderContent');
+            setupToggle('inventoryHeader', 'inventoryHeaderContent');
         });
     </script>
 </body>

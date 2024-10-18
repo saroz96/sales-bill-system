@@ -511,12 +511,16 @@
             } else {
                 dropdownItem.classList.add('non-vatable-item');
             }
+
+            // Calculate the total available stock from stockEntries
+            const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+
             dropdownItem.innerHTML = `
             <div>${item.uniqueNumber || 'N/A'}</div>
             <div>${item.hscode || 'N/A'}</div>
             <div>${item.name}</div>
             <div>${item.category ? item.category.name : 'No Category'}</div>
-            <div>${item.stock}</div>
+            <div>${totalStock}</div>
             <div>${item.unit ? item.unit.name : ''}</div>
             <div>Rs.${item.price}</div>
             <div>Rs.${item.puPrice}</div>

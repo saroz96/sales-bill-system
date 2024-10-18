@@ -18,25 +18,22 @@ const PurchaseReturn = require('../../models/wholeseller/PurchaseReturns');
 // Route to get stock status of all items
 router.get('/stock-status', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     try {
-
         const companyId = req.session.currentCompany;
         const company = await Company.findById(companyId).populate('fiscalYear');
         const currentCompany = await Company.findById(new ObjectId(companyId));
 
         // Check if fiscal year is already in the session or available in the company
         let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        const initialCurrentFiscalYear = company.fiscalYear; // Assuming it's a single object
         let currentFiscalYear = null;
 
         if (fiscalYear) {
-            // Fetch the fiscal year from the database if available in the session
             currentFiscalYear = await FiscalYear.findById(fiscalYear);
         }
 
-        // If no fiscal year is found in session or currentCompany, throw an error
         if (!currentFiscalYear && company.fiscalYear) {
             currentFiscalYear = company.fiscalYear;
 
-            // Set the fiscal year in the session for future requests
             req.session.currentFiscalYear = {
                 id: currentFiscalYear._id.toString(),
                 startDate: currentFiscalYear.startDate,
@@ -46,7 +43,6 @@ router.get('/stock-status', ensureAuthenticated, ensureCompanySelected, ensureTr
                 isActive: currentFiscalYear.isActive
             };
 
-            // Assign fiscal year ID for use
             fiscalYear = req.session.currentFiscalYear.id;
         }
 
@@ -54,102 +50,79 @@ router.get('/stock-status', ensureAuthenticated, ensureCompanySelected, ensureTr
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
 
-        // Find all items and populate relevant fields
-        // const items = await Item.find({ company: companyId, fiscalYear: fiscalYear })
-        //     .populate('category', 'name') // Populate category name
-        //     .populate('unit', 'name') // Populate unit name
-        //     .populate('company', 'name') // Populate company name
-        //     .populate('fiscalYear', 'year') // Populate fiscal year
-        //     .exec();
-
         const items = await Item.find({ company: companyId, fiscalYear: fiscalYear })
-            .populate('category', 'name') // Populate category name
-            .populate('unit', 'name') // Populate unit name
-            .populate('company', 'name') // Populate company name
-            .populate('fiscalYear', 'year') // Populate fiscal year
+            .populate('category', 'name')
+            .populate('unit', 'name')
+            .populate('company', 'name')
+            .populate('fiscalYear', 'year')
             .exec();
 
-        // Iterate over each item to calculate total Qty. In (excluding opening stock) and total Qty. Out
         for (let item of items) {
-            // Fetch all purchase bills related to this item
-            const purchaseBills = await PurchaseBill.find({
-                'items.item': item._id // Find purchase bills that include this item
-            });
+            // Fetch purchase, sales, stock adjustment, and return bills for calculations
+            const purchaseBills = await PurchaseBill.find({ 'items.item': item._id });
+            const salesBills = await SalesBill.find({ 'items.item': item._id });
+            const stockAdjustments = await StockAdjustment.find({ item: item._id });
+            const purchaseReturnBills = await PurchaseReturn.find({ 'items.item': item._id });
+            const salesReturnBills = await SalesReturn.find({ 'items.item': item._id });
 
-            // Calculate total quantity in for this item (excluding opening stock)
+            // Calculate total quantities in and out
             const totalQtyIn = purchaseBills.reduce((total, bill) => {
                 const itemInBill = bill.items.find(purchaseItem => purchaseItem.item.equals(item._id));
                 return total + (itemInBill ? itemInBill.quantity : 0);
             }, 0);
 
-            //fetch all sales return bills related to this item
-            const salesReturn = await SalesReturn.find({
-                'items.item': item._id
-            });
-
-            //Calculate total quantity in for this item
-            const totalSalesReturn = salesReturn.reduce((total, bill) => {
+            const totalSalesReturn = salesReturnBills.reduce((total, bill) => {
                 const itemInBill = bill.items.find(salesReturnItem => salesReturnItem.item.equals(item._id));
-                return total + (itemInBill ? itemInBill.quantity : 0)
+                return total + (itemInBill ? itemInBill.quantity : 0);
             }, 0);
 
-            // Fetch all stock adjustments related to this item
-            const stockAdjustments = await StockAdjustment.find({
-                item: item._id // Find stock adjustments for this item
-            });
-
-            // Calculate total quantities based on stock adjustments
             const totalStockAdjustments = stockAdjustments.reduce((acc, adj) => {
                 if (adj.adjustmentType === 'xcess') {
-                    acc.totalQtyIn += adj.quantity; // Excess stock increases totalQtyIn
+                    acc.totalQtyIn += adj.quantity;
                 } else if (adj.adjustmentType === 'short') {
-                    acc.totalQtyOut += adj.quantity; // Short stock increases totalQtyOut
+                    acc.totalQtyOut += adj.quantity;
                 }
                 return acc;
             }, { totalQtyIn: 0, totalQtyOut: 0 });
 
-            // Fetch all sales bills related to this item
-            const salesBills = await SalesBill.find({
-                'items.item': item._id // Find sales bills that include this item
-            });
-
-            // Calculate total quantity out from sales
             const totalSalesOut = salesBills.reduce((total, bill) => {
                 const itemInBill = bill.items.find(salesItem => salesItem.item.equals(item._id));
                 return total + (itemInBill ? itemInBill.quantity : 0);
             }, 0);
 
-            // Fetch all sales bills related to this item
-            const purchaseReturnBills = await PurchaseReturn.find({
-                'items.item': item._id // Find sales bills that include this item
-            });
-
-            // Calculate total quantity out from sales
             const totalPurchaseReturn = purchaseReturnBills.reduce((total, bill) => {
                 const itemInBill = bill.items.find(purchaseReturnItem => purchaseReturnItem.item.equals(item._id));
                 return total + (itemInBill ? itemInBill.quantity : 0);
             }, 0);
 
-            // Calculate total Qty. Out (sales + stock adjustments of type 'short')
+            // Set total Qty. In and total Qty. Out
             item.totalQtyOut = totalSalesOut + totalPurchaseReturn + totalStockAdjustments.totalQtyOut;
-
-            // Calculate total Qty. In (excluding opening stock + stock adjustments of type 'xcess')
             item.totalQtyIn = totalQtyIn + totalSalesReturn + totalStockAdjustments.totalQtyIn;
+
+            // Calculate total stock value based on purchase and sales prices
+            item.totalStockValuePurchase = item.stock * item.puPrice; // Total value based on purchase price
+            item.totalStockValueSales = item.stock * item.price; // Total value based on sales price
         }
-        // Send the stock status to the client
+
+        // Render the stock status view with flags to control which stock values to show
         res.render('wholeseller/inventory/stock-status', {
             items,
             currentCompany,
             user: req.user,
             currentCompanyName: req.session.currentCompanyName,
+            currentFiscalYear,
+            initialCurrentFiscalYear,
             title: 'Stock Status',
             body: 'wholeseller >> inventory >> stock status',
-            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor',
+            showPurchaseValue: req.query.showPurchaseValue || false, // Check for the tick mark for purchase value
+            showSalesValue: req.query.showSalesValue || false // Check for the tick mark for sales value
         });
     } catch (error) {
         console.error('Error fetching stock status:', error);
         res.status(500).send('Server error');
     }
 });
+
 
 module.exports = router;

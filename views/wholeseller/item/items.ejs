@@ -151,8 +151,12 @@
                                 <%= item.vatStatus==='vatable' ? 'Vatable' : 'VAT Exempt' %>
                             </span></td>
                         <td><small>
-                                <%= item.stock %>
-                                    <%= item.unit.name %>
+                                <small>
+                                    <%= item.stockEntries ? item.stockEntries.reduce((acc, entry)=> acc +
+                                        entry.quantity, 0) : 0
+                                        %>
+                                </small><br>
+                                <%= item.unit.name %>
                             </small></td>
                         <td>
                             <a href="/items/<%= item._id %>"><button class="btn-sm btn-info"><i

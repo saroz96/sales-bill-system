@@ -276,16 +276,21 @@
         function displayProducts(products) {
             const tableBody = document.getElementById('productDetailsTableBody');
             tableBody.innerHTML = '';
+
             products.forEach(product => {
                 const row = document.createElement('tr');
                 row.className = product.vatStatus === 'vatable' ? 'vatable' : 'vatExempt';
+
+                // Calculate the total available stock from stockEntries
+                const totalStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+
                 row.innerHTML = `
             <td>${product._id}</td>
             <td>${product.hscode}</td>
             <td>${product.name}</td>
             <td>${product.category ? product.category.name : 'No Category'}</td>
             <td>${product.price}</td>
-            <td>${product.stock}</td>
+            <td>${totalStock}</td>
             <td>${product.unit.name}</td>
             <td>${product.vatStatus}</td>
             `;

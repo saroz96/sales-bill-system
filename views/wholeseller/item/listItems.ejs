@@ -27,6 +27,7 @@
     <ul class="list-group mt-3" id="itemsList">
         <% if (items && items.length> 0) { %>
             <% items.forEach(item=> { %>
+
                 <div class="searchClass">
                     <% let vatClass='' ; %>
                         <% if (item.vatStatus==='vatExempt' ) { %>
@@ -45,8 +46,12 @@
                                                     <small>Sales price: <%= item.price %>&nbsp; Purchase price:
                                                             <%=item.puPrice%>
                                                     </small><br>
-                                                    <small>Stock: <%= item.stock %></small><br>
-                                                    <small>VAT Status: <%= item.vatStatus %></small>
+                                                    <small>Stock: <%= item.stockEntries ? item.stockEntries.reduce((acc,
+                                                            entry)=> acc + entry.quantity, 0) : 0
+                                                            %>
+                                                    </small>
+                                                    <br> <small>VAT Status: <%= item.vatStatus %>
+                                                    </small>
                                                 </div>
                                                 <div>
                                                     <a href="/items-ledger/<%=item._id%>"

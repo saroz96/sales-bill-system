@@ -1,7 +1,6 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'Purchase Entry' , body: 'wholeseller >> purchase >> add' }) %>
+    <%- include('../layouts/boilerplate', { title: 'Sales' , body: 'wholeseller >> sales >> add' }) %>
 </div>
-
 <style>
     .vatable-item {
         background-color: lightgreen;
@@ -103,57 +102,58 @@
             Create New Bill
         </div>
         <div class="card-body">
-            <form action="/purchase-bills" method="post" id="billForm">
+            <form action="/billsTrackBatchOpen" method="post" id="billForm">
                 <div class="form-group row">
+
                     <% if (companyDateFormat==='nepali' ) { %>
+                        <!-- Nepali Date Fields -->
                         <div class="col">
                             <label for="transactionDateNepali">Transaction Date:</label>
                             <input type="text" name="transactionDateNepali" id="transactionDateNepali"
-                                class="form-control" value="<%= transactionDateNepali ||'' %>" autofocus required>
+                                class="form-control" value="<%= transactionDateNepali || '' %>" autofocus required>
                         </div>
                         <div class="col">
                             <label for="nepaliDate">Invoice Date:</label>
                             <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
-                                value="<%= nepaliDate || '' %>" autofocus>
+                                value="<%= nepaliDate || '' %>">
                         </div>
-                        <div class="col d-none">
-                            <label for="billDate">Invoice Date:</label>
-                            <input type="date" name="billDate" id="billDate" class="form-control"
-                                value="<%= new Date().toISOString().split('T')[0] %>" disabled autoficeocus>
-                        </div>
+                        <!-- Hidden field for billDate, since we are using NepaliDate -->
+                        <input type="hidden" name="billDate" id="billDate" value="">
                         <% } else { %>
+                            <!-- English Date Fields -->
                             <div class="col">
                                 <label for="transactionDateRoman">Transaction Date:</label>
                                 <input type="date" name="transactionDateRoman" id="transactionDateRoman"
-                                    class="form-control" value="<%= new Date().toISOString().split('T')[0]%>" autofocus
+                                    class="form-control" value="<%= new Date().toISOString().split('T')[0] %>" autofocus
                                     required>
                             </div>
                             <div class="col">
                                 <label for="billDate">Invoice Date:</label>
                                 <input type="date" name="billDate" id="billDate" class="form-control" required
-                                    value="<%= new Date().toISOString().split('T')[0] %>" autofocus>
+                                    value="<%= new Date().toISOString().split('T')[0] %>">
                             </div>
-                            <div class="col d-none">
-                                <label for="nepaliDate">Invoice Date:</label>
-                                <input type="text" name="nepaliDate" id="nepaliDate" class="form-control"
-                                    value="<%= nepaliDate || '' %>" disabled autofocus>
-                            </div>
-
+                            <!-- Hidden field for nepaliDate, since we are using English Date -->
+                            <input type="hidden" name="nepaliDate" id="nepaliDate" value="">
                             <% } %>
+
                                 <div class="col">
                                     <p id="billNumber">
                                         <label for="billNumber">Vch. No:</label>
-                                        <input type="number" class="form-control" value="<%=nextPurchaseBillNumber %>"
-                                            disabled readonly>
-                                        <input type="hidden" name="billNumber" value="<%= nextPurchaseBillNumber %>"
+                                        <input type="number" class="form-control" value="<%=nextBillNumber %>" disabled
                                             readonly>
+                                        <input type="hidden" name="billNumber" value="<%= nextBillNumber %>" readonly>
                                     </p>
                                 </div>
-                                <div class="col">
-                                    <label for="partyBillNumber">Purchase Bill No:</label>
-                                    <input type="text" class="form-control" name="partyBillNumber">
-                                </div>
 
+                                <div class="col">
+                                    <label for="paymentMode">Payment Mode:</label>
+                                    <select class="form-control" id="paymentMode" name="paymentMode"
+                                        onchange="toggleCreditPartyOptions()">
+                                        <option>Select</option>
+                                        <option value="cash">Cash</option>
+                                        <option value="credit">Credit</option>
+                                    </select>
+                                </div>
                                 <div class="col">
                                     <label for="isVatExempt">VAT</label>
                                     <select name="isVatExempt" id="isVatExempt" class="form-control"
@@ -167,18 +167,9 @@
                 </div>
                 <div class="form-group row">
                     <div class="col">
-                        <label for="paymentMode">Payment Mode:</label>
-                        <select class="form-control" id="paymentMode" name="paymentMode"
-                            onchange="toggleCreditPartyOptions()">
-                            <option>Select</option>
-                            <option value="cash">Cash</option>
-                            <option value="credit">Credit</option>
-                        </select>
-                    </div>
-                    <div class="col">
-                        <label for="purchaseSalesType">Type</label>
+                        <label for="purchaseSalesType">Type:</label>
                         <select id="purchaseSalesType" name="purchaseSalesType" class="form-control" disabled>
-                            <option value="Purchase">Purchase</option>
+                            <option value="Sales">Sales</option>
                         </select>
                     </div>
                     <div class="col">
@@ -200,10 +191,15 @@
                 <hr style="border: 1px solid gray;">
                 <div class="form-group row">
                     <div class="col">
-                        <label for="itemSearch">Search Item</label>
-                        <input type="text" id="itemSearch" class="form-control" placeholder="Search for an item"
-                            oninput="filterItems(this)" autocomplete="off" onkeydown="handleItemSearchKeydown(event)">
-                        <div id="dropdownMenu" class="dropdown-menu"></div>
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="itemSearch">Search Item</label>
+                                <input type="text" id="itemSearch" class="form-control" placeholder="Search for an item"
+                                    oninput="filterItems(this)" autocomplete="off"
+                                    onkeydown="handleItemSearchKeydown(event)">
+                                <div id="dropdownMenu" class="dropdown-menu"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -214,10 +210,9 @@
                             <th>Item Code</th>
                             <th>Item Name</th>
                             <th>H.S. Code</th>
-                            <th>Quantity</th>
+                            <th>Qty</th>
                             <th>Unit</th>
-                            <th>B.No.</th>
-                            <th>Exp.Date</th>
+                            <th>Batch & Exp.</th>
                             <th>Price</th>
                             <th>Amount</th>
                             <th>Action</th>
@@ -287,7 +282,7 @@
                 <div style="float: right;">
                     <button type="button" class="btn btn-primary" id="saveBill" onclick="submitBillForm(false)">Save
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="showPrintModal()">Save & Print
+                    <button type="button" class="btn btn-secondary" onclick="submitBillForm(true)">Save & Print
                     </button>
                 </div>
             </form>
@@ -361,31 +356,6 @@
     </div>
 </div>
 
-<!-- Sales Price Modal -->
-<div class="modal fade" id="setSalesPriceModal" tabindex="-1" aria-labelledby="setSalesPriceModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="setSalesPriceModalLabel">Set Sales Price for New Batch</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label for="salesPrice" class="form-label">Sales Price</label>
-                    <input type="number" class="form-control" id="salesPrice" step="any" required>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="saveSalesPrice">Save Sales Price</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<script src="https://cdn.jsdelivr.net/npm/nepali-datepicker/js/nepali.datepicker.v4.0.min.js"></script>
 <script>
     let itemIndex = 0;
     let currentFocus = 0;
@@ -399,10 +369,9 @@
         });
     });
 
-
     async function fetchItems(query, vatStatus, existingItemIds) {
         try {
-            const response = await fetch(`/items/search?q=${query}&isVatExempt=${vatStatus}&exclude=${existingItemIds.join(',')}`);
+            const response = await fetch(`/items/search?q=${query}&isVatExempt=${vatStatus}`);
             const data = await response.json();
 
             console.log('Fetched items:', data);
@@ -458,17 +427,92 @@
         }
     }
 
+    // async function filterItems(input) {
+    //     const query = input.value.trim().toLowerCase();
+    //     const vatStatus = document.getElementById('isVatExempt').value; // Get the VAT status from the select input
+    //     const dropdownMenu = input.nextElementSibling;
+    //     //to exculde already present items from search
+    //     const existingItemIds = Array.from(document.querySelectorAll('input[name^="items["]'))
+    //         .filter(input => input.name.includes('[item]'))
+    //         .map(input => input.value);
+    //     //to exculde already present items from search
+
+
+    //     if (query.length === 0) {
+    //         dropdownMenu.innerHTML = '';
+    //         dropdownMenu.classList.remove('show'); // Hide the dropdown if input is blank
+    //         return;
+    //     }
+
+    //     const items = await fetchItems(query, vatStatus, existingItemIds);
+
+    //     console.log('Filtered items:', items);
+
+    //     // Clear existing dropdown items
+    //     dropdownMenu.innerHTML = '';
+
+    //     // Create and add table header
+    //     const header = document.createElement('div');
+    //     header.classList.add('dropdown-header');
+    //     header.innerHTML = `
+    //     <div><strong>Item Code</strong></div>
+    //     <div><strong>H.S. Code</strong></div>
+    //     <div><strong>Item Name</strong></div>
+    //     <div><strong>Category</strong></div>
+    //     <div><strong>Quantity</strong></div>
+    //     <div><strong>Unit</strong></div>
+    //     <div><strong>S.Price</strong></div>
+    //     <div><strong>Pu.Price</strong></div>
+
+    // `;
+    //     dropdownMenu.appendChild(header);
+
+    //     // Create and add dropdown items
+    //     items.forEach(item => {
+    //         const dropdownItem = document.createElement('div');
+    //         dropdownItem.classList.add('dropdown-item');
+    //         dropdownItem.tabIndex = 0; // Make the item focusable
+
+    //         // Add class based on VAT status
+    //         if (item.vatStatus === 'vatable') {
+    //             dropdownItem.classList.add('vatable-item');
+    //         } else {
+    //             dropdownItem.classList.add('non-vatable-item');
+    //         }
+    //         dropdownItem.innerHTML = `
+    //         <div>${item.uniqueNumber || 'N/A'}</div>
+    //         <div>${item.hscode || 'N/A'}</div>
+    //         <div>${item.name}</div>
+    //         <div>${item.category ? item.category.name : 'No Category'}</div>
+    //         <div>${item.stock}</div>
+    //         <div>${item.unit ? item.unit.name : ''}</div>
+    //         <div>Rs.${item.price.toFixed()}</div>
+    //         <div>Rs.${item.puPrice.toFixed()}</div>
+
+    //     `;
+    //         dropdownItem.addEventListener('click', () => addItemToBill(item, dropdownMenu));
+    //         dropdownMenu.appendChild(dropdownItem);
+    //     });
+
+    //     // Show or hide the dropdown menu based on the number of items
+    //     if (items.length > 0) {
+    //         dropdownMenu.classList.add('show');
+    //     } else {
+    //         dropdownMenu.classList.remove('show');
+    //     }
+    // }
+
     async function filterItems(input) {
         const query = input.value.trim().toLowerCase();
         const vatStatus = document.getElementById('isVatExempt').value; // Get the VAT status from the select input
         const dropdownMenu = input.nextElementSibling;
-        //to exculde already present items from search
+
+        // To exclude already present items from search
         const existingItemIds = Array.from(document.querySelectorAll('input[name^="items["]'))
             .filter(input => input.name.includes('[item]'))
             .map(input => input.value);
-        //to exculde already present items from search
 
-
+        // To exclude already present items from search
         if (query.length === 0) {
             dropdownMenu.innerHTML = '';
             dropdownMenu.classList.remove('show'); // Hide the dropdown if input is blank
@@ -476,7 +520,6 @@
         }
 
         const items = await fetchItems(query, vatStatus, existingItemIds);
-
         console.log('Filtered items:', items);
 
         // Clear existing dropdown items
@@ -485,17 +528,15 @@
         // Create and add table header
         const header = document.createElement('div');
         header.classList.add('dropdown-header');
-
         header.innerHTML = `
         <div><strong>Item Code</strong></div>
-        <div><strong>Item H.S. Code</strong></div>
+        <div><strong>H.S. Code</strong></div>
         <div><strong>Item Name</strong></div>
         <div><strong>Category</strong></div>
         <div><strong>Quantity</strong></div>
         <div><strong>Unit</strong></div>
         <div><strong>S.Price</strong></div>
         <div><strong>Pu.Price</strong></div>
-
     `;
         dropdownMenu.appendChild(header);
 
@@ -520,12 +561,12 @@
             <div>${item.hscode || 'N/A'}</div>
             <div>${item.name}</div>
             <div>${item.category ? item.category.name : 'No Category'}</div>
-            <div>${totalStock}</div>
+            <div>${totalStock}</div> <!-- Display total available stock -->
             <div>${item.unit ? item.unit.name : ''}</div>
-            <div>Rs.${item.price.toFixed(2)}</div>
-            <div>Rs.${item.puPrice.toFixed(2)}</div>
-
+            <div>Rs.${item.price.toFixed()}</div>
+            <div>Rs.${item.puPrice.toFixed()}</div>
         `;
+
             dropdownItem.addEventListener('click', () => addItemToBill(item, dropdownMenu));
             dropdownMenu.appendChild(dropdownItem);
         });
@@ -538,6 +579,92 @@
         }
     }
 
+
+    // let selectedBatch = {}; // Store the selected batch information
+
+    // function addItemToBill(item, dropdownMenu) {
+    //     const tbody = document.getElementById('items');
+    //     const inputField = document.getElementById('itemSearch');
+
+    //     if (!inputField.value.trim()) {
+    //         return; // Do not add an item if the search field is blank
+    //     }
+
+    //     // Clear the item search field immediately after showing the modal
+    //     inputField.value = '';
+
+    //     const tr = document.createElement('tr');
+    //     tr.classList.add('item', item.vatStatus ? 'vatable-item' : 'non-vatable-item');
+
+    //     const serialNumber = tbody.rows.length + 1;  // Calculate the serial number based on the number of rows already in the table
+
+    //     // Automatically fetch the first batch with available stock
+    //     let selectedBatch = { batchNumber: 'N/A', expiryDate: 'N/A', quantity: 0 };
+
+    //     for (let i = 0; i < item.stockEntries.length; i++) {
+    //         const entry = item.stockEntries[i];
+    //         if (entry.quantity > 0) {
+    //             selectedBatch = {
+    //                 batchNumber: entry.batchNumber || 'N/A',
+    //                 expiryDate: entry.expiryDate || 'N/A',
+    //                 quantity: entry.quantity
+    //             };
+    //             break; // Exit loop after finding the first batch with stock
+    //         }
+    //     }
+
+    //     // If no stock is available, show an "Out of Stock" message
+    //     const stockStatus = selectedBatch.quantity > 0 ? '' : '<span class="text-danger">Out of Stock</span>';
+
+    //     tr.innerHTML = `
+    //     <td>${serialNumber}</td>
+    //     <td>${item.uniqueNumber}</td>
+    //     <td class="col-3">
+    //         <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
+    //         ${item.name}
+    //     </td>
+    //     <td>
+    //         <input type="hidden" name="items[${itemIndex}][hscode]" value="${item.hscode}">
+    //         ${item.hscode}
+    //     </td>
+    //     <td>
+    //         <input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)" ${selectedBatch.quantity > 0 ? '' : 'disabled'}>
+    //     </td>
+    //     <td>
+    //         ${item.unit ? item.unit.name : ''}
+    //         <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
+    //     </td>
+    //     <!-- Automatically fetch batch and expiry date -->
+    //     <td>
+    //         <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)" readonly>
+    //         <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)" readonly>
+    //         ${stockStatus}
+    //     </td>
+    //     <td>
+    //         <input type="number" name="items[${itemIndex}][price]" value="${item.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)" ${selectedBatch.quantity > 0 ? '' : 'disabled'}>
+    //     </td>
+    //     <td class="item-amount">0.00</td>
+    //     <td>
+    //         <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
+    //             <span aria-hidden="true">&times;</span>
+    //         </button>
+    //     </td>
+    //     <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
+    // `;
+
+    //     tbody.appendChild(tr);
+    //     itemIndex++;
+    //     calculateTotal();
+
+    //     // Focus on the newly added row's quantity input if stock is available
+    //     if (selectedBatch.quantity > 0) {
+    //         document.getElementById(`quantity-${itemIndex - 1}`).focus();
+    //     }
+
+    //     // Hide the dropdown menu after selecting an item
+    //     dropdownMenu.classList.remove('show');
+    // }
+
     function addItemToBill(item, dropdownMenu) {
         const tbody = document.getElementById('items');
         const inputField = document.getElementById('itemSearch');
@@ -545,89 +672,90 @@
         if (!inputField.value.trim()) {
             return; // Do not add an item if the search field is blank
         }
-        const tr = document.createElement('tr');
-        tr.classList.add('item', item.vatStatus ? 'vatable-item' : 'non-vatable-item');
 
-        // Calculate the serial number based on the number of rows already in the table
-        const serialNumber = tbody.rows.length + 1;
+        // Clear the item search field immediately after showing the modal
+        inputField.value = '';
 
-        // Use the current itemIndex value in the name attributes
-        tr.innerHTML = `
-        <td>${serialNumber}</td>
-        <td>${item.uniqueNumber}</td>
-        <td>
-            <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
-            ${item.name}
-        </td>
-        <td>
-            <input type="hidden" name="items[${itemIndex}][hscode]" value="${item.hscode}">
-            ${item.hscode}
-        </td>
-        <td>
-            <input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)">
-        </td>
-        <td>
-            ${item.unit ? item.unit.name : ''}
-            <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
-        </td>
-        <td>
-            <input type="text" name="items[${itemIndex}][batchNumber]" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" step="any" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
-        </td>
-        <td>
-            <input type="date" name="items[${itemIndex}][expiryDate]" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)" required>
-        </td>
-        <td>
-            <input type="number" name="items[${itemIndex}][puPrice]" value="${item.puPrice}" class="form-control item-puPrice" id="puPrice-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
-        </td>
-        <td class="item-amount">0.00</td>
-        <td>
-            <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </td>
-        <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
-    `;
+        let remainingQuantity = 0; // Store remaining quantity
+        const requestedQuantity = prompt("Enter quantity:"); // Ask the user for the total quantity to sell
+        if (requestedQuantity) {
+            remainingQuantity = parseFloat(requestedQuantity);
+        } else {
+            return; // If no quantity is entered, stop processing
+        }
 
-        tbody.appendChild(tr);
+        let batchIndex = 0; // To track which batch we are processing
 
-        // Increment itemIndex after adding the new item
-        itemIndex++;
+        while (remainingQuantity > 0 && batchIndex < item.stockEntries.length) {
+            const stockEntry = item.stockEntries[batchIndex]; // Get the current batch entry
+            let selectedBatchQuantity = 0;
+
+            // If the batch has enough quantity to satisfy the request
+            if (stockEntry.quantity > 0) {
+                selectedBatchQuantity = Math.min(stockEntry.quantity, remainingQuantity); // Get the smaller value between stock and remaining quantity
+                remainingQuantity -= selectedBatchQuantity; // Deduct the batch quantity from the remaining quantity
+
+                const tr = document.createElement('tr');
+                tr.classList.add('item', item.vatStatus ? 'vatable-item' : 'non-vatable-item');
+
+                const serialNumber = tbody.rows.length + 1;  // Calculate the serial number based on the number of rows already in the table
+
+                // If no stock is available, show an "Out of Stock" message
+                const stockStatus = selectedBatchQuantity > 0 ? '' : '<span class="text-danger">Out of Stock</span>';
+
+                tr.innerHTML = `
+            <td>${serialNumber}</td>
+            <td>${item.uniqueNumber}</td>
+            <td class="col-3">
+                <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
+                ${item.name}
+            </td>
+            <td>
+                <input type="hidden" name="items[${itemIndex}][hscode]" value="${item.hscode}">
+                ${item.hscode}
+            </td>
+            <td>
+                <input type="number" name="items[${itemIndex}][quantity]" value="${selectedBatchQuantity}" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)" ${selectedBatchQuantity > 0 ? '' : 'disabled'}>
+            </td>
+            <td>
+                ${item.unit ? item.unit.name : ''}
+                <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
+            </td>
+            <!-- Automatically fetch batch and expiry date -->
+            <td>
+                <input type="text" name="items[${itemIndex}][batchNumber]" value="${stockEntry.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)" readonly>
+                <input type="date" name="items[${itemIndex}][expiryDate]" value="${stockEntry.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)" readonly>
+                ${stockStatus}
+            </td>
+            <td>
+                <input type="number" name="items[${itemIndex}][price]" value="${stockEntry.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)" ${selectedBatchQuantity > 0 ? '' : 'disabled'}>
+            </td>
+            <td class="item-amount">0.00</td>
+            <td>
+                <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </td>
+            <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
+        `;
+
+                tbody.appendChild(tr);
+                itemIndex++;
+            }
+
+            batchIndex++; // Move to the next batch
+        }
+
+        if (remainingQuantity > 0) {
+            alert("Not enough stock to fulfill the requested quantity!");
+        }
+
         calculateTotal();
-
-        // Fetch and display last transactions for the added item
-        fetchLastTransactions(item._id);
 
         // Hide the dropdown menu after selecting an item
         dropdownMenu.classList.remove('show');
-
-        // Clear the input field
-        inputField.value = '';
-
-        // Focus on the quantity input field of the newly added row
-        document.getElementById(`quantity-${itemIndex - 1}`).focus();
-
-        // Show modal to set sales price for the new batch
-        $('#setSalesPriceModal').modal('show');
-
-        // Handle sales price save action
-        const saveSalesPriceButton = document.getElementById('saveSalesPrice');
-        saveSalesPriceButton.onclick = function () {
-            const salesPrice = document.getElementById('salesPrice').value;
-            if (salesPrice) {
-                // Store sales price in a hidden input
-                const salesPriceInput = document.createElement('input');
-                salesPriceInput.type = 'hidden';
-                salesPriceInput.name = `items[${itemIndex - 1}][price]`;
-                salesPriceInput.value = salesPrice;
-                tr.appendChild(salesPriceInput);
-
-                // Close the modal
-                $('#setSalesPriceModal').modal('hide');
-            } else {
-                alert('Please enter a valid sales price.');
-            }
-        };
     }
+
 
 
     function removeItem(button) {
@@ -639,8 +767,8 @@
     function updateItemTotal(input) {
         const row = input.closest('tr');
         const quantity = parseFloat(row.querySelector('input.item-quantity').value) || 0;
-        const puPrice = parseFloat(row.querySelector('input.item-puPrice').value) || 0;
-        const amount = quantity * puPrice;
+        const price = parseFloat(row.querySelector('input.item-price').value) || 0;
+        const amount = quantity * price;
         row.querySelector('.item-amount').textContent = amount.toFixed(2);
         calculateTotal();
     }
@@ -676,6 +804,7 @@
 
         return subTotal;
     }
+
 
     function calculateTotal() {
         const rows = document.querySelectorAll('#items tr.item');
@@ -745,9 +874,10 @@
         calculateTotal();
     }
 
-    function showPrintModal() {
-        $('#printModal').modal('show');
-    }
+    // function showPrintModal() {
+    //     $('#printModal').modal('show');
+    // }
+
     function submitBillForm(print) {
         shouldPrint = print;
         const billForm = document.getElementById('billForm');
@@ -773,10 +903,11 @@
         }, 2000); // Simulating a delay; adjust or remove as needed
     }
 
+
     document.getElementById('billForm').addEventListener('submit', function (event) {
         if (!shouldPrint && event.submitter && event.submitter.innerText === 'Save & Print Bill') {
             event.preventDefault();
-            showPrintModal();
+            // showPrintModal();
         }
     });
     function numberToWords(num) {
@@ -860,9 +991,9 @@
 
     async function shouldDisplayTransactions() {
         try {
-            const response = await fetch(`/settings/get-display-purchase-transactions`);
-            const { displayTransactionsForPurchase } = await response.json();
-            return displayTransactionsForPurchase;
+            const response = await fetch(`/settings/get-display-transactions`);
+            const { displayTransactions } = await response.json();
+            return displayTransactions;
         } catch (error) {
             console.error('Error fetching settings:', error);
             return false;
@@ -906,7 +1037,7 @@
                         <th>Pay.Mode</th>
                         <th>Qty.</th>
                         <th>Unit</th>
-                        <th>Pu.price</th>
+                        <th>S.price</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -914,13 +1045,8 @@
 
             // Add table rows for each transaction
             tableHtml += transactions.map(transaction => {
-
-                // const isPurchase = transaction.type === 'Purc'; // Assuming 'Purc' indicates a purchase transaction
-                // const billId = isPurchase ? transaction.purchaseBillId : transaction.billId;
-                // const price = isPurchase ? transaction.puPrice : transaction.price;
-
                 return `
-                <tr onclick="window.location.href='/bills/${transaction.purchaseBillId._id}/print'" style="cursor: pointer;">
+                <tr onclick="window.location.href='/bills/${transaction.billId._id}/print'" style="cursor: pointer;">
                     <td>${transaction._id}</td>
                     <td>${new Date(transaction.date).toLocaleDateString()}</td>
                     <td>${transaction.billNumber}</td>
@@ -929,7 +1055,7 @@
                     <td>${transaction.paymentMode}</td>
                     <td>${transaction.quantity}</td>
                     <td>${transaction.unit ? transaction.unit.name : 'N/A'}</td>
-                    <td>Rs.${transaction.puPrice}</td>
+                    <td>Rs.${transaction.price}</td>
                 </tr>
             `;
             }).join('');
@@ -949,6 +1075,8 @@
             console.error('Error fetching transactions:', error);
         }
     }
+
+
     async function handleFetchLastTransactions(itemId) {
         const displayTransactions = await shouldDisplayTransactions();
         if (displayTransactions) {
@@ -959,16 +1087,6 @@
     document.addEventListener('DOMContentLoaded', function () {
         const itemSearchInput = document.getElementById('itemSearch'); // Initial focus on item search input
     });
-
-    function openModalAndFocusCloseButton() {
-        // Open the modal
-        $('#transactionModal').modal('show');
-
-        // Wait until the modal is fully shown before focusing the close button
-        $('#transactionModal').on('shown.bs.modal', function () {
-            document.getElementById('closeModalButton').focus();
-        });
-    }
 
     async function handleItemSearchKeydown(event) {
         const itemSearchInput = document.getElementById('itemSearch');
@@ -983,13 +1101,8 @@
                 // Only open the modal if displayTransactions is true
                 if (displayTransactions) {
                     openModalAndFocusCloseButton();
+
                 } else {
-                    // document.getElementById('quantity').focus();
-                    // const lastRow = document.querySelectorAll('.item');
-                    // if (lastRow.length > 0) {
-                    //     const lastQuantityInput = lastRow[lastRow.length - 1].querySelector('.item-quantity');
-                    //     lastQuantityInput.focus();
-                    // }
                     focusOnLastRow('item-quantity');
                 }
             }
@@ -999,6 +1112,15 @@
                 submitBillForm.focus();
             }
         }
+    }
+    function openModalAndFocusCloseButton() {
+        // Open the modal
+        $('#transactionModal').modal('show');
+
+        // Wait until the modal is fully shown before focusing the close button
+        $('#transactionModal').on('shown.bs.modal', function () {
+            document.getElementById('closeModalButton').focus();
+        });
     }
 
     function handleCloseButtonKeydown(event) {
@@ -1023,6 +1145,7 @@
 
         }
     }
+
     function handleBatchKeydown(event) {
         if (event.key === 'Enter') {
             const expDateInput = document.getElementById(`expiryDate-${itemIndex - 1}`);
@@ -1033,7 +1156,7 @@
 
     function handleExpDateKeydown(event) {
         if (event.key === 'Enter') {
-            const priceInput = document.getElementById(`puPrice-${itemIndex - 1}`);
+            const priceInput = document.getElementById(`price-${itemIndex - 1}`);
             priceInput.focus();
             priceInput.select();
         }
@@ -1065,18 +1188,20 @@
         }
     }
 
-    //Handle scape buttons
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            event.preventDefault(); // Prevent default escape behavior
-            var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
-            exitModal.show();
-        }
-    });
 
-    // Handle the exit confirmation
-    document.getElementById('confirmExit').addEventListener('click', function () {
-        // Redirect to the home page
-        window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
-    });
+    // //Handle scape buttons
+    // document.addEventListener('keydown', function (event) {
+    //     if (event.key === 'Escape') {
+    //         event.preventDefault(); // Prevent default escape behavior
+    //         var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
+    //         exitModal.show();
+    //     }
+    // });
+
+    // // Handle the exit confirmation
+    // document.getElementById('confirmExit').addEventListener('click', function () {
+    //     // Redirect to the home page
+    //     window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
+    // });
+
 </script>
