@@ -14,6 +14,7 @@ const { getNextBillNumber } = require('../../middleware/getNextBillNumber');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
 const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRange');
 const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
+const checkDemoPeriod = require('../../middleware/checkDemoPeriod');
 
 // Get all stock adjustments for the current company
 router.get('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
@@ -109,7 +110,7 @@ router.get('/stockAdjustments/new', ensureAuthenticated, ensureCompanySelected, 
 });
 
 // Create a new stock adjustment
-router.post('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.post('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
 
         try {
@@ -136,7 +137,7 @@ router.post('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ens
             }
 
             for (let i = 0; i < items.length; i++) {
-                const { item, unit, quantity, puPrice, reason } = items[i];
+                const { item, unit, batchNumber, expiryDate, mrp, marginPercentage, price, quantity, puPrice, reason } = items[i];
 
                 const itemToAdjust = await Item.findById(item);
                 if (!itemToAdjust) {
@@ -160,6 +161,11 @@ router.post('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ens
                     unit,
                     quantity,
                     puPrice,
+                    batchNumber,
+                    expiryDate,
+                    mrp,
+                    marginPercentage,
+                    price,
                     adjustmentType,
                     reason: Array.isArray(reason) ? reason : [reason], // Ensure reason is an array,
                     note,
@@ -177,14 +183,24 @@ router.post('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ens
                 // Adjust stock based on the type
                 if (adjustmentType === 'xcess') {
                     itemToAdjust.stock += parseInt(quantity);
-                    itemToAdjust.stockEntries.push({ date, quantity: parseInt(quantity) });
+                    itemToAdjust.stockEntries.push({ date, quantity: parseInt(quantity), batchNumber, expiryDate, mrp, marginPercentage, price, puPrice });
+
                 } else if (adjustmentType === 'short') {
                     itemToAdjust.stock -= parseInt(quantity);
                     if (itemToAdjust.stock < 0) {
                         req.flash('error', 'Insufficient stock');
                         return res.redirect('/stockAdjustments/new');
                     }
-                    itemToAdjust.stockEntries.push({ date, quantity: -parseInt(quantity) });
+                    // Update specific batch stock
+                    const batchIndex = itemToAdjust.stockEntries.findIndex(entry => entry.batchNumber === batchNumber);
+                    if (batchIndex > -1) {
+                        itemToAdjust.stockEntries[batchIndex].quantity -= parseInt(quantity);
+                        if (itemToAdjust.stockEntries[batchIndex].quantity < 0) {
+                            req.flash('error', 'Insufficient batch stock');
+                            return res.redirect('/stockAdjustments/new');
+                        }
+                    }
+
                 }
                 console.log(itemToAdjust);
                 await itemToAdjust.save();

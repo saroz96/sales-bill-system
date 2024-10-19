@@ -11,7 +11,7 @@ const StockAdjustmentSchema = new Schema({
     // date: { type: Date, default: Date.now() },
     date: { type: Date, default: Date.now(), required: true },
     reason: { type: [String], default: [] }, // Define reason as an array of strings
-    note: { type: String, required: true },
+    note: { type: String },
     company: { type: Schema.Types.ObjectId, ref: 'Company', required: true },
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
 

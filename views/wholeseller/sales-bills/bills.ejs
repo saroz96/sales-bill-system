@@ -579,6 +579,99 @@
         }
     }
 
+    async function shouldDisplayTransactions() {
+        try {
+            const response = await fetch(`/settings/get-display-transactions`);
+            const { displayTransactions } = await response.json();
+            return displayTransactions;
+        } catch (error) {
+            console.error('Error fetching settings:', error);
+            return false;
+        }
+    }
+
+    async function fetchLastTransactions(itemId) {
+        // const itemId = select.value;
+        const accountId = document.getElementById('account').value;
+        const purchaseSalesType = document.getElementById('purchaseSalesType').value; // Ensure this element exists and has a value
+        const transactionList = document.getElementById('transactionList');
+
+        if (!purchaseSalesType) {
+            console.error('Account Type is undefined. Please ensure it is set.');
+            return;
+        }
+
+        try {
+
+            const response = await fetch(`/api/transactions/${itemId}/${accountId}/${purchaseSalesType}`);
+            const transactions = await response.json();
+            // const { transactions, companyDateFormat } = await response.json();
+
+            // Check if transactions are empty
+            if (transactions.length === 0) {
+                transactionList.innerHTML = '<p>No transactions to display.</p>';
+                // Do not show the modal if there are no transactions
+                return;
+            }
+
+            // Create table header
+            let tableHtml = `
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Trans. Id</th>
+                        <th>Date</th>
+                        <th>Bill No.</th>
+                        <th>Type</th>
+                        <th>A/c Type</th>
+                        <th>Pay.Mode</th>
+                        <th>Qty.</th>
+                        <th>Unit</th>
+                        <th>S.price</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+            // Add table rows for each transaction
+            tableHtml += transactions.map(transaction => {
+                return `
+                <tr onclick="window.location.href='/bills/${transaction.billId._id}/print'" style="cursor: pointer;">
+                    <td>${transaction._id}</td>
+                    <td>${new Date(transaction.date).toLocaleDateString()}</td>
+                    <td>${transaction.billNumber}</td>
+                    <td>${transaction.type}</td>
+                    <td>${transaction.purchaseSalesType}</td>
+                    <td>${transaction.paymentMode}</td>
+                    <td>${transaction.quantity}</td>
+                    <td>${transaction.unit ? transaction.unit.name : 'N/A'}</td>
+                    <td>Rs.${transaction.price}</td>
+                </tr>
+            `;
+            }).join('');
+
+            // Close table
+            tableHtml += `
+                </tbody>
+            </table>
+        `;
+
+            // Set the innerHTML of the transaction list container
+            transactionList.innerHTML = tableHtml;
+
+            // Show the modal
+            $('#transactionModal').modal('show');
+        } catch (error) {
+            console.error('Error fetching transactions:', error);
+        }
+    }
+    async function handleFetchLastTransactions(itemId) {
+        const displayTransactions = await shouldDisplayTransactions();
+        if (displayTransactions) {
+            await fetchLastTransactions(itemId);
+        }
+    }
+
     function addItemToBill(item, dropdownMenu) {
         const tbody = document.getElementById('items');
         const inputField = document.getElementById('itemSearch');
@@ -859,99 +952,6 @@
 
         calculateTotal();
     });
-
-    async function shouldDisplayTransactions() {
-        try {
-            const response = await fetch(`/settings/get-display-transactions`);
-            const { displayTransactions } = await response.json();
-            return displayTransactions;
-        } catch (error) {
-            console.error('Error fetching settings:', error);
-            return false;
-        }
-    }
-
-    async function fetchLastTransactions(itemId) {
-        // const itemId = select.value;
-        const accountId = document.getElementById('account').value;
-        const purchaseSalesType = document.getElementById('purchaseSalesType').value; // Ensure this element exists and has a value
-        const transactionList = document.getElementById('transactionList');
-
-        if (!purchaseSalesType) {
-            console.error('Account Type is undefined. Please ensure it is set.');
-            return;
-        }
-
-        try {
-
-            const response = await fetch(`/api/transactions/${itemId}/${accountId}/${purchaseSalesType}`);
-            const transactions = await response.json();
-            // const { transactions, companyDateFormat } = await response.json();
-
-            // Check if transactions are empty
-            if (transactions.length === 0) {
-                transactionList.innerHTML = '<p>No transactions to display.</p>';
-                // Do not show the modal if there are no transactions
-                return;
-            }
-
-            // Create table header
-            let tableHtml = `
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Trans. Id</th>
-                        <th>Date</th>
-                        <th>Bill No.</th>
-                        <th>Type</th>
-                        <th>A/c Type</th>
-                        <th>Pay.Mode</th>
-                        <th>Qty.</th>
-                        <th>Unit</th>
-                        <th>S.price</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-            // Add table rows for each transaction
-            tableHtml += transactions.map(transaction => {
-                return `
-                <tr onclick="window.location.href='/bills/${transaction.billId._id}/print'" style="cursor: pointer;">
-                    <td>${transaction._id}</td>
-                    <td>${new Date(transaction.date).toLocaleDateString()}</td>
-                    <td>${transaction.billNumber}</td>
-                    <td>${transaction.type}</td>
-                    <td>${transaction.purchaseSalesType}</td>
-                    <td>${transaction.paymentMode}</td>
-                    <td>${transaction.quantity}</td>
-                    <td>${transaction.unit ? transaction.unit.name : 'N/A'}</td>
-                    <td>Rs.${transaction.price}</td>
-                </tr>
-            `;
-            }).join('');
-
-            // Close table
-            tableHtml += `
-                </tbody>
-            </table>
-        `;
-
-            // Set the innerHTML of the transaction list container
-            transactionList.innerHTML = tableHtml;
-
-            // Show the modal
-            $('#transactionModal').modal('show');
-        } catch (error) {
-            console.error('Error fetching transactions:', error);
-        }
-    }
-    async function handleFetchLastTransactions(itemId) {
-        const displayTransactions = await shouldDisplayTransactions();
-        if (displayTransactions) {
-            await fetchLastTransactions(itemId);
-        }
-    }
 
     document.addEventListener('DOMContentLoaded', function () {
         const itemSearchInput = document.getElementById('itemSearch'); // Initial focus on item search input

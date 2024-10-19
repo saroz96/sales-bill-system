@@ -16,6 +16,8 @@ const stockEntrySchema = new mongoose.Schema({
     },
     price: { type: Number },
     puPrice: { type: Number },
+    mrp: { type: Number },
+    marginPercentage: { type: Number },
     fiscalYear: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'FiscalYear'

@@ -361,7 +361,7 @@
     </div>
 </div>
 
-<!-- Sales Price Modal -->
+<!-- Sales Price Modal
 <div class="modal fade" id="setSalesPriceModal" tabindex="-1" aria-labelledby="setSalesPriceModalLabel"
     aria-hidden="true">
     <div class="modal-dialog">
@@ -371,6 +371,57 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <div class="mb-3">
+                    <label for="puPrice" class="form-label">Purchase Price</label>
+                    <input type="number" class="form-control" id="puPrice" step="any" readonly>
+                </div>
+                <div class="mb-3">
+                    <label for="marginPercentage" class="form-label">Margin Percentage (%)</label>
+                    <input type="number" class="form-control" id="marginPercentage" min="0" step="any" required>
+                </div>
+                <div class="mb-3">
+                    <label for="salesPrice" class="form-label">Sales Price</label>
+                    <input type="number" class="form-control" id="salesPrice" step="any" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveSalesPrice">Save Sales Price</button>
+            </div>
+        </div>
+    </div>
+</div> -->
+
+<!-- Sales Price Modal -->
+<div class="modal fade" id="setSalesPriceModal" tabindex="-1" aria-labelledby="setSalesPriceModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="setSalesPriceModalLabel">Set Sales Price for New Batch</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="puPrice" class="form-label">Purchase Price</label>
+                    <input type="number" class="form-control" id="puPrice" step="any" readonly>
+                </div>
+                <div class="mb-3">
+                    <label for="marginPercentage" class="form-label">Margin Percentage (%)</label>
+                    <input type="number" class="form-control" id="marginPercentage" min="0" step="any"
+                        placeholder="Enter margin percentage">
+                </div>
+                <div class="mb-3">
+                    <label for="currency" class="form-label">Currency</label>
+                    <select class="form-select" id="currency">
+                        <option value="NPR">NPR</option>
+                        <option value="INR">INR</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="mrp" class="form-label">MRP</label>
+                    <input type="number" class="form-control" id="mrp" step="any" placeholder="Enter MRP">
+                </div>
                 <div class="mb-3">
                     <label for="salesPrice" class="form-label">Sales Price</label>
                     <input type="number" class="form-control" id="salesPrice" step="any" required>
@@ -383,6 +434,8 @@
         </div>
     </div>
 </div>
+
+
 
 
 <script src="https://cdn.jsdelivr.net/npm/nepali-datepicker/js/nepali.datepicker.v4.0.min.js"></script>
@@ -545,6 +598,7 @@
         if (!inputField.value.trim()) {
             return; // Do not add an item if the search field is blank
         }
+
         const tr = document.createElement('tr');
         tr.classList.add('item', item.vatStatus ? 'vatable-item' : 'non-vatable-item');
 
@@ -577,7 +631,7 @@
             <input type="date" name="items[${itemIndex}][expiryDate]" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)" required>
         </td>
         <td>
-            <input type="number" name="items[${itemIndex}][puPrice]" value="${item.puPrice}" class="form-control item-puPrice" id="puPrice-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+            <input type="number" name="items[${itemIndex}][puPrice]" value="${item.puPrice}" class="form-control item-puPrice" id="puPrice-${itemIndex}" step="any" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
         </td>
         <td class="item-amount">0.00</td>
         <td>
@@ -605,28 +659,6 @@
 
         // Focus on the quantity input field of the newly added row
         document.getElementById(`quantity-${itemIndex - 1}`).focus();
-
-        // Show modal to set sales price for the new batch
-        $('#setSalesPriceModal').modal('show');
-
-        // Handle sales price save action
-        const saveSalesPriceButton = document.getElementById('saveSalesPrice');
-        saveSalesPriceButton.onclick = function () {
-            const salesPrice = document.getElementById('salesPrice').value;
-            if (salesPrice) {
-                // Store sales price in a hidden input
-                const salesPriceInput = document.createElement('input');
-                salesPriceInput.type = 'hidden';
-                salesPriceInput.name = `items[${itemIndex - 1}][price]`;
-                salesPriceInput.value = salesPrice;
-                tr.appendChild(salesPriceInput);
-
-                // Close the modal
-                $('#setSalesPriceModal').modal('hide');
-            } else {
-                alert('Please enter a valid sales price.');
-            }
-        };
     }
 
 
@@ -1039,15 +1071,176 @@
         }
     }
 
-    function handlePriceKeydown(event) {
-        if (event.key === 'Enter') {
-            // Focus back on the item search input field
-            const itemSearchInput = document.getElementById('itemSearch');
-            itemSearchInput.focus();
-            itemSearchInput.select();
+    // function handlePriceKeydown(event, itemIndex) {
+    //     if (event.key === 'Enter') {
+    //         const puPriceInput = document.getElementById(`puPrice-${itemIndex}`);
 
+    //         if (puPriceInput.value) {
+    //             // Set the puPrice in the modal
+    //             document.getElementById('puPrice').value = puPriceInput.value;
+
+    //             // Show the sales price modal
+    //             $('#setSalesPriceModal').modal('show');
+
+    //             // Handle modal shown event to focus on the margin percentage input
+    //             $('#setSalesPriceModal').on('shown.bs.modal', function () {
+    //                 document.getElementById('marginPercentage').focus();
+    //             });
+
+    //             // Handle sales price calculation
+    //             const marginPercentageInput = document.getElementById('marginPercentage');
+    //             marginPercentageInput.oninput = function () {
+    //                 const puPrice = parseFloat(puPriceInput.value);
+    //                 const marginPercentage = parseFloat(marginPercentageInput.value) || 0;
+    //                 const salesPrice = puPrice + (puPrice * marginPercentage / 100);
+    //                 document.getElementById('salesPrice').value = salesPrice.toFixed(2); // Set the calculated sales price
+    //             };
+
+    //             // Handle sales price save action
+    //             const saveSalesPriceButton = document.getElementById('saveSalesPrice');
+    //             saveSalesPriceButton.onclick = function () {
+    //                 const salesPrice = document.getElementById('salesPrice').value;
+    //                 if (salesPrice) {
+    //                     // Store sales price in a hidden input within the current row
+    //                     const tr = puPriceInput.closest('tr');
+    //                     const salesPriceInput = document.createElement('input');
+    //                     salesPriceInput.type = 'hidden';
+    //                     salesPriceInput.name = `items[${itemIndex}][price]`;
+    //                     salesPriceInput.value = salesPrice;
+    //                     tr.appendChild(salesPriceInput);
+
+    //                     // Close the modal
+    //                     $('#setSalesPriceModal').modal('hide');
+
+    //                     // Focus back on the item search input field
+    //                     const itemSearchInput = document.getElementById('itemSearch');
+    //                     itemSearchInput.focus();
+    //                 } else {
+    //                     alert('Please enter a valid sales price.');
+    //                 }
+    //             };
+    //         }
+    //     }
+    // }
+
+    function handlePriceKeydown(event, itemIndex) {
+        if (event.key === 'Enter') {
+            const puPriceInput = document.getElementById(`puPrice-${itemIndex}`);
+
+            if (puPriceInput.value) {
+                // Set the PU Price in the modal
+                document.getElementById('puPrice').value = puPriceInput.value;
+
+                // Show the sales price modal
+                $('#setSalesPriceModal').modal('show');
+
+                // Handle modal shown event to focus on the margin percentage input
+                $('#setSalesPriceModal').on('shown.bs.modal', function () {
+                    document.getElementById('marginPercentage').focus();
+                });
+
+                // Handle margin percentage input
+                const marginPercentageInput = document.getElementById('marginPercentage');
+                marginPercentageInput.oninput = function () {
+                    updateSalesPriceFromMargin(puPriceInput.value);
+                };
+
+                // Handle MRP input
+                const mrpInput = document.getElementById('mrp');
+                mrpInput.oninput = function () {
+                    updateSalesPriceFromMRP(mrpInput.value);
+                    updateMarginFromMRPAndSalesPrice(mrpInput.value, puPriceInput.value);
+                };
+
+                // Handle sales price input
+                const salesPriceInput = document.getElementById('salesPrice');
+                salesPriceInput.oninput = function () {
+                    updateMarginFromMRPAndSalesPrice(mrpInput.value, puPriceInput.value);
+                };
+
+                // Handle currency change
+                const currencySelect = document.getElementById('currency');
+                currencySelect.onchange = function () {
+                    updateSalesPriceFromMRP(mrpInput.value);
+                };
+
+                // Handle sales price save action
+                const saveSalesPriceButton = document.getElementById('saveSalesPrice');
+                saveSalesPriceButton.onclick = function () {
+                    const salesPrice = document.getElementById('salesPrice').value;
+                    const mrpValue = document.getElementById('mrp').value;
+                    const marginPercentage = document.getElementById('marginPercentage').value;
+
+                    if (salesPrice) {
+                        // Store sales price in a hidden input within the current row
+                        const tr = puPriceInput.closest('tr');
+                        const salesPriceInput = document.createElement('input');
+                        salesPriceInput.type = 'hidden';
+                        salesPriceInput.name = `items[${itemIndex}][price]`;
+                        salesPriceInput.value = salesPrice;
+                        tr.appendChild(salesPriceInput);
+
+                        // Store MRP in a hidden input within the current row
+                        const mrpInputHidden = document.createElement('input');
+                        mrpInputHidden.type = 'hidden';
+                        mrpInputHidden.name = `items[${itemIndex}][mrp]`; // Ensure this matches your schema
+                        mrpInputHidden.value = mrpValue;
+                        tr.appendChild(mrpInputHidden);
+
+                        // Store marginPercentage in a hidden input within the current row
+                        const marginPercentageInputHidden = document.createElement('input');
+                        marginPercentageInputHidden.type = 'hidden';
+                        marginPercentageInputHidden.name = `items[${itemIndex}][marginPercentage]`; // Ensure this matches your schema
+                        marginPercentageInputHidden.value = marginPercentage;
+                        tr.appendChild(marginPercentageInputHidden);
+
+                        // Close the modal
+                        $('#setSalesPriceModal').modal('hide');
+
+                        // Focus back on the item search input field
+                        const itemSearchInput = document.getElementById('itemSearch');
+                        itemSearchInput.focus();
+                    } else {
+                        alert('Please enter a valid sales price.');
+                    }
+                };
+            }
         }
     }
+
+
+    function updateSalesPriceFromMargin(puPrice) {
+        const marginPercentage = parseFloat(document.getElementById('marginPercentage').value) || 0;
+        const salesPriceFromMargin = parseFloat(puPrice) + (parseFloat(puPrice) * marginPercentage / 100);
+        document.getElementById('salesPrice').value = salesPriceFromMargin.toFixed(2); // Set calculated sales price from margin
+    }
+
+    function updateSalesPriceFromMRP(mrpValue) {
+        const currency = document.getElementById('currency').value;
+        let salesPriceFromMRP;
+        if (currency === 'INR') {
+            salesPriceFromMRP = parseFloat(mrpValue) * 1.60; // Convert MRP to sales price for INR
+        } else {
+            salesPriceFromMRP = parseFloat(mrpValue); // Use MRP directly for NPR
+        }
+        document.getElementById('salesPrice').value = salesPriceFromMRP.toFixed(2); // Set calculated sales price from MRP
+    }
+
+    function updateMarginFromMRPAndSalesPrice(mrpValue, puPriceValue) {
+        const salesPrice = parseFloat(document.getElementById('salesPrice').value) || 0;
+        const puPrice = parseFloat(puPriceValue) || 0;
+        const marginPercentageInput = document.getElementById('marginPercentage');
+
+        // Calculate margin percentage based on (Sales Price - PU Price) / PU Price * 100
+        const marginPercentage = ((salesPrice - puPrice) / puPrice) * 100;
+
+        if (!isNaN(marginPercentage) && puPrice > 0) {
+            marginPercentageInput.value = marginPercentage.toFixed(2); // Update margin percentage
+        } else {
+            marginPercentageInput.value = ''; // Reset if the calculation fails or PU Price is 0
+        }
+    }
+
 
     function selectValue(input) {
         input.select(); // Select the value of the input field when it is focused

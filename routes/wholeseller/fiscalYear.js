@@ -236,11 +236,23 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
                         purchasePrice: purchasePrice,
                         salesPrice: item.price,
                     }],
-                    stockEntries: currentStock > 0 ? [{
-                        quantity: currentStock,
-                        date: new Date(),
+                    // stockEntries: currentStock > 0 ? [{
+                    //     quantity: currentStock,
+                    //     date: new Date(),
+                    //     fiscalYear: newFiscalYear._id
+                    // }] : [],
+                    // Clone stock entries with the specified fields
+                    stockEntries: item.stockEntries.map(stockEntry => ({
+                        quantity: stockEntry.quantity,
+                        batchNumber: stockEntry.batchNumber,
+                        expiryDate: stockEntry.expiryDate,
+                        price: stockEntry.price,
+                        puPrice: stockEntry.puPrice,
+                        mrp: stockEntry.mrp,
+                        marginPercentage: stockEntry.marginPercentage,
+                        date: stockEntry.date || new Date(), // Keep original date or set to current date
                         fiscalYear: newFiscalYear._id
-                    }] : [],
+                    })),
                 });
 
                 try {
