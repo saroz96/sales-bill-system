@@ -1,0 +1,60 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: 'Find Payment by Voucher Number' , body: '' }) %>
+</div>
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Enter Voucher Number</h1>
+    <form action="/payments/edit/billNumber" method="get" class="needs-validation" novalidate>
+        <div class="form-group">
+            <label for="billNumber">Voucher Number:</label>
+            <input type="text" name="billNumber" id="billNumber" class="form-control" required
+                placeholder="Enter your voucher number" aria-describedby="billHelp" autocomplete="off" autofocus>
+            <small id="billHelp" class="form-text text-muted">
+                Please enter a valid voucher number to find the payment.
+            </small>
+            <div class="invalid-feedback">
+                Please enter a voucher number.
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Find Payment</button>
+
+    </form>
+</div>
+
+<script>
+    // Form validation script
+    (function () {
+        'use strict';
+        window.addEventListener('load', function () {
+            const forms = document.getElementsByClassName('needs-validation');
+            for (let i = 0; i < forms.length; i++) {
+                forms[i].addEventListener('submit', function (event) {
+                    if (forms[i].checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    forms[i].classList.add('was-validated');
+                }, false);
+            }
+        }, false);
+    })();
+
+    // Optional: Automatically focus on the voucher number input
+    document.getElementById('billNumber').focus();
+</script>
+
+<style>
+    /* Additional styling for enhanced UX */
+    .btn-primary {
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        /* Darker shade for hover effect */
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+        /* More space between fields */
+    }
+</style>

@@ -25,6 +25,8 @@ const checkDemoPeriod = async (req, res, next) => {
             redirectUrl = '/bills'; // Redirect to purchase entry page
         } else if (routePath.includes('stockAdjustments')) {
             redirectUrl = '/stockAdjustments/new'; // Redirect to purchase entry page
+        } else if (routePath.includes('payments')) {
+            redirectUrl = '/payments';
         } else {
             redirectUrl = '/'; // Default redirect URL
         }

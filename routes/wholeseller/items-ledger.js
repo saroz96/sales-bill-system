@@ -15,6 +15,7 @@ const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware
 const { ensureTradeType } = require('../../middleware/tradeType');
 const SalesReturn = require('../../models/wholeseller/SalesReturn');
 const purchaseReturn = require('../../models/wholeseller/PurchaseReturns');
+const FiscalYear = require('../../models/wholeseller/FiscalYear');
 
 
 router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
@@ -24,8 +25,39 @@ router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensu
             const currentCompanyName = req.session.currentCompanyName;
             const today = new Date();
             const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
-            const company = await Company.findById(companyId);
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
             const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+
+            // Check if fiscal year is already in the session or available in the company
+            let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+            let currentFiscalYear = null;
+
+            if (fiscalYear) {
+                // Fetch the fiscal year from the database if available in the session
+                currentFiscalYear = await FiscalYear.findById(fiscalYear);
+            }
+
+            // If no fiscal year is found in session or currentCompany, throw an error
+            if (!currentFiscalYear && company.fiscalYear) {
+                currentFiscalYear = company.fiscalYear;
+
+                // Set the fiscal year in the session for future requests
+                req.session.currentFiscalYear = {
+                    id: currentFiscalYear._id.toString(),
+                    startDate: currentFiscalYear.startDate,
+                    endDate: currentFiscalYear.endDate,
+                    name: currentFiscalYear.name,
+                    dateFormat: currentFiscalYear.dateFormat,
+                    isActive: currentFiscalYear.isActive
+                };
+
+                // Assign fiscal year ID for use
+                fiscalYear = req.session.currentFiscalYear.id;
+            }
+
+            if (!fiscalYear) {
+                return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+            }
 
             const itemId = req.params.id;
             const item = await Item.findById(itemId).populate('fiscalYear').populate('openingStockByFiscalYear.fiscalYear');
@@ -228,6 +260,8 @@ router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensu
             });
 
             res.render('wholeseller/itemsLedger/items-ledger', {
+                company,
+                currentFiscalYear,
                 itemsLedger: itemsLedger,
                 item,
                 companyId,

@@ -84,6 +84,7 @@ const accountSchema = new mongoose.Schema({
         type: Boolean,
         default: false // Flag to mark default cash account
     },
+    isActive: { type: Boolean, default: true },
     createdAt: {
         type: Date,
         default: Date.now()

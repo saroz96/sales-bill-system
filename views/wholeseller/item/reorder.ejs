@@ -1,0 +1,139 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+</div>
+<div class="container mt-5" id="mainContainer">
+    <h2 class="mb-4">Stock Reorder Levels</h2>
+
+    <!--print buttons-->
+    <div class="mb-3">
+        <div class="btn btn-primary" onclick="printItems()">Print Items</div>
+    </div>
+    <div class="col-md-6">
+        <form id="filterForm">
+            <div class="form-group">
+                <label for="reorderLevelFilter">Filter by Type:</label>
+                <select class="form-control" id="reorderLevelFilter" onchange="filterItems()">
+                    <option value="reorderLevel">Reorder Level</option>
+                    <option value="maxStock">Over Stock</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <table class="table table-bordered" id="itemsTable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Item Name</th>
+                <th>Unit</th>
+                <th>Current Stock</th>
+                <th id="dynamicHeader">Reorder Level</th>
+                <th id="neededStockHeader">Needed Stock</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% items.forEach((item, index)=> { %>
+                <tr>
+                    <td>
+                        <%= index + 1 %>
+                    </td> <!-- Serial Number for Printing -->
+                    <td>
+                        <%= item.name %>
+                    </td>
+                    <td>
+                        <%= item.unit%>
+                    </td>
+                    <td>
+                        <%= item.currentStock %>
+                    </td>
+                    <td>
+                        <%= item.reorderLevel %>
+                    </td>
+                    <td class="<%= item.neededStock > 0 ? 'text-danger' : 'text-success' %>">
+                        <%= item.neededStock %>
+                    </td>
+
+                </tr>
+                <% }); %>
+        </tbody>
+    </table>
+</div>
+
+<script>
+
+    // Function to filter items based on selected type
+    function filterItems() {
+        const filterValue = document.getElementById('reorderLevelFilter').value;
+        const itemsTable = document.getElementById('itemsTable');
+        const dynamicHeader = document.getElementById('dynamicHeader');
+        const neededStockHeader = document.getElementById('neededStockHeader');
+
+        // Update table header and contents based on filter
+        if (filterValue === 'maxStock') {
+            dynamicHeader.textContent = 'Max Stock';
+            neededStockHeader.textContent = 'Over Stock';
+
+            // Update items in the table
+            const rows = itemsTable.querySelectorAll('tbody tr');
+            rows.forEach((row, index) => {
+                const itemMaxStock = <%= JSON.stringify(items.map(item => item.maxStock)) %> [index];
+                const itemCurrentStock = <%= JSON.stringify(items.map(item => item.currentStock)) %> [index];
+                const overStock = itemCurrentStock - itemMaxStock;
+
+                row.cells[4].textContent = itemMaxStock; // Set Max Stock
+                row.cells[5].textContent = overStock; // Set Over Stock
+                row.cells[5].className = (overStock > 0 ? 'text-danger' : 'text-success'); // Set color based on stock status
+            });
+        } else {
+            dynamicHeader.textContent = 'Reorder Level';
+            neededStockHeader.textContent = 'Needed Stock';
+
+            // Revert back to original values
+            const rows = itemsTable.querySelectorAll('tbody tr');
+            rows.forEach((row, index) => {
+                const itemReorderLevel = <%= JSON.stringify(items.map(item => item.reorderLevel)) %> [index];
+                const neededStock = <%= JSON.stringify(items.map(item => item.neededStock)) %> [index];
+
+                row.cells[4].textContent = itemReorderLevel; // Set Reorder Level
+                row.cells[5].textContent = neededStock; // Set Needed Stock
+                row.cells[5].className = (neededStock > 0 ? 'text-danger' : 'text-success'); // Set color based on stock status
+            });
+        }
+    }
+    // Function to print only the items table
+    function printItems() {
+        // Get the table content
+        const itemsTable = document.getElementById('itemsTable').outerHTML;
+
+        // Open a new window for the print content
+        const printWindow = window.open('', '', 'width=800, height=600');
+
+        // Define the table content within basic HTML structure
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Print Items</title>
+                    <style>
+                        table {
+                            width: 100%;
+                        border-collapse: collapse;
+                        }
+                        th, td {
+                            padding: 8px;
+                        text-align: left;
+                        border: 1px solid #ddd;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h2>Stock Reorder Levels</h2>
+                    ${itemsTable}
+                </body>
+            </html>
+        `);
+
+        // Close the document for printing and trigger print
+        printWindow.document.close();
+        printWindow.print();
+    }
+</script>

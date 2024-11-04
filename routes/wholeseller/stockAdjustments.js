@@ -26,30 +26,8 @@ router.get('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ensu
         const items = await Item.find({ company: companyId });
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
-        const company = await Company.findById(companyId);
-        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
-        res.render('wholeseller/stockAdjustments/index', {
-            stockAdjustments, items, nepaliDate, companyDateFormat, currentCompanyName,
-            title: 'Stock Adjustment',
-            body: 'wholeseller >> stock adjustment >> list',
-            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
-        });
-    }
-});
-
-// Get form to create a new stock adjustment
-router.get('/stockAdjustments/new', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
-    if (req.tradeType === 'Wholeseller') {
-
-        const companyId = req.session.currentCompany;
-        const currentCompanyName = req.session.currentCompanyName;
-
-        const items = await Item.find({ company: companyId });
-        const today = new Date();
-        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
-        const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
-        const company = await Company.findById(companyId).populate('fiscalYear');
-        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+        // const company = await Company.findById(companyId);
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
 
         // Check if fiscal year is already in the session or available in the company
         let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -82,6 +60,63 @@ router.get('/stockAdjustments/new', ensureAuthenticated, ensureCompanySelected, 
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
 
+        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+        res.render('wholeseller/stockAdjustments/index', {
+            company, currentFiscalYear,
+            stockAdjustments, items, nepaliDate, companyDateFormat, currentCompanyName,
+            title: 'Stock Adjustment',
+            body: 'wholeseller >> stock adjustment >> list',
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+        });
+    }
+});
+
+// Get form to create a new stock adjustment
+router.get('/stockAdjustments/new', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+
+        const companyId = req.session.currentCompany;
+        const currentCompanyName = req.session.currentCompanyName;
+
+        const today = new Date();
+        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
+        const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+
+        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+        const items = await Item.find({ company: companyId });
+
         // Get the next bill number
         // const billCounter = await BillCounter.findOne({ company: companyId });
         // const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
@@ -101,6 +136,7 @@ router.get('/stockAdjustments/new', ensureAuthenticated, ensureCompanySelected, 
         }
 
         res.render('wholeseller/stockAdjustments/new', {
+            company, currentFiscalYear,
             items, nextBillNumber, transactionDateNepali, companyDateFormat, nepaliDate, currentCompanyName,
             title: 'Stock Adjustment',
             body: 'wholeseller >> stock adjustment >> add',

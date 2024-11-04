@@ -1,0 +1,48 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+</div>
+
+
+<div class="container" id="mainContainer">
+    <h1>Average Monthly Quantities (Reorder Levels)</h1>
+    <p>
+        <%= message %>
+    </p>
+
+    <% if (averageReorderLevels.length> 0) { %>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Total Quantity Sold</th>
+                    <th>Average Monthly Quantity</th>
+                    <th>Current Stock</th>
+                    <th>Needed Stock</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% averageReorderLevels.forEach(item=> { %>
+                    <tr>
+                        <td>
+                            <%= item.itemName %>
+                        </td>
+                        <td>
+                            <%= item.totalQuantitySold %>
+                        </td>
+                        <td>
+                            <%= item.averageMonthlyQuantity %>
+                        </td>
+                        <td>
+                            <%= item.currentStock %>
+                        </td>
+                        <td>
+                            <%= item.neededStock %>
+                        </td>
+                    </tr>
+                    <% }) %>
+            </tbody>
+        </table>
+        <% } else { %>
+            <p>No data available for average reorder levels.</p>
+            <% } %>
+</div>

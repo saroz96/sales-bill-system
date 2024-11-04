@@ -1,5 +1,5 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'Sales Bill Print' , body: 'wholeseller >> sales >> print' }) %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 
 <style id="printStyles">
@@ -174,7 +174,6 @@
     }
 
     .right {
-        font-size: 15px;
         text-align: right;
         margin-right: 20px;
     }
@@ -229,23 +228,21 @@
                 <h2 class="card-subtitle mb-2">
                     <%= currentCompanyName %>
                 </h2>
-                <b>
-                    <h4>
-                        <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
-                                    <%=currentCompany.country%> <br><br>
-                                        Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
-                                                <br><br>
-                                                VAT NO.: <span id="pan-vat-container">
-                                                </span>
-                    </h4>
-                </b>
+                <h4>
+                    <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
+                                <%=currentCompany.country%> <br>
+                                    Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
+                                            <br><br>
+                                            VAT NO.: <span id="pan-vat-container">
+                                            </span>
+                </h4>
                 <hr style="border: 0.5px solid;">
             </div>
             <div class="details-container">
                 <div class="left">
-                    <h3>
+                    <h4>
                         Name: <%= bill.account.name %>
-                    </h3>
+                    </h4>
                     <strong>Address:</strong>
                     <%= bill.account.address ? bill.account.address : 'Null' %>&nbsp;
                         <br>

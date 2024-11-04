@@ -65,6 +65,10 @@ const transactionSchema = new mongoose.Schema({
         type: String,
         enum: ['Purc', 'PrRt', 'Sale', 'Slrt', 'stockAdjustment', 'Pymt', 'Rcpt', 'Jrnl', 'DrNt', 'CrNt', 'Opening Balance'],
     },
+    mainType: {
+        type: String,
+        enum: ['Pymt', 'Rcpt']
+    },
     billNumber: {
         type: Number,
     },
@@ -83,7 +87,13 @@ const transactionSchema = new mongoose.Schema({
     journalAccountType: {
         type: String
     },
+    journalAccountDrCrType: {
+        type: String
+    },
     drCrNoteAccountType: {
+        type: String
+    },
+    drCrNoteAccountTypes: {
         type: String
     },
     debit: {
@@ -123,6 +133,8 @@ const transactionSchema = new mongoose.Schema({
         ref: 'FiscalYear' // New field to reference the current fiscal year
     },
     date: { type: Date, default: Date.now() },
+    status: { type: String, enum: ['active', 'canceled'], default: 'active' },
+    isActive: { type: Boolean, default: true }
 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

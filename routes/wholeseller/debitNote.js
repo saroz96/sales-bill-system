@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
 const DebitNote = require('../../models/wholeseller/DebitNote');
 const Account = require('../../models/wholeseller/Account');
 const NepaliDate = require('nepali-date');
@@ -11,6 +13,8 @@ const Transaction = require('../../models/wholeseller/Transaction');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
 const BillCounter = require('../../models/wholeseller/billCounter');
 const { getNextBillNumber } = require('../../middleware/getNextBillNumber');
+const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
+const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRange');
 
 // GET - Show form to create a new journal voucher
 router.get('/debit-note/new', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
@@ -19,7 +23,7 @@ router.get('/debit-note/new', ensureAuthenticated, ensureCompanySelected, ensure
         const companyId = req.session.currentCompany;
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format Nepali date if necessary
-        const company = await Company.findById(companyId);
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
         // Check if fiscal year is already in the session or available in the company
@@ -73,6 +77,8 @@ router.get('/debit-note/new', ensureAuthenticated, ensureCompanySelected, ensure
         }
         res.render('wholeseller/debitNote/new',
             {
+                company,
+                currentFiscalYear,
                 accounts,
                 nepaliDate,
                 companyDateFormat,
@@ -143,6 +149,7 @@ router.post('/debit-note/new', ensureAuthenticated, ensureCompanySelected, ensur
                     debitNoteId: debitNote._id,
                     // billNumber: billCounter.count,
                     billNumber: billNumber,
+                    drCrNoteAccountTypes: 'Debit',
                     drCrNoteAccountType: (await Promise.all(creditAccountNames)).join(', '),  // Save credit account names as a string
                     debit: debit.debit,
                     credit: 0,
@@ -182,6 +189,7 @@ router.post('/debit-note/new', ensureAuthenticated, ensureCompanySelected, ensur
                     debitNoteId: debitNote._id,
                     // billNumber: billCounter.count,
                     billNumber: billNumber,
+                    drCrNoteAccountTypes: 'Credit',
                     drCrNoteAccountType: (await Promise.all(debitAccountNames)).join(', '),  // Save debit account names as a string
                     debit: 0,
                     credit: credit.credit,
@@ -199,8 +207,14 @@ router.post('/debit-note/new', ensureAuthenticated, ensureCompanySelected, ensur
                 await Account.findByIdAndUpdate(credit.account, { $push: { transactions: creditTransaction._id } });
             }
 
-            req.flash('success', 'Debit note saved successfully!');
-            res.redirect('/debit-note/new');
+            if (req.query.print === 'true') {
+                // Redirect to the print route
+                res.redirect(`/debit-note/${debitNote._id}/direct-print`);
+            } else {
+                // Redirect to the bills list or another appropriate page
+                req.flash('success', 'Debit Note saved successfully!');
+                res.redirect('/debit-note/new');
+            }
         } catch (err) {
             console.error(err);
             req.flash('error', 'Error saving debit note!');
@@ -213,13 +227,273 @@ router.post('/debit-note/new', ensureAuthenticated, ensureCompanySelected, ensur
 // GET - Show list of journal vouchers
 router.get('/debit-note/list', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
-        const DebitNotes = await DebitNote.find({ company: req.session.currentCompany }).populate('debitAccounts creditAccounts');
+        const companyId = req.session.currentCompany;
+        const currentCompanyName = req.session.currentCompanyName;
+        const currentCompany = await Company.findById(new ObjectId(companyId));
+
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+
+        const DebitNotes = await DebitNote.find({ company: req.session.currentCompany }).populate('debitAccounts.account creditAccounts.account');
         res.render('wholeseller/debitNote/list', {
-            DebitNotes, currentCompanyName: req.session.currentCompanyName,
+            company, currentFiscalYear,
+            DebitNotes, currentCompany, currentCompanyName,
             title: 'View Debit Note',
             body: 'wholeseller >> debit note >> vew debit note',
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
+    }
+});
+
+// View individual journal voucher
+router.get('/debit-note/:id/print', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+
+        try {
+            const debitNoteId = req.params.id;
+            const currentCompanyName = req.session.currentCompanyName;
+            const companyId = req.session.currentCompany;
+            console.log("Company ID from session:", companyId); // Debugging line
+
+            const today = new Date();
+            const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+            const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+
+            // Check if fiscal year is already in the session or available in the company
+            let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+            let currentFiscalYear = null;
+
+            if (fiscalYear) {
+                // Fetch the fiscal year from the database if available in the session
+                currentFiscalYear = await FiscalYear.findById(fiscalYear);
+            }
+
+            // If no fiscal year is found in session or currentCompany, throw an error
+            if (!currentFiscalYear && company.fiscalYear) {
+                currentFiscalYear = company.fiscalYear;
+
+                // Set the fiscal year in the session for future requests
+                req.session.currentFiscalYear = {
+                    id: currentFiscalYear._id.toString(),
+                    startDate: currentFiscalYear.startDate,
+                    endDate: currentFiscalYear.endDate,
+                    name: currentFiscalYear.name,
+                    dateFormat: currentFiscalYear.dateFormat,
+                    isActive: currentFiscalYear.isActive
+                };
+
+                // Assign fiscal year ID for use
+                fiscalYear = req.session.currentFiscalYear.id;
+            }
+
+            if (!fiscalYear) {
+                return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+            }
+
+            // Validate the selectedDate
+            if (!nepaliDate || isNaN(new Date(nepaliDate).getTime())) {
+                throw new Error('Invalid invoice date provided');
+            }
+
+            const currentCompany = await Company.findById(new ObjectId(companyId));
+            console.log("Current Company:", currentCompany); // Debugging line
+
+            if (!currentCompany) {
+                req.flash('error', 'Company not found');
+                return res.redirect('/bills');
+            }
+
+            // Validate journal voucher ID
+            if (!mongoose.Types.ObjectId.isValid(debitNoteId)) {
+                return res.status(400).json({ message: 'Invalid debit note ID.' });
+            }
+
+            // Find the journal voucher
+            const debitNotes = await DebitNote.findById(debitNoteId)
+                .populate('debitAccounts.account')
+                .populate('creditAccounts.account')
+                .populate('user')  // If you want to show the user who created the voucher
+                .populate('company')  // If you want to show the company
+                .exec();
+
+            if (!debitNoteId) {
+                return res.status(404).json({ message: 'Debit note not found.' });
+            }
+
+            const debitTransactions = await Transaction.find({
+                debitNoteId: debitNotes._id,
+                type: 'DrNt',
+                drCrNoteAccountTypes: 'Debit' // Fetching all debit transactions
+            }).populate('account'); // Populate the account field
+
+            const creditTransactions = await Transaction.find({
+                debitNoteId: debitNotes._id,
+                type: 'CrNt',
+                drCrNoteAccountTypes: 'Credit' // Fetching all credit transactions
+            }).populate('account'); // Populate the account field
+
+            // Render the journal voucher print view (using EJS or any other view engine)
+            res.render('wholeseller/debitNote/print', {
+                debitNotes,
+                debitTransactions,
+                creditTransactions,
+                currentCompanyName,
+                currentCompany,
+                date: new Date().toISOString().split('T')[0], // Today's date in ISO format
+                nepaliDate,
+                company,
+                currentFiscalYear,
+                user: req.user,
+                title: 'Print Journal Voucher',
+                body: 'wholeseller >> journal >> print',
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            });
+        } catch (error) {
+            console.error('Error retrieving journal voucher:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+});
+
+// View individual journal voucher
+router.get('/debit-note/:id/direct-print', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+
+        try {
+            const debitNoteId = req.params.id;
+            const currentCompanyName = req.session.currentCompanyName;
+            const companyId = req.session.currentCompany;
+            console.log("Company ID from session:", companyId); // Debugging line
+
+            const today = new Date();
+            const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+            const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+
+            // Check if fiscal year is already in the session or available in the company
+            let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+            let currentFiscalYear = null;
+
+            if (fiscalYear) {
+                // Fetch the fiscal year from the database if available in the session
+                currentFiscalYear = await FiscalYear.findById(fiscalYear);
+            }
+
+            // If no fiscal year is found in session or currentCompany, throw an error
+            if (!currentFiscalYear && company.fiscalYear) {
+                currentFiscalYear = company.fiscalYear;
+
+                // Set the fiscal year in the session for future requests
+                req.session.currentFiscalYear = {
+                    id: currentFiscalYear._id.toString(),
+                    startDate: currentFiscalYear.startDate,
+                    endDate: currentFiscalYear.endDate,
+                    name: currentFiscalYear.name,
+                    dateFormat: currentFiscalYear.dateFormat,
+                    isActive: currentFiscalYear.isActive
+                };
+
+                // Assign fiscal year ID for use
+                fiscalYear = req.session.currentFiscalYear.id;
+            }
+
+            if (!fiscalYear) {
+                return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+            }
+
+            // Validate the selectedDate
+            if (!nepaliDate || isNaN(new Date(nepaliDate).getTime())) {
+                throw new Error('Invalid invoice date provided');
+            }
+
+            const currentCompany = await Company.findById(new ObjectId(companyId));
+            console.log("Current Company:", currentCompany); // Debugging line
+
+            if (!currentCompany) {
+                req.flash('error', 'Company not found');
+                return res.redirect('/bills');
+            }
+
+            // Validate journal voucher ID
+            if (!mongoose.Types.ObjectId.isValid(debitNoteId)) {
+                return res.status(400).json({ message: 'Invalid debit note ID.' });
+            }
+
+            // Find the journal voucher
+            const debitNotes = await DebitNote.findById(debitNoteId)
+                .populate('debitAccounts.account')
+                .populate('creditAccounts.account')
+                .populate('user')  // If you want to show the user who created the voucher
+                .populate('company')  // If you want to show the company
+                .exec();
+
+            if (!debitNoteId) {
+                return res.status(404).json({ message: 'Debit note not found.' });
+            }
+
+            const debitTransactions = await Transaction.find({
+                debitNoteId: debitNotes._id,
+                type: 'DrNt',
+                drCrNoteAccountTypes: 'Debit' // Fetching all debit transactions
+            }).populate('account'); // Populate the account field
+
+            const creditTransactions = await Transaction.find({
+                debitNoteId: debitNotes._id,
+                type: 'CrNt',
+                drCrNoteAccountTypes: 'Credit' // Fetching all credit transactions
+            }).populate('account'); // Populate the account field
+
+            // Render the journal voucher print view (using EJS or any other view engine)
+            res.render('wholeseller/debitNote/direct-print', {
+                debitNotes,
+                debitTransactions,
+                creditTransactions,
+                currentCompanyName,
+                currentCompany,
+                date: new Date().toISOString().split('T')[0], // Today's date in ISO format
+                nepaliDate,
+                company,
+                currentFiscalYear,
+                user: req.user,
+                title: 'Print Journal Voucher',
+                body: 'wholeseller >> journal >> print',
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            });
+        } catch (error) {
+            console.error('Error retrieving journal voucher:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
     }
 });
 

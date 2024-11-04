@@ -42,3 +42,7 @@ const createDefaultUser = async () => {
 
 // To insert default admin user
 createDefaultUser();
+
+
+//To create a default admin user
+//node config/createDefaultUser.js

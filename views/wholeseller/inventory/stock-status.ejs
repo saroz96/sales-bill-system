@@ -1,6 +1,5 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'Stock Status' , body: 'wholeseller >> inventory >> stock status' })
-        %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 
 <style>
@@ -67,13 +66,13 @@
             <div class="col form-group">
                 <label for="showPurchaseValue">
                     <input type="checkbox" name="showPurchaseValue" id="showPurchaseValue" value="true" <% if
-                        (showPurchaseValue) { %>checked<% } %>> Show Purchase Stock Value
+                        (showPurchaseValue) { %>checked<% } %>> St.Value On C.P
                 </label>
             </div>
             <div class="col form-group">
                 <label for="showSalesValue">
                     <input type="checkbox" name="showSalesValue" id="showSalesValue" value="true" <% if (showSalesValue)
-                        { %>checked<% } %>> Show Sales Stock Value
+                        { %>checked<% } %>> St.Value On S.P
                 </label>
             </div>
         </div>
@@ -107,107 +106,117 @@
         </div>
     </div>
     <!-- Print Button -->
-    <button id="printAll" class="btn btn-secondary mb-3">Print All</button>
-    <button id="printFiltered" class="btn btn-secondary mb-3">Print Filtered</button>
-    (F.Y: <%= currentFiscalYear ? currentFiscalYear.name : (initialCurrentFiscalYear ? initialCurrentFiscalYear.name
-        : 'Not selected' ) %>)
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <button id="printAll" class="btn btn-secondary mb-3">Print All</button>
+            <button id="printFiltered" class="btn btn-secondary mb-3">Print Filtered</button>
+        </div>
+        <div>
+            As on: <span id="currentDate"></span>
+        </div>
+        <div>
+            (F.Y: <%= currentFiscalYear ? currentFiscalYear.name : (initialCurrentFiscalYear ?
+                initialCurrentFiscalYear.name : 'Not selected' ) %>)
+        </div>
+    </div>
 
-        <table class="table table-striped" id="itemsList">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Item Name</th>
-                    <th>Category</th>
-                    <th>Unit</th>
-                    <th>Total Stock</th>
-                    <th>Op. Stock</th>
-                    <th>Qty. In</th>
-                    <th>Qty. Out</th>
-                    <th>Min Stock</th>
-                    <th>Max Stock</th>
-                    <th>C.P</th>
-                    <th>S.P</th>
-                    <% if (showPurchaseValue) { %>
-                        <th>St.Val (C.P)</th>
-                        <% } %>
-                            <% if (showSalesValue) { %>
-                                <th>St.Val (S.P)</th>
-                                <% } %>
-                </tr>
-            </thead>
-            <tbody>
-                <% items.forEach((item, index)=> { %>
-                    <tr class="searchClass">
-                        <td>
-                            <%= index + 1 %>
-                        </td>
-                        <td>
-                            <%= item.name %>
-                        </td>
-                        <td>
-                            <%= item.category.name %>
-                        </td>
-                        <td>
-                            <%= item.unit.name %>
-                        </td>
-                        <td>
-                            <%= item.stock %>
-                        </td>
-                        <td>
-                            <%= item.openingStockByFiscalYear.length ? item.openingStockByFiscalYear[0].openingStock : 0
-                                %>
-                        </td>
-                        <td>
-                            <%= item.totalQtyIn %>
-                        </td>
-                        <td>
-                            <%= item.totalQtyOut %>
-                        </td>
-                        <td>
-                            <%= item.minStock %>
-                        </td>
-                        <td>
-                            <%= item.maxStock %>
-                        </td>
-                        <td>
-                            <%= item.puPrice.toFixed(2) %>
-                        </td>
-                        <td>
-                            <%= item.price.toFixed(2) %>
-                        </td>
-                        <% if (showPurchaseValue) { %>
-                            <td>
-                                <%= item.totalStockValuePurchase.toFixed(2) %>
-                            </td>
+    <table class="table table-striped" id="itemsList">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Item Name</th>
+                <th>Category</th>
+                <th>Unit</th>
+                <th>Total Stock</th>
+                <th>Op. Stock</th>
+                <th>Qty. In</th>
+                <th>Qty. Out</th>
+                <th>Min Stock</th>
+                <th>Max Stock</th>
+                <th>C.P</th>
+                <th>S.P</th>
+                <% if (showPurchaseValue) { %>
+                    <th>St.Val (C.P)</th>
+                    <% } %>
+                        <% if (showSalesValue) { %>
+                            <th>St.Val (S.P)</th>
                             <% } %>
-                                <% if (showSalesValue) { %>
-                                    <td>
-                                        <%= item.totalStockValueSales.toFixed(2) %>
-                                    </td>
-                                    <% } %>
-                    </tr>
-                    <% }); %>
-            </tbody>
-            <tfoot>
-                <tr>
-                    <th colspan="4">Total</th>
-                    <th id="totalStock"></th>
-                    <th id="totalOpeningStock"></th>
-                    <th id="totalQtyIn"></th>
-                    <th id="totalQtyOut"></th>
-                    <th id="totalMinStock"></th>
-                    <th id="totalMaxStock"></th>
-                    <th id="purchasePrice"></th>
-                    <th id="salesPrice"></th>
+            </tr>
+        </thead>
+        <tbody>
+            <% items.forEach((item, index)=> { %>
+                <tr class="searchClass">
+                    <td>
+                        <%= index + 1 %>
+                    </td>
+                    <td>
+                        <%= item.name %>
+                    </td>
+                    <td>
+                        <%= item.category.name %>
+                    </td>
+                    <td>
+                        <%= item.unit.name %>
+                    </td>
+                    <td>
+                        <%= item.stockEntries ? item.stockEntries.reduce((acc, entry)=> acc +
+                            entry.quantity, 0) : 0
+                            %>
+                    </td>
+                    <td>
+                        <%= item.openingStockByFiscalYear.length ? item.openingStockByFiscalYear[0].openingStock : 0 %>
+                    </td>
+                    <td>
+                        <%= item.totalQtyIn %>
+                    </td>
+                    <td>
+                        <%= item.totalQtyOut %>
+                    </td>
+                    <td>
+                        <%= item.minStock %>
+                    </td>
+                    <td>
+                        <%= item.maxStock %>
+                    </td>
+                    <td>
+                        <%= item.avgPuPrice.toFixed(2) %>
+                    </td>
+                    <td>
+                        <%= item.avgPrice.toFixed(2) %>
+                    </td>
                     <% if (showPurchaseValue) { %>
-                        <th id="totalPurchaseValue"></th>
+                        <td>
+                            <%= item.totalStockValuePurchase.toFixed(2) %>
+                        </td>
                         <% } %>
                             <% if (showSalesValue) { %>
-                                <th id="totalSalesValue"></th>
+                                <td>
+                                    <%= item.totalStockValueSales.toFixed(2) %>
+                                </td>
                                 <% } %>
                 </tr>
-            </tfoot>
-        </table>
+                <% }); %>
+        </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="4">Total</th>
+                <th id="totalStock"></th>
+                <th id="totalOpeningStock"></th>
+                <th id="totalQtyIn"></th>
+                <th id="totalQtyOut"></th>
+                <th id="totalMinStock"></th>
+                <th id="totalMaxStock"></th>
+                <th id="purchasePrice"></th>
+                <th id="salesPrice"></th>
+                <% if (showPurchaseValue) { %>
+                    <th id="totalPurchaseValue"></th>
+                    <% } %>
+                        <% if (showSalesValue) { %>
+                            <th id="totalSalesValue"></th>
+                            <% } %>
+            </tr>
+        </tfoot>
+    </table>
 </div>
 
 <script>
@@ -296,9 +305,17 @@
         printWindow.document.write('<style>@page { size: A4 landscape; margin: 10mm; } table { width: 100%; border-collapse: collapse; } th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; } th { background-color: #f2f2f2; }</style>');
         printWindow.document.write('</head><body>');
         printWindow.document.write(document.getElementById('printHeader').innerHTML); // Include the header
+
+        // Function to format the current date and time
+        function getCurrentDateTime() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            return now.toLocaleString(undefined, options);
+        }
+
         printWindow.document.write(`
   <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h3>Stock Status</h3>
+    <h3>Stock Status</h3> As on: ${getCurrentDateTime()}
     <h3>(F.Y: <%= currentFiscalYear ? currentFiscalYear.name : (initialCurrentFiscalYear ? initialCurrentFiscalYear.name: 'Not selected') %>)</h3>
   </div>
 `);
@@ -373,6 +390,16 @@
         printWindow.document.close();
         printWindow.print();
     }
+
+    // Function to format the date
+    function getCurrentDate() {
+        const now = new Date();
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return now.toLocaleDateString(undefined, options);
+    }
+
+    // Set the current date in the header
+    document.getElementById('currentDate').textContent = getCurrentDate();
 
     const panVatNo = '<%= currentCompany.pan %>';
     const container = document.getElementById('pan-vat-container');

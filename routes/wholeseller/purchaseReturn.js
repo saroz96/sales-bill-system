@@ -31,8 +31,44 @@ router.get('/purchase-return/list', ensureAuthenticated, ensureCompanySelected, 
         const currentCompanyName = req.session.currentCompanyName;
         const currentCompany = await Company.findById(new ObjectId(companyId));
 
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+
+
         const bills = await PurchaseReturn.find({ company: companyId }).populate('account').populate('items.item').populate('user');
         res.render('wholeseller/purchaseReturn/allPurchaseReturn', {
+            company,
+            currentFiscalYear,
             bills,
             currentCompany,
             user: req.user,
@@ -54,7 +90,7 @@ router.get('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensur
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
         const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
-        const company = await Company.findById(companyId).populate('fiscalYear');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
         // Check if fiscal year is already in the session or available in the company
@@ -108,9 +144,9 @@ router.get('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensur
             nextBillNumber = 1; // Start with 1 if no bill counter exists for this fiscal year and company
         }
         res.render('wholeseller/purchaseReturn/purchaseReturnEntry', {
-            company: companyId, accounts: accounts, items: items, bills: bills, nextBillNumber: nextBillNumber,
+            company, accounts: accounts, items: items, bills: bills, nextBillNumber: nextBillNumber,
             nepaliDate: nepaliDate, transactionDateNepali, companyDateFormat, purchaseInvoice,
-            user: req.user, currentCompanyName: req.session.currentCompanyName,
+            user: req.user, currentCompanyName: req.session.currentCompanyName, currentFiscalYear,
             title: 'Purchase Return',
             body: 'wholeseller >> purchase return >> add',
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
@@ -400,11 +436,39 @@ router.get('/purchase-return/:id/print', ensureAuthenticated, ensureCompanySelec
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
         const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
-        const company = await Company.findById(companyId);
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
-        // const { selectedDate } = req.query; // Assume selectedDate is passed as a query parameter
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
 
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
         // Validate the selectedDate
         if (!nepaliDate || isNaN(new Date(nepaliDate).getTime())) {
             throw new Error('Invalid date provided');
@@ -478,6 +542,8 @@ router.get('/purchase-return/:id/print', ensureAuthenticated, ensureCompanySelec
             }
 
             res.render('wholeseller/purchaseReturn/print', {
+                company,
+                currentFiscalYear,
                 bill,
                 currentCompanyName,
                 currentCompany,
@@ -511,11 +577,39 @@ router.get('/purchase-return/:id/direct-print', ensureAuthenticated, ensureCompa
 
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
-        const company = await Company.findById(companyId);
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
-        // const { selectedDate } = req.query; // Assume selectedDate is passed as a query parameter
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
 
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
         // Validate the selectedDate
         if (!nepaliDate || isNaN(new Date(nepaliDate).getTime())) {
             throw new Error('Invalid date provided');
@@ -589,6 +683,8 @@ router.get('/purchase-return/:id/direct-print', ensureAuthenticated, ensureCompa
             }
 
             res.render('wholeseller/purchaseReturn/directPrint', {
+                company,
+                currentFiscalYear,
                 bill,
                 currentCompanyName,
                 currentCompany,
@@ -619,6 +715,38 @@ router.get('/purchaseReturn-vat-report', ensureAuthenticated, ensureCompanySelec
         const toDate = req.query.toDate ? new Date(req.query.toDate) : null;
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
 
         // Build the query to filter transactions within the date range
         let query = { company: companyId };
@@ -650,6 +778,8 @@ router.get('/purchaseReturn-vat-report', ensureAuthenticated, ensureCompanySelec
         }));
 
         res.render('wholeseller/purchaseReturn/purchaseReturnVatReport', {
+            company,
+            currentFiscalYear,
             purchaseReturnVatReport,
             companyDateFormat,
             nepaliDate,
@@ -657,6 +787,9 @@ router.get('/purchaseReturn-vat-report', ensureAuthenticated, ensureCompanySelec
             fromDate: req.query.fromDate,
             toDate: req.query.toDate,
             currentCompanyName,
+            title: 'Statement',
+            body: 'wholeseller >> report >> statement',
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } else {
         res.status(403).send('Access denied');

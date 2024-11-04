@@ -12,6 +12,14 @@ const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRa
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
 const Company = require('../../models/wholeseller/Company');
 const NepaliDate = require('nepali-date');
+const SalesBill = require('../../models/wholeseller/SalesBill');
+const SalesReturn = require('../../models/wholeseller/SalesReturn');
+const PurchaseBill = require('../../models/wholeseller/PurchaseBill');
+const PurchaseReturn = require('../../models/wholeseller/PurchaseReturns');
+const Transaction = require('../../models/wholeseller/Transaction');
+const StockAdjustment = require('../../models/wholeseller/StockAdjustment');
+
+const moment = require('moment');
 
 // Example backend route to handle item search
 router.get('/items/search/get', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
@@ -109,6 +117,7 @@ router.get('/items/get/:id', ensureAuthenticated, ensureCompanySelected, ensureT
         }
     }
 });
+
 // Route to fetch items based on current fiscal year
 router.get('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
@@ -117,7 +126,8 @@ router.get('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType
             const currentCompanyName = req.session.currentCompanyName;
             const today = new Date();
             const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
-            const company = await Company.findById(companyId); const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+            const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
 
             // Check if fiscal year is already in the session or available in the company
@@ -157,13 +167,25 @@ router.get('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType
                 fiscalYear: fiscalYear // Match items based on fiscalYearId
             }).populate('category').populate('unit');
 
+            // Extract openingStock and openingStockBalance if they exist for the current fiscal year
+            const itemsWithOpeningStock = items.map(item => {
+                const openingStockEntry = item.openingStockByFiscalYear.find(entry => entry.fiscalYear.toString() === fiscalYear);
+                return {
+                    ...item._doc,
+                    openingStock: openingStockEntry ? openingStockEntry.openingStock : 0,
+                    openingStockBalance: openingStockEntry ? openingStockEntry.openingStockBalance : 0
+                };
+            });
             // Fetch categories and units for item creation
             const categories = await Category.find({ company: companyId });
             const units = await Unit.find({ company: companyId });
 
+
             // Render the items page with the fetched data
             res.render('wholeseller/item/items', {
-                items,
+                company,
+                currentFiscalYear,
+                items: itemsWithOpeningStock,
                 categories,
                 units,
                 companyId,
@@ -185,9 +207,6 @@ router.get('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType
     }
 });
 
-
-
-
 router.get('/products', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
@@ -203,10 +222,199 @@ router.get('/products', ensureAuthenticated, ensureCompanySelected, ensureTradeT
     }
 });
 
+
+router.get('/items/average-reorder-level', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        try {
+            const companyId = req.session.currentCompany;
+            const currentCompanyName = req.session.currentCompanyName;
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+
+            const companyDateFormat = company ? company.dateFormat : 'english';
+            let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+            let currentFiscalYear = null;
+
+            if (fiscalYear) {
+                currentFiscalYear = await FiscalYear.findById(fiscalYear);
+            }
+
+            if (!currentFiscalYear && company.fiscalYear) {
+                currentFiscalYear = company.fiscalYear;
+                req.session.currentFiscalYear = {
+                    id: currentFiscalYear._id.toString(),
+                    startDate: currentFiscalYear.startDate,
+                    endDate: currentFiscalYear.endDate,
+                    name: currentFiscalYear.name,
+                    dateFormat: currentFiscalYear.dateFormat,
+                    isActive: currentFiscalYear.isActive
+                };
+                fiscalYear = req.session.currentFiscalYear.id;
+            }
+
+            if (!fiscalYear) return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+            if (!currentFiscalYear) return res.status(404).json({ error: 'Current fiscal year not found' });
+
+            const fiscalYearStart = currentFiscalYear.startDate;
+
+            let endOfLastMonth;
+            if (companyDateFormat === 'nepali') {
+                endOfLastMonth = moment().subtract(1, 'months').endOf('month').toDate();
+                const nepaliDate = new NepaliDate(endOfLastMonth);
+                endOfLastMonth = nepaliDate;
+            } else {
+                endOfLastMonth = moment().subtract(1, 'months').endOf('month').toDate();
+            }
+
+            const salesData = await SalesBill.aggregate([
+                { $match: { date: { $gte: fiscalYearStart, $lte: endOfLastMonth } } },
+                { $unwind: '$items' },
+                { $match: { 'items.item': { $ne: null } } },
+                {
+                    $group: {
+                        _id: '$items.item',
+                        totalQuantity: { $sum: '$items.quantity' },
+                    }
+                }
+            ]);
+
+            const totalMonths = moment(endOfLastMonth).diff(moment(fiscalYearStart), 'months') + 1;
+
+            const averageMonthlyQuantities = await Promise.all(salesData.map(async data => {
+                const item = await Item.findById(data._id);
+
+                if (!item) {
+                    console.log(`Item not found for ID: ${data._id}`);
+                    return {
+                        itemName: 'Unknown Item',
+                        totalQuantitySold: data.totalQuantity,
+                        averageMonthlyQuantity: 0,
+                        currentStock: 0,
+                        neededStock: 0,
+                        fiscalYear: fiscalYear
+                    };
+                }
+
+                const averageMonthlyQuantity = totalMonths ? data.totalQuantity / totalMonths : 0;
+                // const currentStock = item.stock || 0; // Assume `stockQuantity` is the current stock field
+                const currentStock = item.stockEntries.reduce((total, entry) => total + (entry.quantity || 0), 0);
+
+                // Calculate needed stock for the current month
+                const neededStock = Math.max(data.totalQuantity - currentStock, 0);
+
+                return {
+                    itemName: item.name,
+                    totalQuantitySold: data.totalQuantity,
+                    averageMonthlyQuantity: Math.ceil(averageMonthlyQuantity),
+                    currentStock,
+                    neededStock,
+                    fiscalYear: fiscalYear
+                };
+            }));
+
+            console.log("Average Monthly Quantities:", averageMonthlyQuantities);
+
+            res.render('wholeseller/item/averageReorderLevel', {
+                company,
+                averageReorderLevels: averageMonthlyQuantities,
+                currentCompanyName,
+                currentFiscalYear,
+                title: 'Items Reorder Level',
+                body: '',
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor',
+                message: 'Average monthly quantities (reorder levels) calculated successfully.'
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Failed to calculate average monthly quantities for items' });
+        }
+    }
+});
+
+
+// Route to get items with reorder level, current stock, and needed stock
+router.get('/items/reorder', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        const companyId = req.session.currentCompany;
+        const currentCompanyName = req.session.currentCompanyName;
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+
+        // Fetch items and calculate current stock from stockEntries
+        const items = await Item.find({ company: companyId })
+            .populate('unit')
+            .populate('stockEntries') // Optional: populate stockEntries if you need details
+            .select('name reorderLevel stockEntries unit maxStock'); // Select only the fields you need
+
+        console.log("Items fetched:", items);
+
+        const itemsWithNeededStock = items.map(item => {
+            // Calculate current stock by summing the quantity from stockEntries
+            const currentStock = item.stockEntries.reduce((total, entry) => total + (entry.quantity || 0), 0);
+
+            return {
+                name: item.name,
+                currentStock,
+                reorderLevel: item.reorderLevel,
+                maxStock: item.maxStock,
+                neededStock: Math.max(0, item.reorderLevel - currentStock), // Prevents negative needed stock values
+                unit: item.unit ? item.unit.name : 'N/A', // Fetch the unit name, or 'N/A' if not available
+                fiscalYear: fiscalYear
+            };
+        }).filter(item => item.currentStock < item.reorderLevel || item.currentStock > item.maxStock); // Filter to show items where current stock is below reorder level
+
+        // Set the neededStock for the overstock scenario
+        itemsWithNeededStock.forEach(item => {
+            item.overStock = item.currentStock - item.maxStock; // Calculate over stock
+        });
+
+        res.render('wholeseller/item/reorder', {
+            company,
+            items: itemsWithNeededStock,
+            currentCompanyName,
+            currentFiscalYear,
+            title: 'Items Reorder Level',
+            body: '',
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+        })
+    }
+});
+
+
 router.post('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
 
-        const { name, hscode, category, unit, price, puPrice, vatStatus, openingStock, openingStockBalance } = req.body;
+        const { name, hscode, category, unit, price, puPrice, vatStatus, openingStock, reorderLevel, openingStockBalance } = req.body;
         const companyId = req.session.currentCompany;
 
         if (!companyId) {
@@ -275,6 +483,8 @@ router.post('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
             vatStatus,
             stock: openingStock, // Set total stock to opening stock initially
             company: companyId,
+            reorderLevel,
+            maxStock: reorderLevel,
             openingStockByFiscalYear: [{
                 fiscalYear: fiscalYear, // Use the current fiscal year ID from session or company
                 salesPrice: price,
@@ -284,6 +494,8 @@ router.post('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
             }],
             stockEntries: openingStock > 0 ? [{
                 quantity: openingStock,
+                price: price,
+                puPrice: puPrice,
                 date: new Date(),
                 fiscalYear: fiscalYear // Record stock entry with fiscal year
             }] : [],
@@ -312,7 +524,7 @@ router.get('/items/:id', ensureAuthenticated, ensureCompanySelected, async (req,
     }
 
     try {
-        const company = await Company.findById(companyId).populate('fiscalYear');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
 
         // Check if fiscal year is already in the session
         let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -374,6 +586,8 @@ router.get('/items/:id', ensureAuthenticated, ensureCompanySelected, async (req,
 
         // Render the page with the item details and opening stock for the current fiscal year
         res.render('wholeseller/item/view', {
+            company,
+            currentFiscalYear,
             items,
             openingStock,
             openingStockBalance,
@@ -394,25 +608,25 @@ router.get('/items/:id', ensureAuthenticated, ensureCompanySelected, async (req,
 
 
 // Route to render the edit item form
-router.get('/items/:id/edit', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
-    if (req.tradeType === 'Wholeseller') {
-        try {
-            const companyId = req.session.currentCompany;
-            const item = await Item.findById(req.params.id, { company: companyId });
-            res.render('wholeseller/item/editItem', { item, companyId });
-        } catch (err) {
-            console.error('Error fetching item:', err);
-            req.flash('error', 'Error fetching item');
-            res.redirect('/items');
-        }
-    }
-});
+// router.get('/items/:id/edit', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+//     if (req.tradeType === 'Wholeseller') {
+//         try {
+//             const companyId = req.session.currentCompany;
+//             const item = await Item.findById(req.params.id, { company: companyId });
+//             res.render('wholeseller/item/editItem', { item, companyId });
+//         } catch (err) {
+//             console.error('Error fetching item:', err);
+//             req.flash('error', 'Error fetching item');
+//             res.redirect('/items');
+//         }
+//     }
+// });
 
 // Route to handle editing an item
 router.put('/items/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
-            const { name, hscode, category, price, puPrice, vatStatus, openingStock, unit, openingStockBalance } = req.body;
+            const { name, hscode, category, price, puPrice, vatStatus, openingStock, reorderLevel, unit, openingStockBalance } = req.body;
             const companyId = req.session.currentCompany;
 
             // Fetch the company and populate the fiscalYear
@@ -488,11 +702,15 @@ router.put('/items/:id', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 vatStatus,
                 openingStock: newOpeningStock,
                 stock: currentStock,
+                reorderLevel,
+                maxStock: reorderLevel,
                 openingStockBalance: openingStockBal,
                 stockEntries: newOpeningStock > 0 ? [{
                     quantity: newOpeningStock,
+                    price: price,
+                    puPrice: puPrice,
                     date: new Date(),
-                    fiscalYear: fiscalYear // Ensure stock entry is tied to fiscal year
+                    fiscalYear: fiscalYear // Record stock entry with fiscal year
                 }] : [],
                 company: companyId,
                 openingStockByFiscalYear: [{
@@ -527,18 +745,33 @@ router.delete('/items/:id', ensureAuthenticated, ensureCompanySelected, ensureTr
         const { id } = req.params;
         const companyId = req.session.currentCompany;
 
+        // Check if the item has any related transactions
+        const hasSales = await SalesBill.findOne({ 'items.itemId': id, company: companyId });
+        const hasSalesReturn = await SalesReturn.findOne({ 'items.itemId': id, company: companyId });
+        const hasPurchase = await PurchaseBill.findOne({ 'items.itemId': id, company: companyId });
+        const hasPurchaseReturn = await PurchaseReturn.findOne({ 'items.itemId': id, company: companyId });
+        const hasStockAdjustment = await StockAdjustment.findOne({ 'items.itemId': id, company: companyId });
+        const hasTransaction = await Transaction.findOne({ item: id, company: companyId });
+
+        if (hasSales || hasSalesReturn || hasPurchase || hasPurchaseReturn || hasStockAdjustment || hasTransaction) {
+            req.flash('error', 'Item cannot be deleted as it has related transactions or entries.');
+            return res.redirect('/items');
+        }
+
+        // If no related transactions are found, proceed with deletion
         await Item.findByIdAndDelete(id, { company: companyId });
-        req.flash('success', 'Items deleted successfully');
+        req.flash('success', 'Item deleted successfully');
         res.redirect('/items');
     }
-})
+});
+
 // Route to list all items and their stock levels
 router.get('/items-list', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const companyId = req.session.currentCompany;
             const currentCompanyName = req.session.currentCompanyName;
-            const company = await Company.findById(companyId).populate('fiscalYear');;
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
 
             // Check if fiscal year is already in the session or available in the company
             let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -573,7 +806,7 @@ router.get('/items-list', ensureAuthenticated, ensureCompanySelected, ensureTrad
 
             const items = await Item.find({ company: companyId, fiscalYear: fiscalYear }).populate('category').exec();
             res.render('wholeseller/item/listItems', {
-                items, companyId, currentCompanyName,
+                items, company, currentCompanyName, currentFiscalYear,
                 title: 'Items List',
                 body: 'wholeseller >> Items >> all items',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
@@ -585,52 +818,5 @@ router.get('/items-list', ensureAuthenticated, ensureCompanySelected, ensureTrad
         }
     }
 });
-
-// // Route to render stock adjustments form
-// router.get('/items/:id/stock-adjustments', ensureAuthenticated, ensureCompanySelected, async (req, res) => {
-//     try {
-//         const item = await Item.findById(req.params.id).populate('category').exec();
-//         res.render('item/stockAdjustments', { item });
-//     } catch (err) {
-//         console.error('Error fetching item for stock adjustments:', err);
-//         req.flash('error', 'Error fetching item for stock adjustments');
-//         res.redirect('/items');
-//     }
-// });
-
-// // Route to handle adding stock adjustments
-// router.post('/items/:id/stock-adjustments', ensureAuthenticated, ensureCompanySelected, async (req, res) => {
-//     try {
-//         const { type, quantity, reason } = req.body;
-//         const item = await Item.findById(req.params.id);
-
-//         const adjustment = {
-//             type,
-//             quantity,
-//             reason,
-//         };
-
-//         if (type === 'excess') {
-//             item.stock += parseInt(quantity, 10);
-//         } else if (type === 'short') {
-//             if (item.stock < quantity) {
-//                 req.flash('error', 'Cannot reduce stock below zero');
-//                 return res.redirect(`/items/${req.params.id}/stock-adjustments`);
-//             }
-//             item.stock -= parseInt(quantity, 10);
-//         }
-
-//         item.stockAdjustments.push(adjustment);
-//         await item.save();
-
-//         req.flash('success', 'Stock adjustment added successfully');
-//         res.redirect(`/items/${req.params.id}/stock-adjustments`);
-//     } catch (err) {
-//         console.error('Error adding stock adjustment:', err);
-//         req.flash('error', 'Error adding stock adjustment');
-//         res.redirect(`/items/${req.params.id}/stock-adjustments`);
-//     }
-// });
-
 
 module.exports = router;

@@ -27,10 +27,12 @@ router.get('/company/new', ensureAuthenticated, ensureNotAdministrator, async (r
         return res.redirect('/dashboard');
     }
 
-    res.render('createCompany', {
+    res.render('ownerCompany/createCompany', {
         currentCompanyName,
         nepaliDate,
-        companyDateFormat
+        companyDateFormat,
+        user: req.user,
+        isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
     });
 });
 
@@ -52,7 +54,7 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
             userCompanies = await Company.find({ _id: req.user.company });
         }
 
-        res.render('wholeseller/dashboard', {
+        res.render('ownerCompany/dashboard', {
             user: req.user,
             companies: userCompanies,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
@@ -339,6 +341,7 @@ router.post('/company', ensureAuthenticated, async (req, res) => {
             email,
             tradeType,
             dateFormat,
+            fiscalYearStartDate: startDate,
             owner,
             createdAt // Set the calculated createdAt date
         });
@@ -473,7 +476,7 @@ router.get('/switch/:id/', ensureAuthenticated, async (req, res) => {
                 break;
         }
 
-        req.flash('success', `Switched: ${company.name}, Fiscal year: ${latestFiscalYear.name}`);
+        req.flash('success', `Switched to: ${company.name}, F.Y: ${latestFiscalYear.name}`);
         res.redirect(redirectPath);
     } catch (err) {
         console.error(err);
@@ -481,5 +484,172 @@ router.get('/switch/:id/', ensureAuthenticated, async (req, res) => {
     }
 });
 
+
+// Route to view company details
+router.get('/company/:id', async (req, res) => {
+    try {
+        const companyId = req.params.id;
+        const company = await Company.findById(companyId)
+            .populate('owner', 'name email') // Populate owner details (name, email)
+            .populate('users', 'name email') // Populate user details (name, email)
+            .populate('settings')
+            .populate('fiscalYear');
+
+        if (!company) {
+            return res.status(404).send('Company not found');
+        }
+
+        res.render('ownerCompany/view', {
+            user: req.user,
+            company,
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Route to render the edit company page
+router.get('/company/edit/:id', ensureAuthenticated, async (req, res) => {
+    try {
+        const company = await Company.findById(req.params.id)
+            .populate('owner')
+            .populate('users')
+            .populate('settings')
+            .populate('fiscalYear');
+
+        if (!company) {
+            req.flash('error', 'Company not found');
+            return res.redirect('/dashboard');
+        }
+
+        res.render('ownerCompany/edit', {
+            company,
+            user: req.user,
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Route to update company information
+router.put('/company/edit/:id', ensureAuthenticated, async (req, res) => {
+    try {
+        const {
+            name,
+            address,
+            country,
+            state,
+            city,
+            pan,
+            phone,
+            ward,
+            email,
+            tradeType,
+            dateFormat,
+            startDateEnglish,
+            endDateEnglish,
+            startDateNepali,
+            endDateNepali
+        } = req.body;
+
+        // Determine the start and end dates based on dateFormat
+        let startDate, endDate;
+        if (dateFormat === 'nepali') {
+            startDate = startDateNepali;
+            endDate = endDateNepali;
+        } else {
+            startDate = startDateEnglish;
+            endDate = endDateEnglish;
+        }
+
+        // Set default end date if not provided
+        if (!endDate) {
+            endDate = new Date(startDate);
+            endDate.setFullYear(endDate.getFullYear() + 1);
+            endDate.setDate(endDate.getDate() - 1);
+        }
+
+        const company = await Company.findByIdAndUpdate(
+            req.params.id,
+            {
+                name,
+                address,
+                country,
+                state,
+                city,
+                pan,
+                phone,
+                ward,
+                email,
+                tradeType,
+                dateFormat,
+                fiscalYearStartDate: startDate,
+            },
+            { new: true }
+        );
+
+        console.log('Updated: ', company);
+
+        // Update fiscal year if dateFormat or dates have changed
+        const startDateObject = new Date(startDate);
+        const endDateObject = new Date(endDate);
+        const fiscalYearName = `${startDateObject.getFullYear()}/${endDateObject.getFullYear().toString().slice(-2)}`;
+
+        let fiscalYear = await FiscalYear.findOneAndUpdate(
+            { company: company._id },
+            { name: fiscalYearName, startDate: startDateObject, endDate: endDateObject },
+            { new: true }
+        );
+
+        if (!fiscalYear) {
+            fiscalYear = new FiscalYear({
+                name: fiscalYearName,
+                startDate: startDateObject,
+                endDate: endDateObject,
+                company: company._id
+            });
+            await fiscalYear.save();
+        }
+
+        company.fiscalYear = fiscalYear._id;
+        await company.save();
+
+        // Redirect based on updated tradeType
+        let redirectPath;
+        switch (tradeType) {
+            case 'Wholeseller':
+                redirectPath = '/wholesellerDashboard';
+                break;
+            case 'Retailer':
+                redirectPath = '/retailerDashboard';
+                break;
+            case 'Pharmacy':
+                redirectPath = '/pharmacyDashboard';
+                break;
+            default:
+                redirectPath = '/defaultDashboard';
+                break;
+        }
+
+        req.flash('success', 'Company details updated successfully');
+        res.redirect('/dashboard');
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Route to handle form submission and delete the category
+router.delete('/company/delete/:id', ensureAuthenticated, async (req, res) => {
+    const { id } = req.params;
+    await Company.findByIdAndDelete(id);
+    req.flash('success', 'Company deleted successfully');
+    res.redirect('/dashboard');
+})
 
 module.exports = router;

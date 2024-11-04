@@ -1,7 +1,68 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'View Journal' , body: 'wholeseller >> journal >> view journal' }) %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 <style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: auto;
+        /* Let columns size automatically based on content */
+    }
+
+    th,
+    td {
+        padding: 8px;
+        text-align: left;
+        border: 1px solid black;
+        white-space: nowrap;
+    }
+
+    th {
+        background-color: #f2f2f2;
+    }
+
+    @media print {
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+
+        body {
+            font-size: 12px;
+            margin: 10mm;
+        }
+
+        #printHeader {
+            display: block;
+            /* Show header when printing */
+        }
+
+        /* Ensure no text wrapping when printing */
+        th,
+        td {
+            white-space: nowrap;
+        }
+
+        /* Hide unnecessary elements during printing */
+        #filterForm,
+        #searchInput,
+        #billsList td:last-child {
+            display: none;
+        }
+
+        /* Adjust the container width to fit landscape */
+        #mainContainer {
+            width: 100%;
+        }
+    }
+
+    @media screen {
+        #printHeader {
+            display: none;
+            /* Hide header when on screen */
+        }
+    }
+
     body {
         background-color: #f8f9fa;
     }
@@ -39,35 +100,58 @@
         border-radius: 8px;
     }
 </style>
-</head>
 
-<body>
-    <div class="container" id="mainContainer">
-        <div class="table-wrapper">
-            <h2 class="text-center mb-4">Journal Vouchers</h2>
+<div class="container" id="mainContainer">
 
-            <!-- Search Input -->
-            <div class="search-input">
-                <input type="text" id="search" class="form-control"
-                    placeholder="Search by description or account name...">
-            </div>
+    <!-- Print Header -->
+    <div id="printHeader" class="d-none text-center">
+        <div class="header" style="text-align: center;">
+            <h2 class="card-subtitle mb-2">
+                <%= currentCompanyName %>
+            </h2>
+            <b>
+                <h4>
+                    <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
+                                <%=currentCompany.country%> <br><br>
+                                    Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
+                                            <br><br>
+                                            VAT NO.: <span id="pan-vat-container"></span>
+                </h4>
+            </b>
+            <hr style="border: 0.5px solid;">
+        </div>
+    </div>
 
-            <!-- Journal Voucher Table -->
-            <table class="table table-bordered voucher-table">
-                <thead>
-                    <tr>
-                        <th>Vch.No</th>
-                        <th>Date</th>
-                        <th>Debit Accounts</th>
-                        <th>Debit (Rs.)</th>
-                        <th>Credit Accounts</th>
-                        <th>Credit (Rs.)</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody id="voucher-table-body">
+    <div class="table-wrapper">
+        <h2 class="text-center mb-4">Journal Vouchers</h2>
+
+        <!-- Search Input -->
+        <div class="search-input">
+            <input type="text" id="search" class="form-control"
+                placeholder="Search by vch no., amounts, description or account name...">
+        </div>
+        <!-- Print Button -->
+        <button id="printAllBills" class="btn btn-secondary mb-3">Print All Voucher</button>
+        <button id="printFilteredBills" class="btn btn-secondary mb-3">Print Filtered Voucher</button>
+
+        <!-- Journal Voucher Table -->
+        <table class="table table-bordered voucher-table" id="billsList">
+            <thead>
+                <tr>
+                    <th>Vch.No</th>
+                    <th>Date</th>
+                    <th>Debit Accounts</th>
+                    <th>Debit (Rs.)</th>
+                    <th>Credit Accounts</th>
+                    <th>Credit (Rs.)</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="voucher-table-body">
+                <% if (journalVouchers.length> 0) { %>
                     <% journalVouchers.forEach(voucher=> { %>
-                        <tr data-bs-toggle="tooltip" data-bs-placement="top" title="Click for more details">
+                        <tr>
                             <td>
                                 <%= voucher.billNumber%>
                             </td>
@@ -83,8 +167,8 @@
                             </td>
                             <td>
                                 <% voucher.debitAccounts.forEach(debitAccount=> { %>
-                                    <span class="badge badge-debit">
-                                        <%= debitAccount.debit %>
+                                    <span class="debit-amount badge badge-debit">
+                                        <%= debitAccount.debit.toFixed(2) %>
                                     </span>
                                     <% }) %>
                             </td>
@@ -97,98 +181,161 @@
                             </td>
                             <td>
                                 <% voucher.creditAccounts.forEach(creditAccount=> { %>
-                                    <span class="badge badge-credit">
-                                        <%= creditAccount.credit %>
+                                    <span class="credit-amount badge badge-credit">
+                                        <%= creditAccount.credit.toFixed(2) %>
                                     </span>
                                     <% }) %>
                             </td>
                             <td>
                                 <%= voucher.description %>
                             </td>
+                            <td>
+                                <a href="/journal/<%= voucher._id %>/print"><button class="btn-sm btn-info"><i
+                                            class="fas fa-eye"></i></button></a>
+                                <a href="/journal/<%= voucher._id %>"><button class="btn btn-sm btn-warning"><i
+                                            class="fas fa-edit"></i></button></a>
+                            </td>
                         </tr>
                         <% }) %>
-                </tbody>
-            </table>
-
-            <!-- Pagination (if needed) -->
-            <nav aria-label="Journal Voucher Pagination">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item disabled">
-                        <a class="page-link" href="#" tabindex="-1">Previous</a>
-                    </li>
-                    <li class="page-item"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item">
-                        <a class="page-link" href="#">Next</a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="8" class="text-center">No vouchers found</td>
+                                </tr>
+                                <% } %>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3"><strong>Total</strong></td>
+                    <td id="total-debit">0.00</td>
+                    <td></td>
+                    <td id="total-credit">0.00</td>
+                    <td colspan="3"></td>
+                </tr>
+            </tfoot>
+        </table>
     </div>
+</div>
 
-    <!-- Exit Confirmation Modal -->
-    <div class="modal fade" id="exitConfirmationModal" tabindex="-1" aria-labelledby="exitConfirmationModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exitConfirmationModalLabel">Exit Confirmation</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    Are you sure you want to exit without saving?
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="confirmExit" autofocus>Yes, Exit</button>
-                </div>
-            </div>
-        </div>
-    </div>
+<script>
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
 
-    <script>
-        // Initialize Bootstrap tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
+    // Search functionality (basic filtering)
+    const searchInput = document.getElementById('search');
+    const tableBody = document.getElementById('voucher-table-body');
+    searchInput.addEventListener('keyup', function () {
+        const searchValue = searchInput.value.toLowerCase();
+        const rows = tableBody.getElementsByTagName('tr');
+        Array.from(rows).forEach(function (row) {
+            const billNumber = row.cells[0].textContent.toLowerCase();
+            const debitAccounts = Array.from(row.cells[2].querySelectorAll('div')).map(div => div.textContent.toLowerCase()).join(' ');
+            const debitAmounts = row.cells[3].textContent.toLowerCase();
+            const creditAccounts = Array.from(row.cells[4].querySelectorAll('div')).map(div => div.textContent.toLowerCase()).join(' ');
+            const creditAmounts = row.cells[5].textContent.toLowerCase();
+            const description = row.cells[6].textContent.toLowerCase();
+            if (billNumber.includes(searchValue) ||
+                debitAccounts.includes(searchValue) ||
+                debitAmounts.includes(searchValue) ||
+                creditAccounts.includes(searchValue) ||
+                creditAmounts.includes(searchValue) ||
+                description.includes(searchValue)
+            ) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
         });
+        // Recalculate the totals after filtering
+        calculateTotals();
+    });
 
-        // Search functionality (basic filtering)
-        const searchInput = document.getElementById('search');
-        const tableBody = document.getElementById('voucher-table-body');
-        searchInput.addEventListener('keyup', function () {
-            const searchValue = searchInput.value.toLowerCase();
-            const rows = tableBody.getElementsByTagName('tr');
-            Array.from(rows).forEach(function (row) {
-                const description = row.cells[5].textContent.toLowerCase();
-                const debitAccounts = Array.from(row.cells[1].querySelectorAll('div')).map(div => div.textContent.toLowerCase()).join(' ');
-                const creditAccounts = Array.from(row.cells[3].querySelectorAll('div')).map(div => div.textContent.toLowerCase()).join(' ');
-                if (description.includes(searchValue) || debitAccounts.includes(searchValue) || creditAccounts.includes(searchValue)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
+    // Function to calculate total debit based on visible rows
+    function calculateTotals() {
+        const debitCells = document.querySelectorAll('.debit-amount');
+        const creditCells = document.querySelectorAll('.credit-amount');
+        let totalCredit = 0;
+        let totalDebit = 0;
 
-        // Handle Escape key
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') {
-                event.preventDefault(); // Prevent default escape behavior
-                var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
-                exitModal.show();
+        // Sum only the visible debit values
+        creditCells.forEach(cell => {
+            if (cell.closest('tr').style.display !== 'none') {  // Only sum visible rows
+                const debitValue = parseFloat(cell.textContent) || 0;
+                const creditValue = parseFloat(cell.textContent) || 0;
+                totalDebit += debitValue;
+                totalCredit += creditValue;
             }
         });
 
-        // Handle the exit confirmation
-        document.getElementById('confirmExit').addEventListener('click', function () {
-            // Redirect to the home page
-            window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
-        });
-    </script>
-</body>
+        // Update the totals in the table footer
+        document.getElementById('total-debit').textContent = totalDebit.toFixed(2);
+        document.getElementById('total-credit').textContent = totalCredit.toFixed(2);
+    }
 
-</html>
+    // Call the calculateTotals function initially
+    calculateTotals();
+
+    // Print all bills
+    document.getElementById('printAllBills').addEventListener('click', function () {
+        printBills(document.querySelectorAll('#billsList tbody tr'));
+    });
+
+    // Print filtered bills
+    document.getElementById('printFilteredBills').addEventListener('click', function () {
+        printBills(document.querySelectorAll('#billsList tbody tr:not([style*="display: none"])'));
+    });
+
+    // Function to print the selected bills (with totals)
+    function printBills(billRows) {
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write('<html><head><title>Print Journal Vouchers</title>');
+        printWindow.document.write('<style>@page { size: A4 landscape; margin: 10mm; } table { width: 100%; border-collapse: collapse; } th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; } th { background-color: #f2f2f2; }</style>');
+        printWindow.document.write('</head><body>');
+        printWindow.document.write(document.getElementById('printHeader').innerHTML); // Include the header
+        printWindow.document.write('<h1>Journal Vouchers</h1>');
+        printWindow.document.write('<table><thead><tr><th>Bill no.</th><th>Date</th><th>Debit Accounts</th><th>Debit (Rs.)</th><th>Credit Accounts</th><th>Credit (Rs.)</th><th>Decription</th></tr></thead><tbody>');
+
+        let totalDebit = 0;
+        let totalCredit = 0;
+
+        billRows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            printWindow.document.write('<tr>');
+
+            // Only write cells up to the last cell that corresponds to the printed table
+            for (let i = 0; i < cells.length - 1; i++) { // Exclude the last cell (Actions)
+                printWindow.document.write('<td>' + cells[i].textContent + '</td>');
+            }
+
+            // Add up debit and credit for totals
+            totalDebit += parseFloat(cells[3].textContent) || 0;
+            totalCredit += parseFloat(cells[5].textContent) || 0;
+
+            printWindow.document.write('</tr>');
+        });
+
+        printWindow.document.write('<tfoot><tr><td colspan="3"><strong>Total</strong></td>');
+        printWindow.document.write('<td>' + totalDebit.toFixed(2) + '</td>');
+        printWindow.document.write('<td></td>')
+        printWindow.document.write('<td>' + totalCredit.toFixed(2) + '</td>');
+        printWindow.document.write('<td colspan="2"></td></tr></tfoot></table>');
+
+
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+    }
+
+    const panVatNo = '<%= currentCompany.pan %>';
+    const container = document.getElementById('pan-vat-container');
+
+    for (let i = 0; i < panVatNo.length; i++) {
+        const digit = document.createElement('span');
+        digit.className = 'bordered-digit';
+        digit.textContent = panVatNo[i];
+        container.appendChild(digit);
+    }
+</script>

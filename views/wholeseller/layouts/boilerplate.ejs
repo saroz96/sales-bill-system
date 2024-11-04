@@ -29,6 +29,20 @@
 <body class="d-flex flex-column vh-100" style="background-color: rgb(223,233,246);">
 
     <%- include('../partials/header') %>
+        <div class="row text-right">
+            <div class="col">
+                <%= currentCompanyName %> (<%= currentFiscalYear ? currentFiscalYear.name : (initialCurrentFiscalYear ?
+                        initialCurrentFiscalYear.name : 'Not selected' ) %>) | <% if (company.renewalDate) { %>
+                            Valid Upto:
+                            <%= company.renewalDate %>
+                                <% } else { %>
+                                    Demo Version
+                                    <% } %>
+
+            </div>
+            <div id="live-time" class="col"></div>
+        </div>
+
         <main class="main-content" id="content">
             <%- include('../partials/flash') %>
                 <!-- Your main content goes here -->
@@ -42,7 +56,26 @@
         <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 
+        <script>
+            // Function to update live time
+            function updateLiveTime() {
+                const liveTimeElement = document.getElementById('live-time');
+                const now = new Date();
 
+                // Format the time as HH:MM:SS
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+
+                // Display the time
+                liveTimeElement.innerText = `${hours}:${minutes}:${seconds}`;
+            }
+
+            // Update the time every second
+            setInterval(updateLiveTime, 1000);
+            // Initialize the live time immediately
+            updateLiveTime();
+        </script>
 </body>
 
 </html>

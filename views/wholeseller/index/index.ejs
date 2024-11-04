@@ -1,6 +1,7 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'index' , body: 'wholeseller >> home' }) %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
+
 <style>
     .card {
         margin-bottom: 20px;
@@ -221,17 +222,8 @@
             </div>
             |
             <div class="col">
-                Fiscal Year: <%= currentFiscalYear ? currentFiscalYear.name : (initialCurrentFiscalYear ?
+                F.Y: <%= currentFiscalYear ? currentFiscalYear.name : (initialCurrentFiscalYear ?
                     initialCurrentFiscalYear.name : 'Not selected' ) %>
-            </div>
-            |
-            <div class="col">
-                <% if (company.renewalDate) { %>
-                    Valid Upto:
-                    <%= company.renewalDate %>
-                        <% } else { %>
-                            Demo Version
-                            <% } %>
             </div>
 
         </div>

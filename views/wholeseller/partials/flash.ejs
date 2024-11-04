@@ -1,4 +1,4 @@
-<!-- Custom Styles for Right-Side Modal -->
+<!-- Custom Styles for Right-Side Modal
 <style>
     /* Apply only to this specific modal */
     .custom-right-modal .modal-dialog {
@@ -37,7 +37,7 @@
     }
 </style>
 
-<!-- Modal Structure -->
+Modal Structure 
 <div class="modal fade custom-right-modal" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel"
     aria-hidden="true">
     <div class="modal-dialog">
@@ -47,16 +47,16 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- Spinner -->
+                Spinner -
                 <div class="spinner-container">
                     <div id="spinner" class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
-                    <!-- Countdown timer -->
+                    Countdown timer
                     <div id="countdown" class="countdown"></div>
                 </div>
 
-                <!-- Dynamic message -->
+                Dynamic message
                 <% if (messages && messages.length) { %>
                     <div class="alert alert-success">
                         <%= messages %>
@@ -72,10 +72,10 @@
     </div>
 </div>
 
-<!-- Bootstrap JS Bundle with Popper -->
+Bootstrap JS Bundle with Popper
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Trigger Modal, Show Spinner, Countdown, and Auto-hide after a specified time -->
+Trigger Modal, Show Spinner, Countdown, and Auto-hide after a specified time
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         <% if (messages && messages.length || error && error.length) { %>
@@ -104,6 +104,96 @@
                     messageModal.hide();
                 }
             }, 1000); // Update every second
+        <% } %>
+    });
+</script> -->
+
+<!-- Custom Styles for Right-Side Modal -->
+<style>
+    /* Apply only to this specific modal */
+    .custom-right-modal .modal-dialog {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 500px;
+        margin: 0;
+        z-index: 1055;
+    }
+
+    .custom-right-modal .modal-content {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .spinner-container {
+        display: none;
+        /* Hide spinner as it’s not needed */
+    }
+</style>
+
+<!-- Modal Structure -->
+<div class="modal fade custom-right-modal" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Dynamic message -->
+                <% if (messages && messages.length) { %>
+                    <div class="alert alert-success">
+                        <%= messages %>
+                    </div>
+                    <% } %>
+                        <% if (error && error.length) { %>
+                            <div class="alert alert-danger">
+                                <%= error %>
+                            </div>
+                            <% } %>
+            </div>
+            <div class="modal-footer">
+                <button id="okButton" type="button" class="btn btn-primary" autofocus>OK</button>
+                <button id="cancelButton" type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- JavaScript Logic for Handling OK and Cancel buttons -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        <% if (messages && messages.length || error && error.length) { %>
+            var messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+
+            // Show modal
+            messageModal.show();
+
+            // Automatically focus on the OK button
+            // var okButton = document.getElementById('okButton');
+            // okButton.focus();
+
+            // Handle 'Enter' key press to trigger OK button
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    okButton.click();
+                }
+            });
+
+            // Prevent closing the modal until 'OK' is pressed
+            okButton.addEventListener('click', function () {
+                // Perform any additional actions if needed
+                messageModal.hide(); // Close modal only when OK is pressed
+            });
+
+            // Cancel button logic (optional, already handled by data-bs-dismiss)
+            var cancelButton = document.getElementById('cancelButton');
+            cancelButton.addEventListener('click', function () {
+                // Optional: Handle cancellation logic if needed
+            });
         <% } %>
     });
 </script>

@@ -1,6 +1,5 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'Receipt Voucher' ,
-        body: 'wholeseller >> receipt >> view receipt voucher' }) %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 
 <div class="container" id="mainContainer">
@@ -15,12 +14,16 @@
                     <h4>
                         <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
                                     <%=currentCompany.country%>
+                                        <br>
+                                        VAT NO.: <span id="pan-vat-container">
+                                        </span>
                     </h4>
                 </b>
                 <hr style="border: 0.5px solid;">
             </div>
         </div>
-        <h1 class="text-center">Receipt Voucher</h1>
+        <h1 class="text-center" style="text-decoration: underline;letter-spacing: 3px;">Receipt Voucher</h1>
+
         <table class="voucher-table">
             <tbody>
                 <tr>
@@ -75,7 +78,8 @@
                 </td>
             </tr>
         </table>
-
+        <p>Note: <%=receipt.description%>
+        </p>
         <div class="text-center mt-4">
             <button class="btn btn-primary" onclick="window.print()">Print Voucher</button>
             <a href="/receipts-list" class="btn btn-secondary">Receipts</a>
@@ -255,4 +259,19 @@
     window.onload = function () {
         handlePrint();
     };
+
+    const panVatNo = '<%= currentCompany.pan %>';
+    const container = document.getElementById('pan-vat-container');
+
+    for (let i = 0; i < panVatNo.length; i++) {
+        const digit = document.createElement('span');
+        digit.className = 'bordered-digit';
+        digit.textContent = panVatNo[i];
+        container.appendChild(digit);
+    }
+
+    // Optional: Show loading spinner while fetching data
+    function showLoadingSpinner() {
+        document.getElementById('loadingSpinner').style.display = 'block';
+    }
 </script>

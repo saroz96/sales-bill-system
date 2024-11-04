@@ -1,5 +1,5 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'Items' , body: 'wholeseller >> Items >> view' }) %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 <br>
 <div class="container" id="mainContainer">
@@ -47,6 +47,9 @@
                         </li>
                         <li class="list-group-item"><strong>Opening Stock Balance:</strong>
                             <%= openingStockBalance.toFixed(2) || 0.00 %>
+                        </li>
+                        <li class="list-group-item"><strong>Re-Order Level:</strong>
+                            <%=items.reorderLevel%>
                         </li>
                     </ul>
                 </div>

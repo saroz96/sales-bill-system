@@ -1,12 +1,11 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'Add Debit Note' ,
-        body: 'wholeseller >> debit note >> add debit note' }) %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 <div class="container mt-4" id="mainContainer">
     <div class="card">
         <div class="card-body">
             <h3 class="card-title">Debit Note Entry</h3>
-            <form action="/debit-note/new" method="POST">
+            <form action="/debit-note/new" method="POST" id="debitNoteForm">
                 <% if (companyDateFormat==='nepali' ) { %>
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -113,7 +112,18 @@
                                 <textarea name="description" id="description" class="form-control" required></textarea>
                             </div>
 
-                            <button type="submit" class="btn btn-success">Save Debit Note</button>
+                            <!-- <button type="submit" class="btn btn-success">Save Debit Note</button> -->
+                            <div class="d-flex justify-content-between">
+                                <div style="float: right;">
+                                    <button type="button" class="btn btn-primary" id="saveBill"
+                                        onclick="submitBillForm(false)">
+                                        <i class="fas fa-save"></i> Save
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="submitBillForm(true)">
+                                        <i class="fas fa-print"></i> Save & Print
+                                    </button>
+                                </div>
+                            </div>
             </form>
         </div>
     </div>
@@ -233,6 +243,38 @@
         if (totalDebit !== totalCredit) {
             event.preventDefault(); // Prevent form submission
             alert('Total debit amount must be equal to total credit amount.');
+        }
+    });
+
+    function submitBillForm(print) {
+        shouldPrint = print;
+        const billForm = document.getElementById('debitNoteForm');
+        const saveButton = document.getElementById('saveBill');
+
+        // Change button text and disable it
+        saveButton.innerText = 'Saving...';
+        saveButton.disabled = true;
+
+        if (print) {
+            const url = new URL(billForm.action);
+            url.searchParams.append('print', 'true');
+            billForm.action = url.toString();
+        }
+
+        // Simulate form submission (replace this with actual form submission logic)
+        setTimeout(() => {
+            billForm.submit();
+
+            // Reset button text and enable it after submission
+            saveButton.innerText = 'Save Bill';
+            saveButton.disabled = false;
+        }, 2000); // Simulating a delay; adjust or remove as needed
+    }
+
+
+    document.getElementById('debitNoteForm').addEventListener('submit', function (event) {
+        if (!shouldPrint && event.submitter && event.submitter.innerText === 'Save & Print Bill') {
+            event.preventDefault();
         }
     });
 

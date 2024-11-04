@@ -80,6 +80,10 @@ const itemSchema = new mongoose.Schema({
         type: Number,
         default: 100
     }, // Maximum stock level
+    reorderLevel: {
+        type: Number,
+        default: 0 // Set a default reorder level or leave it empty for custom levels
+    }, // New field for reorder threshold
     uniqueNumber: {
         type: Number,
         unique: true

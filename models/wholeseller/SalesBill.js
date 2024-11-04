@@ -29,46 +29,32 @@ const SalesBillSchema = new Schema({
     },
     items: [{
         item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
-        quantity: Number,
-        price: Number,
-        batchNumber: {
-            type: String,
-        },
-        expiryDate: {
-            type: Date // Optional field, used if dealing with perishable goods
-        },
+        quantity: { type: Number, required: true },  // Required in item schema
+        price: { type: Number, required: true },     // Required in item schema
+        batchNumber: { type: String },
+        expiryDate: { type: Date },
         vatStatus: {
             type: String,
             required: true,
             enum: ['vatable', 'vatExempt']
         }
     }],
-    subTotal: Number,
-    nonVatSales: Number,
-    taxableAmount: Number,
-    discountPercentage: Number,
-    discountAmount: Number,
-    vatPercentage: { type: Number, default: 13 }, // Default value is optional
-    vatAmount: Number,
-    totalAmount: Number,
+    subTotal: { type: Number, default: 0 },
+    nonVatSales: { type: Number, default: 0 },
+    taxableAmount: { type: Number, default: 0 },
+    discountPercentage: { type: Number, default: 0 },
+    discountAmount: { type: Number, default: 0 },
+    vatPercentage: { type: Number, default: 13 },
+    vatAmount: { type: Number, default: 0 },
+    totalAmount: { type: Number, default: 0 },
     isVatExempt: { type: Boolean, default: false },
-    roundOffAmount: Number,
-    paymentMode: String,
-    quantity: Number,
-    price: Number,
-    // date: { type: String },
-    date: { type: Date, default: Date.now() },
-    transactionDate: { type: Date, default: Date.now() }
-
-    // oppositeDate: { type: String }
-    // romanDate: { type: Date, default: Date.now() }
-
-
+    roundOffAmount: { type: Number, default: 0 },
+    paymentMode: { type: String },
+    date: { type: Date, default: Date.now },
+    transactionDate: { type: Date, default: Date.now }
 });
 
-// //This means each company can have accounts with the same name, but account names must be unique within a company.
+// Unique constraint for sales bills
 SalesBillSchema.index({ billNumber: 1, company: 1, fiscalYear: 1 }, { unique: true });
-// //---------------------------------------------------------------------------------------------------------------
-
 
 module.exports = mongoose.model('SalesBill', SalesBillSchema);

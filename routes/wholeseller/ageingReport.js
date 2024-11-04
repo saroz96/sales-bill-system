@@ -16,7 +16,7 @@ const CompanyGroup = require('../../models/wholeseller/CompanyGroup');
 router.get('/aging/accounts', async (req, res) => {
     try {
         const companyId = req.session.currentCompany;
-        const company = await Company.findById(companyId).populate('fiscalYear');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
         // Check if fiscal year is already in the session or available in the company
         let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
         let currentFiscalYear = null;
@@ -64,6 +64,7 @@ router.get('/aging/accounts', async (req, res) => {
         const accounts = await Account.find({
             company: companyId,
             fiscalYear: fiscalYear,
+            isActive: true,
             companyGroups: { $nin: [...cashGroupIds ? cashGroupIds : null, ...bankGroupIds] }
         })
             .populate('companyGroups')
@@ -72,6 +73,8 @@ router.get('/aging/accounts', async (req, res) => {
         // const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear }).populate('companyGroups');
 
         res.render('wholeseller/outstanding/accounts', {
+            company,
+            currentFiscalYear,
             accounts,
             currentCompanyName: req.session.currentCompanyName,
             title: 'Accounts',
@@ -90,7 +93,7 @@ router.get('/aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensu
     try {
         const { accountId } = req.params;
         const companyId = req.session.currentCompany;
-        const company = await Company.findById(companyId).populate('fiscalYear');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
         const currentCompany = await Company.findById(companyId);
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
@@ -132,7 +135,7 @@ router.get('/aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensu
         }
 
         // Fetch the account
-        const account = await Account.findById(accountId);
+        const account = await Account.findById(accountId, { isActive: true });
 
         // Fetch opening balance for the current fiscal year
         const openingBalance = account.openingBalance && account.openingBalance.fiscalYear.equals(currentFiscalYear._id)
@@ -170,7 +173,6 @@ router.get('/aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensu
         // Initialize data for aging analysis
         const agingData = {
             totalOutstanding: 0,
-            current: 0,
             oneToThirty: 0,
             thirtyOneToSixty: 0,
             sixtyOneToNinety: 0,
@@ -179,9 +181,27 @@ router.get('/aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensu
             transactions: []
         };
 
+        // Helper function to apply receipt credit to outstanding sales transactions (FIFO)
+        function applyReceiptFIFO(remainingCredit, agingData) {
+            const periods = ['ninetyPlus', 'sixtyOneToNinety', 'thirtyOneToSixty', 'oneToThirty'];
+
+            for (const period of periods) {
+                if (remainingCredit <= 0) break; // Stop if no remaining credit
+
+                if (agingData[period] > 0) { // Apply only to the current period if it has balance
+                    const appliedAmount = Math.min(agingData[period], remainingCredit);
+                    agingData[period] -= appliedAmount;  // Deduct the applied amount from the period balance
+                    remainingCredit -= appliedAmount;  // Decrease remaining credit by applied amount
+
+                    // Stop moving to the next period if there is no remaining credit after deduction
+                    if (remainingCredit <= 0) break;
+                }
+            }
+            return remainingCredit; // Return any remaining credit if any
+        }
+
         // Loop through transactions to calculate outstanding amounts and balance
         transactions.forEach(transaction => {
-
             // Determine debit or credit effect on totalOutstanding
             if (transaction.billId) {
                 // Sales
@@ -193,27 +213,29 @@ router.get('/aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensu
                 agingData.totalOutstanding -= transaction.credit; // Decrease total outstanding for sales return
             } else if (transaction.purchaseBillId) {
                 // Purchase
-                runningBalance += transaction.credit; // Debit for purchases
+                runningBalance += transaction.credit; // Credit for purchases
                 agingData.totalOutstanding -= transaction.credit; // Decrease total outstanding for purchases
             } else if (transaction.purchaseReturnBillId) {
                 // Purchase Return
                 runningBalance -= transaction.debit; // Debit for purchases
-                agingData.totalOutstanding += transaction.debit; // Decrease total outstanding for purchases
+                agingData.totalOutstanding += transaction.debit; // Increase total outstanding for purchase returns
             } else if (transaction.paymentAccountId) {
-                if (transaction.debit > 0) {
-                    runningBalance -= transaction.debit;
-                    // agingData.totalOutstanding += transaction.debit;
-                } else if (transaction.credit > 0) {
-                    runningBalance += transaction.credit;
-                    // agingData.totalOutstanding -= transaction.credit;
-                }
-            } else if (transaction.receiptAccountId) {
                 if (transaction.debit > 0) {
                     runningBalance -= transaction.debit;
                     agingData.totalOutstanding += transaction.debit;
                 } else if (transaction.credit > 0) {
                     runningBalance += transaction.credit;
                     agingData.totalOutstanding -= transaction.credit;
+                }
+            } else if (transaction.receiptAccountId) {
+                if (transaction.debit > 0) {
+                    runningBalance -= transaction.debit;
+                    agingData.totalOutstanding += transaction.debit;
+                } else if (transaction.credit > 0) {
+                    // Apply receipt credit to outstanding sales amounts using FIFO
+                    const remainingCredit = applyReceiptFIFO(transaction.credit, agingData);
+                    agingData.totalOutstanding -= (transaction.credit - remainingCredit); // Adjust total outstanding
+                    runningBalance += transaction.credit;
                 }
             } else if (transaction.debitNoteId) {
                 // Journal Entry (can be either debit or credit)
@@ -319,6 +341,8 @@ router.get('/aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensu
         agingData.totalOutstanding += agingData.openingBalance;
 
         res.render('wholeseller/outstanding/ageing', {
+            company,
+            currentFiscalYear,
             account,
             agingData,
             currentCompany,
@@ -340,7 +364,7 @@ router.get('/day-count-aging/:accountId', ensureAuthenticated, ensureCompanySele
     try {
         const { accountId } = req.params;
         const companyId = req.session.currentCompany;
-        const company = await Company.findById(companyId).populate('fiscalYear');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
         const currentCompany = await Company.findById(companyId);
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD');
@@ -390,6 +414,7 @@ router.get('/day-count-aging/:accountId', ensureAuthenticated, ensureCompanySele
         const transactions = await Transaction.find({
             company: companyId,
             account: accountId,
+            isActive: true,
             $or: [
                 { billId: { $exists: true } },
                 { purchaseBillId: { $exists: true } },
@@ -445,7 +470,6 @@ router.get('/day-count-aging/:accountId', ensureAuthenticated, ensureCompanySele
         };
         // Loop through transactions to calculate outstanding amounts and balance
         transactions.forEach(transaction => {
-
             // Determine debit or credit effect on totalOutstanding
             if (transaction.billId) {
                 // Sales
@@ -558,6 +582,8 @@ router.get('/day-count-aging/:accountId', ensureAuthenticated, ensureCompanySele
         agingData.totalOutstanding += agingData.openingBalance;
 
         res.render('wholeseller/outstanding/dayCountAgeing', {
+            company,
+            currentFiscalYear,
             account,
             agingData,
             currentCompany,
@@ -594,6 +620,7 @@ router.get('/aging/mergedReport', ensureAuthenticated, async (req, res) => {
         const accountIds = req.query.accountIds ? req.query.accountIds.split(',') : [];
         const companyId = req.session.currentCompany;
 
+
         if (!accountIds || accountIds.length === 0) {
             return res.status(400).send('No accounts selected.');
         }
@@ -613,8 +640,40 @@ router.get('/aging/mergedReport', ensureAuthenticated, async (req, res) => {
         };
 
         const today = new Date();
-        const company = await Company.findById(companyId).populate('fiscalYear');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
         const companyDateFormat = company ? company.dateFormat : 'english';
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+
 
         for (const accountId of accountIds) {
             const account = await Account.findById(accountId);

@@ -83,7 +83,7 @@ router.post('/register', forwardAuthenticated, async (req, res) => {
 router.get('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) => {
     const companyId = req.session.currentCompany;
 
-    const company = await Company.findById(companyId).populate('fiscalYear');;
+    const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
     // Fetch the company and populate the fiscalYear
 
     // Check if fiscal year is already in the session or available in the company
@@ -119,6 +119,8 @@ router.get('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) =
 
 
     res.render('wholeseller/users/user', {
+        company,
+        currentFiscalYear,
         currentCompanyName: req.session.currentCompanyName,
         title: 'Add User',
         body: 'wholeseller >> user >> add',
@@ -217,6 +219,39 @@ router.post('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) 
 // Admin route to view user details by ID
 router.get('/admin/users/view/:id', ensureAuthenticated, ensureCompanySelected, ensureAdminOrSupervisor, async (req, res) => {
     try {
+        const companyId = req.session.currentCompany;
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
         // Ensure that only the admin or supervisor of the current company can view the users
         if (!req.user.isAdmin && req.user.role !== 'Supervisor') {
             req.flash('error', 'You do not have permission to view this page');
@@ -233,6 +268,8 @@ router.get('/admin/users/view/:id', ensureAuthenticated, ensureCompanySelected, 
 
         // Render the view page with user details
         res.render('wholeseller/users/view', {
+            company,
+            currentFiscalYear,
             user,
             currentCompanyName: req.session.currentCompanyName,
             title: 'User',
@@ -249,6 +286,37 @@ router.get('/admin/users/view/:id', ensureAuthenticated, ensureCompanySelected, 
 // Admin route to display user edit form
 router.get('/admin/users/edit/:id', ensureAuthenticated, ensureCompanySelected, ensureAdminOrSupervisor, async (req, res) => {
     try {
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
         // Ensure that only the admin or supervisor of the current company can view the edit form
         if (!req.user.isAdmin && req.user.role !== 'Supervisor') {
             req.flash('error', 'You do not have permission to view this page');
@@ -265,6 +333,8 @@ router.get('/admin/users/edit/:id', ensureAuthenticated, ensureCompanySelected, 
 
         // Render the edit page with user details
         res.render('wholeseller/users/edit', {
+            company,
+            currentFiscalYear,
             user,
             currentCompanyName: req.session.currentCompanyName,
             title: 'Edit User',
@@ -316,6 +386,7 @@ router.post('/admin/users/edit/:id', ensureAuthenticated, ensureCompanySelected,
 
 router.get('/admin/users/list', ensureAuthenticated, async (req, res) => {
     try {
+
         // Ensure that only the admin or supervisor of the current company can view the users
         if (!req.user.isAdmin && req.user.role !== 'Supervisor') {
             req.flash('error', 'You do not have permission to view this page');
@@ -335,7 +406,41 @@ router.get('/admin/users/list', ensureAuthenticated, async (req, res) => {
         }
 
         // Fetch the company document to ensure the owner is associated correctly
-        const company = await Company.findById(companyId).populate('owner');
+        // const company = await Company.findById(companyId).populate('owner');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat')
+            .populate('fiscalYear')
+            .populate('owner');
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
 
         if (!company) {
             req.flash('error', 'Company not found.');
@@ -353,6 +458,8 @@ router.get('/admin/users/list', ensureAuthenticated, async (req, res) => {
 
         // Render the list of users associated with the current company
         res.render('wholeseller/users/list', {
+            company,
+            currentFiscalYear,
             users,
             currentCompanyName: req.session.currentCompanyName,
             title: 'User List',
@@ -477,7 +584,43 @@ router.post('/login', forwardAuthenticated, (req, res, next) => {
 // Route to display the change password form
 router.get('/user/change-password', ensureAuthenticated, ensureCompanySelected, async (req, res) => {
 
+    const companyId = req.session.currentCompany;
+    const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+
+    // Check if fiscal year is already in the session or available in the company
+    let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+    let currentFiscalYear = null;
+
+    if (fiscalYear) {
+        // Fetch the fiscal year from the database if available in the session
+        currentFiscalYear = await FiscalYear.findById(fiscalYear);
+    }
+
+    // If no fiscal year is found in session or currentCompany, throw an error
+    if (!currentFiscalYear && company.fiscalYear) {
+        currentFiscalYear = company.fiscalYear;
+
+        // Set the fiscal year in the session for future requests
+        req.session.currentFiscalYear = {
+            id: currentFiscalYear._id.toString(),
+            startDate: currentFiscalYear.startDate,
+            endDate: currentFiscalYear.endDate,
+            name: currentFiscalYear.name,
+            dateFormat: currentFiscalYear.dateFormat,
+            isActive: currentFiscalYear.isActive
+        };
+
+        // Assign fiscal year ID for use
+        fiscalYear = req.session.currentFiscalYear.id;
+    }
+
+    if (!fiscalYear) {
+        return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+    }
+
     res.render('wholeseller/users/change-password', {
+        company,
+        currentFiscalYear,
         currentCompanyName: req.session.currentCompanyName,
         title: 'Change Password',
         body: 'wholeseller >> user >> change password',

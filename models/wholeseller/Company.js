@@ -7,7 +7,7 @@ const companySchema = new mongoose.Schema({
     state: String,
     city: String,
     pan: String,
-    phone: Number,
+    phone: String,
     ward: Number,
     email: String,
     tradeType: {
@@ -31,11 +31,10 @@ const companySchema = new mongoose.Schema({
         enum: ['nepali', 'english'], // Enum to restrict values to 'nepali' or 'english'
     },
     fiscalYear: { type: mongoose.Schema.Types.ObjectId, ref: 'FiscalYear' },
-    createdAt: {
-        type: Date,
-        default: Date.now()
-    },
     renewalDate: {
+        type: String
+    },
+    fiscalYearStartDate: {
         type: String
     },
 }, { timestamps: true });

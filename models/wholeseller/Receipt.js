@@ -20,7 +20,10 @@ const receiptSchema = new mongoose.Schema({
     },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     companyGroups: { type: mongoose.Schema.Types.ObjectId, ref: 'CompanyGroup' },
-    company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' } // Add company reference for uniqueness
+    company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' }, // Add company reference for uniqueness
+    description: { type: String },
+    status: { type: String, enum: ['active', 'canceled'], default: 'active' },
+    isActive: { type: Boolean, default: true }
 });
 
 // Index to ensure unique account names within a company

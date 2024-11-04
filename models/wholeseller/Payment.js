@@ -6,7 +6,6 @@ const paymentSchema = new mongoose.Schema({
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     debit: { type: Number, default: 0 },
     credit: { type: Number, default: 0 },
-    // notes: { type: String },
     paymentAccount: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Account', // References a specific account (e.g., Cash in Hand, Bank Account)
@@ -19,8 +18,11 @@ const paymentSchema = new mongoose.Schema({
         type: String
     },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    description: { type: String },
     companyGroups: { type: mongoose.Schema.Types.ObjectId, ref: 'CompanyGroup' },
-    company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' } // Add company reference for uniqueness
+    company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' }, // Add company reference for uniqueness
+    status: { type: String, enum: ['active', 'canceled'], default: 'active' },
+    isActive: { type: Boolean, default: true }
 });
 
 // Index to ensure unique account names within a company

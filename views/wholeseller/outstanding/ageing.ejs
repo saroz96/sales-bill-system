@@ -1,6 +1,5 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'Outstanding Analysis' , body: 'wholeseller >> account >> aging' })
-        %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 
 <style id="printStyles" media="print">
@@ -106,28 +105,20 @@
                                     <%= account.openingBalance.type %>
                             </td>
                         </tr>
-                        <tr>
+                        <!-- <tr>
                             <td>Current (0 days)</td>
                             <td>
                                 <%= Math.abs(agingData.current).toFixed(2) %>
                                     <% if (agingData.current < 0) { %> Cr <% } else if (agingData.current> 0) { %> Dr <%
                                                 } %>
                             </td>
-                        </tr>
+                        </tr> -->
                         <tr>
-                            <td>1 - 30 Days</td>
+                            <td>Over 90 Days</td>
                             <td>
-                                <%= Math.abs(agingData.oneToThirty).toFixed(2) %>
-                                    <% if (agingData.oneToThirty < 0) { %> Cr <% } else if (agingData.oneToThirty> 0) {
-                                            %> Dr <% } %>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>31 - 60 Days</td>
-                            <td>
-                                <%= Math.abs(agingData.thirtyOneToSixty).toFixed(2) %>
-                                    <% if (agingData.thirtyOneToSixty < 0) { %> Cr <% } else if
-                                            (agingData.thirtyOneToSixty> 0) { %> Dr <% } %>
+                                <%= Math.abs(agingData.ninetyPlus).toFixed(2) %>
+                                    <% if (agingData.ninetyPlus < 0) { %> Cr <% } else if (agingData.ninetyPlus> 0) { %>
+                                            Dr <% } %>
                             </td>
                         </tr>
                         <tr>
@@ -139,13 +130,22 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>Over 90 Days</td>
+                            <td>31 - 60 Days</td>
                             <td>
-                                <%= Math.abs(agingData.ninetyPlus).toFixed(2) %>
-                                    <% if (agingData.ninetyPlus < 0) { %> Cr <% } else if (agingData.ninetyPlus> 0) { %>
-                                            Dr <% } %>
+                                <%= Math.abs(agingData.thirtyOneToSixty).toFixed(2) %>
+                                    <% if (agingData.thirtyOneToSixty < 0) { %> Cr <% } else if
+                                            (agingData.thirtyOneToSixty> 0) { %> Dr <% } %>
                             </td>
                         </tr>
+                        <tr>
+                            <td>1 - 30 Days</td>
+                            <td>
+                                <%= Math.abs(agingData.oneToThirty).toFixed(2) %>
+                                    <% if (agingData.oneToThirty < 0) { %> Cr <% } else if (agingData.oneToThirty> 0) {
+                                            %> Dr <% } %>
+                            </td>
+                        </tr>
+
                     </tbody>
                 </table>
             </div>

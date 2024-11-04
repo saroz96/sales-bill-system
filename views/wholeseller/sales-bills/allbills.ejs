@@ -1,5 +1,5 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'Sales Bill' , body: 'wholeseller >> sales >> bills' }) %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 
 <style>
@@ -166,7 +166,10 @@
                     <td>
                         <%= salesBill.user?salesBill.user.name:'User Not Found' %>
                     </td>
-                    <td><a href="/bills/<%= salesBill._id %>/print">View</a></td>
+                    <td>
+                        <a href="/bills/<%= salesBill._id %>/print">View</a>
+                        <a href="/bills/edit/<%=salesBill._id%>">Edit</a>
+                    </td>
                 </tr>
                 <% }); %>
         </tbody>

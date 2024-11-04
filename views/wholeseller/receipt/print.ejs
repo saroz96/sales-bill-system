@@ -1,6 +1,5 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'Receipt Voucher' ,
-        body: 'wholeseller >> receipt >> view receipt voucher' }) %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 
 <div class="container" id="mainContainer">
@@ -15,12 +14,16 @@
                     <h4>
                         <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
                                     <%=currentCompany.country%>
+                                        <br>
+                                        VAT NO.: <span id="pan-vat-container">
+                                        </span>
                     </h4>
                 </b>
                 <hr style="border: 0.5px solid;">
             </div>
         </div>
-        <h1 class="text-center">Receipt Voucher</h1>
+        <h1 class="text-center" style="text-decoration: underline;letter-spacing: 3px;">Receipt Voucher</h1>
+
         <table class="voucher-table">
             <tbody>
                 <tr>
@@ -38,19 +41,31 @@
                 <tr>
                     <th>Credited Account:</th>
                     <td>
-                        <%= receipt.account.name %>
+                        <% if (receipt.isActive) { %>
+                            <%= receipt.account ? receipt.account.name : 'N/A' %>
+                                <% } else { %>
+                                    <span class="text-danger">Canceled</span>
+                                    <% } %>
                     </td>
                 </tr>
                 <tr>
                     <th>Receipt Account:</th>
                     <td>
-                        <%= receipt.receiptAccount.name %>
+                        <% if (receipt.isActive) { %>
+                            <%= receipt.receiptAccount ? receipt.receiptAccount.name : 'N/A' %>
+                                <% } else { %>
+                                    <span class="text-danger">Canceled</span>
+                                    <% } %>
                     </td>
                 </tr>
                 <tr>
                     <th>Credit Amount:</th>
                     <td>
-                        <%= receipt.credit %>
+                        <% if (receipt.isActive) { %>
+                            <%= receipt.credit %>
+                                <% } else { %>
+                                    <span class="text-danger">0.00</span>
+                                    <% } %>
                     </td>
                 </tr>
             </tbody>
@@ -65,7 +80,11 @@
             </tr>
             <tr>
                 <td>
-                    <%= receipt.receiptAccount.name %>
+                    <% if (receipt.isActive) { %>
+                        <%= receipt.receiptAccount.name %>
+                            <% } else { %>
+                                <span class="text-danger">Canceled</span>
+                                <% } %>
                 </td>
                 <td>
                     <%= receipt.InstType? receipt.InstType :"Null" %>
@@ -75,11 +94,12 @@
                 </td>
             </tr>
         </table>
-
+        <p>Note: <%=receipt.description%>
+        </p>
         <div class="text-center mt-4">
             <button class="btn btn-primary" onclick="window.print()">Print Voucher</button>
             <a href="/receipts-list" class="btn btn-secondary">Receipts</a>
-            <a href="/receipts" class="btn btn-secondary">Make Receipt</a>
+            <a href="/receipts" class="btn btn-secondary">Create</a>
         </div>
     </div>
 </div>
@@ -239,3 +259,20 @@
         }
     }
 </style>
+
+<script>
+    const panVatNo = '<%= currentCompany.pan %>';
+    const container = document.getElementById('pan-vat-container');
+
+    for (let i = 0; i < panVatNo.length; i++) {
+        const digit = document.createElement('span');
+        digit.className = 'bordered-digit';
+        digit.textContent = panVatNo[i];
+        container.appendChild(digit);
+    }
+
+    // Optional: Show loading spinner while fetching data
+    function showLoadingSpinner() {
+        document.getElementById('loadingSpinner').style.display = 'block';
+    }
+</script>

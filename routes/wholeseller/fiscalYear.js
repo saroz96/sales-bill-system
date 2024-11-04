@@ -20,18 +20,19 @@ router.get('/switch-fiscal-year', ensureAuthenticated, ensureFiscalYear, checkFi
     try {
         const companyId = req.session.currentCompany; // Get the company ID from the session
         const currentCompanyName = req.session.currentCompanyName;
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
 
         // Fetch all fiscal years for the company
         const fiscalYears = await FiscalYear.find({ company: companyId });
 
         // If no current fiscal year is set in session, set the last one as current
-        let currentFiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
 
-        if (!currentFiscalYearId && fiscalYears.length > 0) {
+        if (!currentFiscalYear && fiscalYears.length > 0) {
             const lastFiscalYear = fiscalYears[fiscalYears.length - 1]; // Get the last fiscal year
-            currentFiscalYearId = lastFiscalYear._id.toString();
+            currentFiscalYear = lastFiscalYear._id.toString();
             req.session.currentFiscalYear = {
-                id: currentFiscalYearId,
+                id: currentFiscalYear,
                 startDate: lastFiscalYear.startDate,
                 endDate: lastFiscalYear.endDate,
                 name: lastFiscalYear.name,
@@ -42,8 +43,9 @@ router.get('/switch-fiscal-year', ensureAuthenticated, ensureFiscalYear, checkFi
 
         // Render the EJS template and pass the fiscal years data
         res.render('wholeseller/fiscalYear/list', {
+            company,
+            currentFiscalYear,
             fiscalYears,
-            currentFiscalYearId,
             currentCompanyName,
             title: 'Fiscal Years',
             body: 'wholeseller >> fiscal year >> list',
@@ -91,7 +93,7 @@ router.get('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, en
         try {
             const companyId = req.session.currentCompany;
             const currentCompanyName = req.session.currentCompanyName;
-            const company = await Company.findById(companyId).populate('fiscalYear');
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
             const today = new Date();
             const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
             const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
@@ -127,6 +129,7 @@ router.get('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, en
                 return res.status(400).json({ error: 'No fiscal year found in session or company.' });
             }
             res.render('wholeseller/fiscalYear/fiscalYear', {
+                company,
                 currentFiscalYear,
                 currentCompanyName,
                 nepaliDate,

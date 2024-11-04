@@ -14,8 +14,6 @@ const Transaction = require('../../models/wholeseller/Transaction')
 const router = express.Router()
 
 
-// router.use(ensureAuthenticated);
-
 // Company routes to get all companies (for select options)
 router.get('/companies/get', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
@@ -45,7 +43,7 @@ router.get('/companies', ensureAuthenticated, ensureCompanySelected, ensureTrade
         const currentCompanyName = req.session.currentCompanyName
 
         // Fetch the company and populate the fiscalYear
-        const company = await Company.findById(companyId).populate('fiscalYear');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
 
         // Check if fiscal year is already in the session or available in the company
         let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -85,16 +83,19 @@ router.get('/companies', ensureAuthenticated, ensureCompanySelected, ensureTrade
         }).populate('companyGroups');
         const companyGroups = await CompanyGroup.find({ company: companyId });
         res.render('wholeseller/company/companies', {
+            company,
             accounts,
             companyGroups,
             companyId,
             currentCompanyName,
+            currentFiscalYear,
             title: 'Account',
             body: 'wholeseller >> account',
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
 })
+
 // Create a new company
 router.post('/companies', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
@@ -202,7 +203,7 @@ router.get('/companies/:id', ensureAuthenticated, ensureCompanySelected, ensureT
             const currentCompanyName = req.session.currentCompanyName
             const companyId = req.session.currentCompany;
             const companyGroups = await CompanyGroup.find({ company: req.session.currentCompany }); // Assuming you have a CompanyGroup model
-            const company = await Company.findById(companyId).populate('fiscalYear');
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
 
             // Check if fiscal year is already in the session or available in the company
             let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -244,9 +245,11 @@ router.get('/companies/:id', ensureAuthenticated, ensureCompanySelected, ensureT
             }
 
             res.render('wholeseller/company/view', {
+                company,
                 accounts,
                 companyGroups,
                 currentCompanyName,
+                currentFiscalYear,
                 title: 'Account',
                 body: 'wholeseller >> account >> view',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'

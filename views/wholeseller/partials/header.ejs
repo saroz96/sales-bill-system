@@ -14,7 +14,7 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 250px;
+            width: 200px;
             background-color: #f8f9fa;
             padding-top: 20px;
             transition: transform 0.5s ease, width 0.5s ease;
@@ -739,6 +739,19 @@
         #changePasswordHeader .subheader:hover {
             color: white;
         }
+
+
+        /* Resize the text in the navigation menu */
+        .side-nav ul li a.subheader {
+            font-size: 12px;
+            /* Adjust this size as needed */
+        }
+
+        /* Optional: Adjust font size for main headers like "Accounts" */
+        .side-nav ul li {
+            font-size: 16px;
+            /* Adjust size for list items */
+        }
     </style>
 </head>
 
@@ -752,11 +765,6 @@
     <!-- Side Navigation Bar -->
     <div class="side-nav">
         <br>
-        <div class="text-center mb-4">
-            <p>
-                <%=currentCompanyName%>
-            </p>
-        </div>
         <ul class="nav flex-column">
             <li id="homeHeader">
                 <a class="subheader" href="/wholesellerDashboard">Home</a>
@@ -806,12 +814,14 @@
             <li id="paymentHeader">Payment
                 <div id="paymentHeaderContent" class="hidden">
                     <a class="subheader" href="/payments">Add Payment</a>
+                    <a class="subheader" href="/payments/finds">Edit Payment</a>
                     <a class="subheader" href="/payments-list">View Payment</a>
                 </div>
             </li>
             <li id="receiptHeader">Receipt
                 <div id="receiptHeaderContent" class="hidden">
                     <a class="subheader" href="/receipts">Add Receipt</a>
+                    <a class="subheader" href="/receipts/finds">Edit Receipt</a>
                     <a class="subheader" href="/receipts-list">View Receipt</a>
                 </div>
             </li>
@@ -860,6 +870,8 @@
             <li id="inventoryHeader">Inventory
                 <div id="inventoryHeaderContent" class="hidden">
                     <a class="subheader" href="/wholeseller/stock-status">Stock Status</a>
+                    <a class="subheader" href="/items/reorder">Re-Order Level(Prefixed)</a>
+                    <a class="subheader" href="items/average-reorder-level">Re-order Level(by sales)</a>
                 </div>
             </li>
 

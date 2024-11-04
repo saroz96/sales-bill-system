@@ -1,0 +1,290 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+</div>
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <div class="row">
+                <div class="col">
+                    <h5 class="card-title">Edit Receipt</h5>
+                </div>
+                <!-- Action buttons for voucher status -->
+                <div class="col-6">
+                    <!-- Visual indicator for canceled vouchers -->
+                    <% if (receipts.status==='canceled' ) { %>
+                        <span class="text-danger" style="margin-left: 10px;">
+                            <strong>Voucher is canceled. All related transactions are inactive.</strong>
+                        </span>
+                        <% } %>
+                </div>
+                <div class="col">
+                    <% if (receipts.status==='active' ) { %>
+                        <form action="/receipts/cancel/<%= receipts.billNumber %>" method="post"
+                            style="display: inline;" onsubmit="return confirmCancel()">
+                            <button type="submit" class="btn btn-danger">Cancel Voucher</button>
+                        </form>
+                        <% } else { %>
+                            <form action="/receipts/reactivate/<%= receipts.billNumber %>" method="post"
+                                style="display: inline;" onsubmit="return confirmReactivate()">
+                                <button type="submit" class="btn btn-success">Reactivate Voucher</button>
+                            </form>
+                            <% } %>
+                </div>
+
+            </div>
+        </div>
+        <div class="card-body">
+            <form id="editReceiptForm" action="/receipts/<%= receipts._id %>?_method=PUT" method="post">
+                <!-- Date Input -->
+                <div class="form-group row mb-3">
+                    <% if (companyDateFormat==='nepali' ) { %>
+                        <div class="col-md-6">
+                            <label for="nepaliDate">Date:</label>
+                            <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
+                                value="<%= receipts.date ? receipts.date.toISOString().split('T')[0] : '' %>" autofocus
+                                <%=receipts.status==='canceled' ? 'disabled' : '' %>>
+                        </div>
+                        <% } else { %>
+                            <div class="col-md-6">
+                                <label for="billDate">Date:</label>
+                                <input type="date" name="billDate" id="billDate" class="form-control" required
+                                    value="<%= receipts.date.toISOString().split('T')[0] %>" autofocus
+                                    <%=receipts.status==='canceled' ? 'disabled' : '' %>>
+                            </div>
+                            <% } %>
+                                <div class="col-md-6">
+                                    <label for="billNumber">Voucher Number:</label>
+                                    <input type="number" name="billNumber" id="billNumber" class="form-control"
+                                        value="<%= receipts.billNumber %>" required readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="accountType">Account Type:</label>
+                                    <input type="text" name="accountType" id="accountType" class="form-control"
+                                        value="Receipt" readonly>
+                                </div>
+                </div>
+
+                <!-- Payment Mode Selector -->
+                <div class="form-group">
+                    <label for="receiptAccount">Select Payment Account</label>
+                    <select class="form-control" id="receiptAccount" name="receiptAccount" required
+                        <%=receipts.status==='canceled' ? 'disabled' : '' %>>
+                        <option value="">Choose a receipt account</option>
+                        <optgroup label="Cash">
+                            <% cashAccounts.forEach(account=> { %>
+                                <option value="<%= account._id %>" <%=account._id.equals(receipts.receiptAccount._id)
+                                    ? 'selected' : '' %> >
+                                    <%= account.name %>
+                                </option>
+                                <% }); %>
+                        </optgroup>
+                        <optgroup label="Bank">
+                            <% bankAccounts.forEach(account=> { %>
+                                <option value="<%= account._id %>" <%=account._id.equals(receipts.receiptAccount._id)
+                                    ? 'selected' : '' %> >
+                                    <%= account.name %>
+                                </option>
+                                <% }); %>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <!--Dynamic Rows for Account and Amount-->
+                <div id="rowsContainer" class="mb-3">
+                    <div class="row receipt-row">
+                        <div class="col-md-1">
+                            <label for="serialNumber">S.N.:</label>
+                            <input type="number" name="serialNumber" class="form-control serial-number" readonly>
+                        </div>
+
+                        <div class="col-7">
+                            <label for="account">Select Account</label>
+                            <select class="form-control account-select" id="account" name="account" required
+                                <%=receipts.status==='canceled' ? 'disabled' : '' %>>
+                                <option value="">Choose an account</option>
+                                <% accounts.forEach(account=> { %>
+                                    <option value="<%= account._id %>" <%=account._id.equals(receipts.account._id)
+                                        ? 'selected' : '' %> >
+                                        <%= account.name %>
+                                    </option>
+                                    <% }); %>
+                            </select>
+                        </div>
+
+                        <!-- Institution Type and Number (initially hidden) -->
+                        <div
+                            class="bank-details col-md-4 <%= receipts.receiptsAccountType === 'Bank' ? '' : 'd-none' %>">
+                            <div>
+                                <label for="InstType">Inst. Type</label>
+                                <select name="InstType" id="InstType" class="form-control"
+                                    <%=receipts.status==='canceled' ? 'disabled' : '' %>>
+                                    <option value="" disabled selected>Select Inst. Type</option>
+                                    <option value="N/A">N/A</option>
+                                    <option value="RTGS" <%=receipts.InstType==='RTGS' ? 'selected' : '' %>>RTGS
+                                    </option>
+                                    <option value="Fonepay" <%=receipts.InstType==='Fonepay' ? 'selected' : '' %>
+                                        >Fonepay</option>
+                                    <option value="Cheque" <%=receipts.InstType==='Cheque' ? 'selected' : '' %>>Cheque
+                                    </option>
+                                    <option value="Connect-Ips" <%=receipts.InstType==='Connect-Ips' ? 'selected' : ''
+                                        %>
+                                        >Connect-Ips</option>
+                                    <option value="Esewa" <%=receipts.InstType==='Esewa' ? 'selected' : '' %>>Esewa
+                                    </option>
+                                    <option value="Khalti" <%=receipts.InstType==='Khalti' ? 'selected' : '' %>>Khalti
+                                    </option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="InstNo">Inst. No.</label>
+                                <input type="text" name="InstNo" id="InstNo" class="form-control"
+                                    value="<%= receipts.InstNo %>" <%=receipts.status==='canceled' ? 'disabled' : '' %>>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="debit">Amount:</label>
+                            <input type="number" name="credit" class="form-control" value="<%= receipts.credit %>"
+                                placeholder="credit-amount" required <%=receipts.status==='canceled' ? 'disabled' : ''
+                                %>>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button type="button" class="btn btn-danger remove-row" data-toggle="tooltip"
+                                title="Remove this row" <%=receipts.status==='canceled' ? 'disabled' : '' %> >
+                                <i class="fas fa-minus-circle"></i>
+                            </button>
+                            <button type="button" id="addRow" class="btn btn-secondary ms-2"
+                                title="Add another receipt row" <%=receipts.status==='canceled' ? 'disabled' : '' %> >
+                                <i class="fas fa-plus-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <div class="col">
+                        <input type="text" class="form-control" name="description" id="description"
+                            placeholder="Add Notes" value="<%=receipts.description%>" <%=receipts.status==='canceled'
+                            ? 'disabled' : '' %> >
+                    </div>
+                    <div style="float: right;">
+                        <button type="submit" class="btn btn-primary" id="saveBill" onclick="submitBillForm(false)"
+                            <%=receipts.status==='canceled' ? 'disabled' : '' %> >
+                            <i class="fas fa-save"></i> Update
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="submitBillForm(true)"
+                            <%=receipts.status==='canceled' ?'disabled':''%>>
+                            <i class="fas fa-print"></i> Update & Print
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Function to update S.N. for all rows
+        function updateSerialNumbers() {
+            document.querySelectorAll('.serial-number').forEach((input, index) => {
+                input.value = index + 1;
+            });
+        }
+
+        // Add new row functionality
+        document.getElementById('addRow').addEventListener('click', function () {
+            let firstRow = document.querySelector('.receipt-row');
+            let newRow = firstRow.cloneNode(true);
+
+            // Clear the input values in the new row
+            newRow.querySelectorAll('input').forEach(input => input.value = '');
+            newRow.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
+
+            // Append the new row to the rows container
+            document.getElementById('rowsContainer').appendChild(newRow);
+
+            // Add event listener to the remove button in the new row
+            newRow.querySelector('.remove-row').addEventListener('click', function () {
+                newRow.remove();
+                updateSerialNumbers();  // Update S.N. after removing a row
+            });
+
+            // Update the serial numbers for all rows
+            updateSerialNumbers();
+        });
+
+        // Add event listener to the remove button in the first row
+        document.querySelector('.remove-row').addEventListener('click', function () {
+            this.closest('.receipt-row').remove();
+            updateSerialNumbers();  // Update S.N. after removing a row
+        });
+
+        // Initial serial number update
+        updateSerialNumbers();
+    });
+
+    $(document).ready(function () {
+        // Initialize Select2 for searchable dropdowns
+        $('.account-select').select2({
+            placeholder: "Select an account",
+            allowClear: true,
+            width: '100%', // Ensure it takes the full width of the container
+        });
+    });
+
+    function submitBillForm(print) {
+        shouldPrint = print;
+        const billForm = document.getElementById('editReceiptForm');
+        const saveButton = document.getElementById('saveBill');
+
+        // Change button text and disable it
+        saveButton.innerText = 'Saving...';
+        saveButton.disabled = true;
+
+        if (print) {
+            const url = new URL(billForm.action);
+            url.searchParams.append('print', 'true');
+            billForm.action = url.toString();
+        }
+
+        // Simulate form submission (replace this with actual form submission logic)
+        setTimeout(() => {
+            billForm.submit();
+
+            // Reset button text and enable it after submission
+            saveButton.innerText = 'Save Bill';
+            saveButton.disabled = false;
+        }, 2000); // Simulating a delay; adjust or remove as needed
+    }
+
+
+    document.getElementById('editReceiptForm').addEventListener('submit', function (event) {
+        if (!shouldPrint && event.submitter && event.submitter.innerText === 'Save & Print Bill') {
+            event.preventDefault();
+        }
+    });
+
+    // Show/hide institution type and number based on payment account selection
+    const receiptAccountSelect = document.getElementById('receiptAccount');
+    const bankDetailsContainer = document.querySelector('.bank-details');
+
+    receiptAccountSelect.addEventListener('change', function () {
+        const selectedValue = this.value;
+        const selectedOption = this.options[this.selectedIndex];
+
+        // Check if selected option is from the Cash group or Bank group
+        if (selectedOption.parentElement.label === 'Cash') {
+            bankDetailsContainer.classList.add('d-none'); // Hide bank details
+        } else {
+            bankDetailsContainer.classList.remove('d-none'); // Show bank details
+        }
+    });
+
+    function confirmCancel() {
+        return confirm("Are you sure you want to cancel this voucher?");
+    }
+
+    function confirmReactivate() {
+        return confirm("Are you sure you want to reactivate this voucher?");
+    }
+</script>

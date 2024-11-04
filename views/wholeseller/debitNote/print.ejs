@@ -1,0 +1,327 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+</div>
+
+<div class="container my-5" id="mainContainer">
+    <!-- Header Section -->
+    <div class="voucher" id="voucher">
+
+        <!-- Print Header -->
+        <div id="printHeader" class="text-center mb-4">
+            <div class="header" style="text-align: center;">
+                <h2 class="card-subtitle">
+                    <%= currentCompanyName %>
+                </h2>
+                <b>
+                    <h4>
+                        <%= currentCompany.address %>-<%= currentCompany.ward %>, <%= currentCompany.city %>, <%=
+                                        currentCompany.country %>
+                                        <br>
+                                        VAT NO.: <span id="pan-vat-container">
+                                        </span>
+                    </h4>
+                </b>
+                <hr style="border: 0.5px solid;">
+            </div>
+        </div>
+        <h1 class="text-center" style="text-decoration: underline;letter-spacing: 3px;">Debit Note</h1>
+        <!-- Voucher Details -->
+        <div class="row">
+            <div class="col-md-6">
+                <table class="voucher-table table table-bordered">
+                    <tbody>
+
+                        <tr>
+                            <th>Date:</th>
+                            <td>
+                                <%= debitNotes.date ? debitNotes.date.toISOString().split('T')[0] : 'N/A' %>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Voucher No:</th>
+                            <td>
+                                <%= debitNotes.billNumber %>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="voucher-table table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th>Voucher ID:</th>
+                            <td>
+                                <%= debitNotes._id %>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Created By:</th>
+                            <td>
+                                <%= debitNotes.user.name %>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Transactions Section -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <h5>Debit Transactions</h5>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Amount (Rs.)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (debitTransactions.length> 0) { %>
+                            <% debitTransactions.forEach(function(debitTransaction) { %>
+                                <tr>
+                                    <td>
+                                        <%= debitTransaction.account.name %>
+                                    </td>
+                                    <td>Rs. <%= debitTransaction.debit.toFixed(2) %>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="2" class="text-center">No Debit Transactions Found</td>
+                                        </tr>
+                                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="col-md-6">
+                <h5>Credit Transactions</h5>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Amount (Rs.)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (creditTransactions.length> 0) { %>
+                            <% creditTransactions.forEach(function(creditTransaction) { %>
+                                <tr>
+                                    <td>
+                                        <%= creditTransaction.account.name %>
+                                    </td>
+                                    <td>Rs. <%= creditTransaction.credit.toFixed(2) %>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="2" class="text-center">No Credit Transactions Found</td>
+                                        </tr>
+                                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <p>Note: <%=debitNotes.description%>
+        </p>
+        <!-- Print Button -->
+        <div class="text-center mt-4">
+            <button class="btn btn-primary" onclick="window.print()">Print Voucher</button>
+            <a href="/debit-note/list" class="btn btn-secondary">All Vouchers</a>
+            <a href="/debit-note/new" class="btn btn-secondary">Create</a>
+        </div>
+    </div>
+
+    <!-- Loading Spinner (Optional) -->
+    <div id="loadingSpinner" class="spinner-border text-primary" role="status" style="display:none;">
+        <span class="sr-only">Loading...</span>
+    </div>
+
+</div>
+
+<!-- Print-Specific Styles -->
+<style>
+    @media print {
+        @page {
+            size: landscape;
+            margin: 0;
+        }
+
+        body * {
+            visibility: hidden;
+        }
+
+        .row .col-md-6 {
+            float: left;
+            width: 50%;
+        }
+
+
+        #voucher,
+        #voucher * {
+            visibility: visible;
+        }
+
+        #voucher {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .text-center button,
+        .text-center a {
+            display: none;
+            /* Hide buttons during print */
+        }
+    }
+
+    .voucher {
+        width: 297mm;
+        /* A4 width in landscape */
+        height: 210mm;
+        /* A4 height in landscape */
+        padding: 20mm;
+        margin: auto;
+        border: 1px solid black;
+        /* Updated border color */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        /* Optional shadow for depth */
+        background-color: white;
+        /* Background color */
+        font-family: Arial, sans-serif;
+        /* Font for the voucher */
+        overflow: hidden;
+        /* Ensure no overflow */
+    }
+
+    .voucher-table {
+        width: 100%;
+        /* Full width for table */
+        border-collapse: collapse;
+        /* Collapse borders */
+        margin: 20px 0;
+        /* Margin around tables */
+    }
+
+    .voucher-table th,
+    .voucher-table td {
+        border: 1px solid black;
+        /* Updated table cell border color */
+        padding: 12px;
+        /* Increased padding for better spacing */
+        text-align: left;
+        /* Left-align text */
+        font-size: 16px;
+        /* Increased font size for better readability */
+    }
+
+    .voucher-table th {
+        background-color: #f2f2f2;
+        /* Header background color */
+        font-weight: bold;
+        /* Bold font for headers */
+    }
+
+    h1 {
+        font-size: 28px;
+        /* Main heading size */
+        margin-bottom: 10px;
+        /* Spacing below the heading */
+        text-align: center;
+        /* Center the heading */
+    }
+
+    .text-center {
+        text-align: center;
+        /* Center-align text */
+    }
+
+    .btn {
+        padding: 10px 20px;
+        /* Increased button padding for better click area */
+        font-size: 16px;
+        /* Font size for buttons */
+    }
+
+    button {
+        margin-right: 10px;
+        /* Space between buttons */
+        background-color: #007bff;
+        /* Bootstrap primary color */
+        color: white;
+        /* Button text color */
+        border: none;
+        /* Remove border */
+        border-radius: 5px;
+        /* Rounded corners */
+        cursor: pointer;
+        /* Pointer cursor on hover */
+        transition: background-color 0.3s;
+        /* Smooth background color transition */
+    }
+
+    button:hover {
+        background-color: #0056b3;
+        /* Darker blue on hover */
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        /* Bootstrap secondary color */
+        color: white;
+        /* Button text color */
+        border: none;
+        /* Remove border */
+        border-radius: 5px;
+        /* Rounded corners */
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        /* Darker gray on hover */
+    }
+
+    @media (max-width: 768px) {
+        .voucher {
+            padding: 10mm;
+            /* Reduced padding for smaller screens */
+        }
+
+        .voucher-table th,
+        .voucher-table td {
+            font-size: 14px;
+            /* Smaller font size for smaller screens */
+            padding: 8px;
+            /* Adjust padding for smaller screens */
+        }
+
+        h1 {
+            font-size: 24px;
+            /* Smaller heading size for smaller screens */
+        }
+    }
+</style>
+
+<!-- JavaScript for Handling PAN/VAT Display -->
+<script>
+    const panVatNo = '<%= currentCompany.pan %>';
+    const container = document.getElementById('pan-vat-container');
+
+    for (let i = 0; i < panVatNo.length; i++) {
+        const digit = document.createElement('span');
+        digit.className = 'bordered-digit';
+        digit.textContent = panVatNo[i];
+        container.appendChild(digit);
+    }
+
+    // Optional: Show loading spinner while fetching data
+    function showLoadingSpinner() {
+        document.getElementById('loadingSpinner').style.display = 'block';
+    }
+
+</script>

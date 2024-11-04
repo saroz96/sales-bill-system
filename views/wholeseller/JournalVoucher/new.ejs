@@ -1,5 +1,5 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'Add Journal' , body: 'wholeseller >> journal >> add journal' }) %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 <div class="container mt-4 wow-form" id="mainContainer">
     <div class="card shadow-lg p-4 animate__animated animate__fadeInUp">
@@ -130,34 +130,20 @@
                     <div class="form-feedback"></div>
                 </div>
 
-                <!-- Submit Button with Loading Effect -->
-                <button type="submit" class="btn btn-success btn-lg w-100 animate__animated animate__pulse"
-                    id="submitForm">
-                    <i class="fas fa-save"></i> Save Journal Voucher
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
+                <div class="d-flex justify-content-between">
+                    <!-- Submit Button with Loading Effect -->
+                    <button type="submit" class="btn btn-success btn-lg w-50 mx-2 animate__animated animate__pulse"
+                        id="submitForm" onclick="submitBillForm(false)">
+                        <i class="fas fa-save"></i> Save Journal Voucher
+                    </button>
 
-<!-- Exit Confirmation Modal -->
-<div class="modal fade" id="exitConfirmationModal" tabindex="-1" aria-labelledby="exitConfirmationModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exitConfirmationModalLabel">Exit Confirmation</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to exit without saving?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmExit">Yes, Exit</button>
-            </div>
+                    <!-- Save & Print Button -->
+                    <button type="submit" class="btn btn-secondary btn-lg w-50 mx-2" onclick="submitBillForm(true)">
+                        <i class="fas fa-print"></i> Save & Print
+                    </button>
+                </div>
+
+            </form>
         </div>
     </div>
 </div>
@@ -275,26 +261,7 @@
             // Check if totals match
             if (totalDebit !== totalCredit) {
                 alert("The total debit and credit amounts must be equal.");
-                return true; // Prevent form submission
-            }
-            return false; // Allow form submission
-        }
-
-        // Attach validation function to form submit event
-        $('#journalForm').on('submit', function (event) {
-            if (!validateAmounts()) {
-                event.preventDefault(); // Stop form submission
-            }
-        });
-
-        // Form submission validation
-        $('#journalForm').on('submit', function (e) {
-            e.preventDefault();
-            const debitTotal = [...document.querySelectorAll('[name^="debitAccounts"] input[type="number"]')].reduce((sum, input) => sum + Number(input.value || 0), 0);
-            const creditTotal = [...document.querySelectorAll('[name^="creditAccounts"] input[type="number"]')].reduce((sum, input) => sum + Number(input.value || 0), 0);
-
-            if (debitTotal !== creditTotal) {
-                alert("Debit and Credit totals must be equal.");
+                return false; // Prevent form submission
             } else {
                 // Show loading effect
                 const submitButton = document.getElementById('submitForm');
@@ -302,6 +269,34 @@
                 submitButton.disabled = true;
 
                 this.submit();
+
+                function submitBillForm(print) {
+                    shouldPrint = print;
+                    const billForm = document.getElementById('journalForm');
+                    saveButton.disabled = true;
+
+                    if (print) {
+                        const url = new URL(billForm.action);
+                        url.searchParams.append('print', 'true');
+                        billForm.action = url.toString();
+                    }
+
+                    // Simulate form submission (replace this with actual form submission logic)
+                    setTimeout(() => {
+                        billForm.submit();
+                        saveButton.disabled = false;
+                    }, 2000); // Simulating a delay; adjust or remove as needed
+                }
+            }
+            return true; // Allow form submission
+        }
+
+
+
+        // Attach validation function to form submit event
+        $('#journalForm').on('submit', function (event) {
+            if (!validateAmounts()) {
+                event.preventDefault(); // Stop form submission if amounts don't match
             }
         });
 
@@ -327,6 +322,7 @@
         });
     });
 </script>
+
 
 <style>
     .wow-form {

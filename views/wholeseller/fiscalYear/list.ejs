@@ -1,5 +1,5 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'Fiscal Years' , body: 'wholeseller >> fiscal year >> list' }) %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 <style>
     table {
@@ -31,8 +31,7 @@
     <label for="fiscalYearSelect">Change Fiscal Year:</label>
     <select id="fiscalYearSelect" class="form-control">
         <% fiscalYears.forEach(fiscalYear=> { %>
-            <option value="<%= fiscalYear._id %>" <%=fiscalYear._id.toString()===currentFiscalYearId ? 'selected' : ''
-                %>>
+            <option value="<%= fiscalYear._id %>" <%=fiscalYear._id.toString()===currentFiscalYear ? 'selected' : '' %>>
                 <%= fiscalYear.name %>
             </option>
             <% }); %>
@@ -72,8 +71,8 @@
                         <td>
                             <%= new Date(fiscalYear.endDate).toLocaleDateString() %>
                         </td>
-                        <td style="color: <%= fiscalYear._id.toString() === currentFiscalYearId ? 'green' : 'red' %>;">
-                            <%= fiscalYear._id.toString()===currentFiscalYearId ? 'Active' : 'Inactive' %>
+                        <td style="color: <%= fiscalYear._id.toString() === currentFiscalYear ? 'green' : 'red' %>;">
+                            <%= fiscalYear._id.toString()===currentFiscalYear ? 'Active' : 'Inactive' %>
                         </td>
                         <td>
                             <button class="delete-button form-control bg-danger"

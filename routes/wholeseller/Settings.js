@@ -13,7 +13,7 @@ router.get('/', ensureAuthenticated, ensureCompanySelected, ensureTradeType, asy
             const userId = req.user._id;
             const companyId = req.session.currentCompany;
             const currentCompanyName = req.session.currentCompanyName;
-            const company = await Company.findById(companyId).populate('fiscalYear');
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
 
             // Check if fiscal year is already in the session or available in the company
             let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -52,6 +52,8 @@ router.get('/', ensureAuthenticated, ensureCompanySelected, ensureTradeType, asy
                 settings = { roundOffSales: false, roundOffPurchase: false, displayTransactions: false }; // Provide default settings
             }
             res.render('wholeseller/settings/settings', {
+                company,
+                currentFiscalYear,
                 settings,
                 currentCompanyName,
                 title: 'Settings',

@@ -1,6 +1,5 @@
 <div class="form-control">
-    <%- include('../layouts/boilerplate', { title: 'View Receipt' , body: 'wholeseller >> receipt >> view receipts' })
-        %>
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 
 <style>
@@ -158,18 +157,35 @@
                                 <%= new Date(receipt.date).toLocaleDateString() %>
                             </td>
                             <td>
-                                <%= receipt.account ? receipt.account.name : 'N/A' %>
+                                <% if (receipt.isActive) { %>
+                                    <%= receipt.account ? receipt.account.name : 'N/A' %>
+                                        <% } else { %>
+                                            <span class="text-danger">Canceled</span>
+                                            <% } %>
                             </td>
                             <td class="credit-amount">
-                                <%= receipt.credit.toFixed(2) %>
+                                <% if (receipt.isActive) { %>
+                                    <%= receipt.credit.toFixed(2) %>
+                                        <% } else { %>
+                                            <span class="text-danger">0.00</span>
+                                            <% } %>
                             </td>
                             <td>
-                                <%= receipt.receiptAccount ? receipt.receiptAccount.name : 'N/A' %>
+                                <% if (receipt.isActive) { %>
+                                    <%= receipt.receiptAccount ? receipt.receiptAccount.name : 'N/A' %>
+                                        <% } else { %>
+                                            <span class="text-danger">Canceled</span>
+                                            <% } %>
                             </td>
                             <td>
                                 <%= receipt.user ? receipt.user.name : 'N/A' %>
                             </td>
-                            <td><a href="/receipts/<%= receipt._id %>/print">View</a></td>
+                            <td>
+                                <a href="/receipts/<%= receipt._id %>/print"><button class="btn-sm btn-info"><i
+                                            class="fas fa-eye"></i></button></a>
+                                <a href="/receipts/<%= receipt._id %>"><button class="btn btn-sm btn-warning"><i
+                                            class="fas fa-edit"></i></button></a>
+                            </td>
 
                         </tr>
                         <% }) %>
@@ -189,28 +205,6 @@
         </table>
 
 
-    </div>
-</div>
-
-<!-- Exit Confirmation Modal -->
-<div class="modal fade" id="exitConfirmationModal" tabindex="-1" aria-labelledby="exitConfirmationModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exitConfirmationModalLabel">Exit Confirmation</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to exit without saving?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmExit" autofocus>Yes, Exit</button>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -274,22 +268,6 @@
 
     // Call the calculateTotals function initially
     calculateTotals();
-
-
-    // Handle Escape key for showing exit confirmation modal
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            event.preventDefault(); // Prevent default escape behavior
-            var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
-            exitModal.show();
-        }
-    });
-
-    // Handle the exit confirmation
-    document.getElementById('confirmExit').addEventListener('click', function () {
-        // Redirect to the dashboard or desired page
-        window.location.href = '/wholesellerDashboard'; // Update URL as per your app's structure
-    });
 
     // Print all bills
     document.getElementById('printAllBills').addEventListener('click', function () {
