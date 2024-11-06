@@ -5,7 +5,8 @@
     <div class="card shadow-lg p-4 animate__animated animate__fadeInUp">
         <div class="card-body">
             <h3 class="card-title">Journal Voucher Entry</h3>
-            <form action="/journal/new" method="POST" id="journalForm" class="wow-form">
+            <form action="/journal/new" method="POST" id="journalForm" class="wow-form"
+                onsubmit="return handleFormSubmission(event)">
                 <div class="row">
                     <% if (companyDateFormat==='nepali' ) { %>
                         <div class="col-md-6 mb-3">
@@ -125,7 +126,7 @@
                 <!-- Description -->
                 <div class="mb-3">
                     <label for="description" class="form-label">Description:</label>
-                    <textarea name="description" id="description" class="form-control" required
+                    <textarea name="description" id="description" class="form-control"
                         placeholder="Describe your journal entry here..."></textarea>
                     <div class="form-feedback"></div>
                 </div>
@@ -153,9 +154,85 @@
 <!-- Include Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
+
+    function handleFormSubmission(event) {
+        event.preventDefault();
+
+        if (!validateAmounts()) {
+            alert("The total debit and credit amounts must be equal.");
+            return false; // Prevent form submission
+        }
+
+        const isSubmitButton = event.submitter &&
+            (event.submitter.id === 'submitForm' || event.submitter.classList.contains('btn-secondary'));
+
+        if (isSubmitButton) {
+            event.target.submit();
+        }
+    }
+
+    function submitBillForm(print) {
+        if (!validateAmounts()) {
+            return false; // Prevent form submission
+        }
+        shouldPrint = print;
+        const billForm = document.getElementById('journalForm');
+        const saveButton = document.getElementById('submitForm');
+        saveButton.disabled = true;
+
+        // const submitButton = document.getElementById('submitForm');
+        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        saveButton.disabled = true;
+
+        if (print) {
+            const url = new URL(billForm.action);
+            url.searchParams.append('print', 'true');
+            billForm.action = url.toString();
+        }
+
+        // Simulate form submission (replace this with actual form submission logic)
+        setTimeout(() => {
+            billForm.submit();
+            saveButton.disabled = false;
+        }, 2000); // Simulating a delay; adjust or remove as needed
+    }
+
+    function validateAmounts() {
+        let totalDebit = 0;
+        let totalCredit = 0;
+
+        // Sum debit amounts
+        document.querySelectorAll('input[name^="debitAccounts"][name$="[debit]"]').forEach(input => {
+            const amount = parseFloat(input.value) || 0;
+            totalDebit += amount;
+        });
+
+        // Sum credit amounts
+        document.querySelectorAll('input[name^="creditAccounts"][name$="[credit]"]').forEach(input => {
+            const amount = parseFloat(input.value) || 0;
+            totalCredit += amount;
+        });
+
+        return totalDebit === totalCredit;
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
-        // Initialize Select2 for dropdowns
         $('select').select2({ width: '100%' });
+
+        const journalForm = document.getElementById('journalForm');
+
+        journalForm.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' && event.target.type !== 'submit') {
+                event.preventDefault();
+            }
+        });
+
+        // Add input event listeners to recalculate totals dynamically
+        document.getElementById('debit-accounts').addEventListener('input', validateAmounts);
+        document.getElementById('credit-accounts').addEventListener('input', validateAmounts);
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
 
         // Add new debit account dynamically with fadeIn animation
         document.getElementById('add-debit-account').addEventListener('click', function () {
@@ -241,85 +318,8 @@
             });
         });
 
-        // Function to validate the total debit and credit amounts
-        function validateAmounts() {
-            let totalDebit = 0;
-            let totalCredit = 0;
-
-            // Sum debit amounts
-            $('input[name^="debitAccounts"]').each(function () {
-                const amount = parseFloat($(this).val()) || 0;
-                totalDebit += amount;
-            });
-
-            // Sum credit amounts
-            $('input[name^="creditAccounts"]').each(function () {
-                const amount = parseFloat($(this).val()) || 0;
-                totalCredit += amount;
-            });
-
-            // Check if totals match
-            if (totalDebit !== totalCredit) {
-                alert("The total debit and credit amounts must be equal.");
-                return false; // Prevent form submission
-            } else {
-                // Show loading effect
-                const submitButton = document.getElementById('submitForm');
-                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-                submitButton.disabled = true;
-
-                this.submit();
-
-                function submitBillForm(print) {
-                    shouldPrint = print;
-                    const billForm = document.getElementById('journalForm');
-                    saveButton.disabled = true;
-
-                    if (print) {
-                        const url = new URL(billForm.action);
-                        url.searchParams.append('print', 'true');
-                        billForm.action = url.toString();
-                    }
-
-                    // Simulate form submission (replace this with actual form submission logic)
-                    setTimeout(() => {
-                        billForm.submit();
-                        saveButton.disabled = false;
-                    }, 2000); // Simulating a delay; adjust or remove as needed
-                }
-            }
-            return true; // Allow form submission
-        }
-
-
-
-        // Attach validation function to form submit event
-        $('#journalForm').on('submit', function (event) {
-            if (!validateAmounts()) {
-                event.preventDefault(); // Stop form submission if amounts don't match
-            }
-        });
-
-        // Save draft feature
-        document.getElementById('save-draft').addEventListener('click', function () {
-            const draftData = new FormData(document.getElementById('journalForm'));
-            // Add logic to save draft data (could be an AJAX call)
-            console.log('Draft saved:', Object.fromEntries(draftData));
-            alert('Draft saved successfully!');
-        });
-
         // Tooltip initialization
         $('[data-bs-toggle="tooltip"]').tooltip();
-
-        // Exit confirmation modal
-        window.onbeforeunload = function () {
-            return "Are you sure you want to leave this page? Unsaved changes will be lost.";
-        };
-
-        // Confirm exit
-        $('#confirmExit').on('click', function () {
-            window.location.href = '/'; // Redirect to home or any page
-        });
     });
 </script>
 

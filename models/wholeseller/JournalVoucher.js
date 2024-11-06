@@ -37,7 +37,6 @@ const journalVoucherSchema = new mongoose.Schema({
 
     description: {
         type: String,
-        required: true,
     },
     user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -49,6 +48,8 @@ const journalVoucherSchema = new mongoose.Schema({
         ref: 'Company',
         required: true,
     },
+    status: { type: String, enum: ['active', 'canceled'], default: 'active' },
+    isActive: { type: Boolean, default: true }
 });
 
 module.exports = mongoose.model('JournalVoucher', journalVoucherSchema);

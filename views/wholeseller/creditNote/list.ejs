@@ -191,7 +191,13 @@
                                 <td>
                                     <%= creditNote.description %>
                                 </td>
-                                <td><a href="/credit-note/<%= creditNote._id %>/print">View</a></td>
+                                <td>
+
+                                    <a href="/credit-note/<%= creditNote._id %>/print"><button
+                                            class="btn-sm btn-info"><i class="fas fa-eye"></i></button></a>
+                                    <a href="/credit-note/<%= creditNote._id %>"><button
+                                            class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button></a>
+                                </td>
                             </tr>
                             <% }) %>
                                 <% } else { %>

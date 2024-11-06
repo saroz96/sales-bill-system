@@ -1,0 +1,422 @@
+<div class="form-control">
+    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+</div>
+<div class="container mt-4 wow-form" id="mainContainer">
+    <div class="card shadow-lg p-4 animate__animated animate__fadeInUp">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-3">
+                    <h3 class="card-title">Edit Debit Note</h3>
+                </div>
+                <!-- Action buttons for voucher status -->
+                <div class="col-6">
+                    <!-- Visual indicator for canceled vouchers -->
+                    <% if (creditNotes.status==='canceled' ) { %>
+                        <span class="text-danger" style="margin-left: 10px;">
+                            <strong>Voucher is canceled. All related transactions are inactive.</strong>
+                        </span>
+                        <% } %>
+                </div>
+                <div class="col-3">
+                    <% if (creditNotes.status==='active' ) { %>
+                        <form action="/credit-note/cancel/<%= creditNotes.billNumber %>" method="post"
+                            style="display: inline;" onsubmit="return confirmCancel()">
+                            <button type="submit" class="btn btn-danger">Cancel Voucher</button>
+                        </form>
+                        <% } else { %>
+                            <form action="/credit-note/reactivate/<%= creditNotes.billNumber %>" method="post"
+                                style="display: inline;" onsubmit="return confirmReactivate()">
+                                <button type="submit" class="btn btn-success">Reactivate Voucher</button>
+                            </form>
+                            <% } %>
+                </div>
+            </div>
+            <form action="/credit-note/<%=creditNotes._id%>?_method=PUT" method="POST" id="creditNoteForm"
+                class="wow-form" onsubmit="return handleFormSubmission(event)">
+                <% if (companyDateFormat==='nepali' ) { %>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nepaliDate" class="form-label" data-bs-toggle="tooltip" data-bs-placement="top"
+                                title="Enter Nepali Date">Date:</label>
+                            <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
+                                value="<%= creditNotes.date?creditNotes.date.toISOString().split('T')[0] : '' %>"
+                                placeholder="YYYY/MM/DD" autofocus <%=creditNotes.status==='canceled' ?'disabled':''%>>
+                        </div>
+                        <% } else { %>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="billDate" class="form-label" data-bs-toggle="tooltip"
+                                        data-bs-placement="top" title="Select Date">Date:</label>
+                                    <input type="date" name="billDate" id="billDate" class="form-control" required
+                                        value="<%= creditNotes.date?creditNotes.date.toISOString().split('T')[0] : '' %>"
+                                        autofocus <%=creditNotes.status==='canceled' ?'disabled':''%>>
+                                </div>
+                                <% } %>
+                                    <div class="col">
+                                        <label for="billNumber">Voucher Number:</label>
+                                        <input type="number" name="billNumber" id="billNumber" class="form-control"
+                                            value="<%= creditNotes.billNumber %>" required readonly>
+                                    </div>
+                            </div>
+
+                            <div class="section-header">
+                                <h4 class="mt-4">
+                                    Credit Accounts
+                                    <span class="badge bg-warning text-dark rounded-pill">Auto-Calculate</span>
+                                </h4>
+                            </div>
+                            <div id="credit-accounts" class="mb-3 positive-relative">
+                                <% creditNotes.creditAccounts.forEach((account, index)=> { %>
+                                    <div class="card mb-2 shadow-sm animate__animated animate__fadeIn">
+                                        <div class="card-body credit-account">
+                                            <div class="row align-items-center">
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="creditAccount1" class="form-label">Credit
+                                                        Account:</label>
+                                                    <select name="creditAccounts[0][account]" id="creditAccount1"
+                                                        class="form-select" <%=creditNotes.status==='canceled'
+                                                        ?'disabled':''%> required>
+                                                        <option value="" disabled selected>Select a party name</option>
+                                                        <% accounts.forEach(acc=> { %>
+                                                            <option value="<%= acc._id %>"
+                                                                <%=acc._id.equals(account.account._id) ? 'selected' : ''
+                                                                %>><%= acc.name %>
+                                                            </option>
+                                                            <% }) %>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="creditAmount1" class="form-label">Amount:</label>
+                                                    <input type="number" name="creditAccounts[<%= index %>][credit]"
+                                                        id="creditAmount1" class="form-control"
+                                                        value="<%=account.credit%>" <%=creditNotes.status==='canceled'
+                                                        ?'disabled':''%> required>
+                                                </div>
+                                                <div class="col-md-4 mb-3 text-end">
+                                                    <button type="button" id="add-credit-account"
+                                                        class="btn btn-outline-warning animate__animated animate__pulse animate__infinite"
+                                                        <%=creditNotes.status==='canceled' ?'disabled':''%>>
+                                                        <i class="fas fa-plus"></i> Add Credit Account
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                            </div>
+
+                            <!--Debit Section-->
+                            <div class="section-header">
+                                <h4 class="mt-4">
+                                    Debit Accounts
+                                    <span class="badge bg-success rounded-pill">Auto-Calculate</span>
+                                </h4>
+                            </div>
+                            <div id="debit-accounts" class="mb-3 positive-relative">
+                                <% creditNotes.debitAccounts.forEach((account, index)=> { %>
+                                    <div class="card mb-2 shadow-sm animate__animated animate__fadeIn">
+                                        <div class="card-body debit-account">
+                                            <div class="row align-items-center">
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="debitAccount1" class="form-label">Debit Account:</label>
+                                                    <select name="debitAccounts[<%=index%>][account]" id="debitAccount1"
+                                                        class="form-select" <%=creditNotes.status==='canceled'
+                                                        ?'disabled':''%> required>
+                                                        <option value="" disabled selected>Select a party name</option>
+                                                        <% accounts.forEach(acc=> { %>
+                                                            <option value="<%= acc._id %>"
+                                                                <%=acc._id.equals(account.account._id) ? 'selected' : ''
+                                                                %>><%= acc.name %>
+                                                            </option>
+                                                            <% }) %>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="debitAmount1" class="form-label">Amount:</label>
+                                                    <input type="number" name="debitAccounts[<%= index %>][debit]"
+                                                        id="debitAmount1" class="form-control"
+                                                        value="<%=account.debit%>" <%=creditNotes.status==='canceled'
+                                                        ?'disabled':''%> required>
+                                                </div>
+
+                                                <div class="col-md-4 mb-3 text-end">
+                                                    <button type="button" id="add-debit-account"
+                                                        class="btn btn-outline-primary animate__animated animate__pulse animate__infinite"
+                                                        <%=creditNotes.status==='canceled' ?'disabled':''%>>
+                                                        <i class="fas fa-plus"></i> Add Debit Account
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                            </div>
+
+
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description:</label>
+                                <textarea name="description" id="description" class="form-control"
+                                    value="<%=creditNotes.description%>" placeholder="Describe your debit note here"
+                                    <%=creditNotes.status==='canceled'
+                                    ?'disabled':''%>><%= creditNotes.description %></textarea>
+                            </div>
+
+                            <!-- <button type="submit" class="btn btn-success">Save Debit Note</button> -->
+                            <div class="d-flex justify-content-between">
+                                <button type="submit"
+                                    class="btn btn-success btn-lg w-50 mx-2 animate__animated animate__pulse"
+                                    id="submitForm" onclick="submitBillForm(false)" <%=creditNotes.status==='canceled'
+                                    ?'disabled':''%>>
+                                    <i class="fas fa-save"></i> Save Debit Note
+                                </button>
+                                <button type="submit" class="btn btn-secondary btn-lg w-50 mx-2"
+                                    onclick="submitBillForm(true)" <%=creditNotes.status==='canceled' ?'disabled':''%>>
+                                    <i class="fas fa-print"></i> Save & Print
+                                </button>
+                            </div>
+                    </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Include Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+
+    function handleFormSubmission(event) {
+        event.preventDefault();
+
+        if (!validateAmounts()) {
+            alert("The total debit and credit amounts must be equal.");
+            return false; // Prevent form submission
+        }
+
+        const isSubmitButton = event.submitter &&
+            (event.submitter.id === 'submitForm' || event.submitter.classList.contains('btn-secondary'));
+
+        if (isSubmitButton) {
+            event.target.submit();
+        }
+    }
+
+    function submitBillForm(print) {
+        if (!validateAmounts()) {
+            return false; // Prevent form submission
+        }
+        shouldPrint = print;
+        const billForm = document.getElementById('creditNoteForm');
+        const saveButton = document.getElementById('submitForm');
+        saveButton.disabled = true;
+
+        // const submitButton = document.getElementById('submitForm');
+        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        saveButton.disabled = true;
+
+        if (print) {
+            const url = new URL(billForm.action);
+            url.searchParams.append('print', 'true');
+            billForm.action = url.toString();
+        }
+
+        // Simulate form submission (replace this with actual form submission logic)
+        setTimeout(() => {
+            billForm.submit();
+            saveButton.disabled = false;
+        }, 2000); // Simulating a delay; adjust or remove as needed
+    }
+
+    function validateAmounts() {
+        let totalDebit = 0;
+        let totalCredit = 0;
+
+        // Sum debit amounts
+        document.querySelectorAll('input[name^="debitAccounts"][name$="[debit]"]').forEach(input => {
+            const amount = parseFloat(input.value) || 0;
+            totalDebit += amount;
+        });
+
+        // Sum credit amounts
+        document.querySelectorAll('input[name^="creditAccounts"][name$="[credit]"]').forEach(input => {
+            const amount = parseFloat(input.value) || 0;
+            totalCredit += amount;
+        });
+
+        return totalDebit === totalCredit;
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        $('select').select2({ width: '100%' });
+
+        const debitNoteForm = document.getElementById('debitNoteForm');
+
+        debitNoteForm.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' && event.target.type !== 'submit') {
+                event.preventDefault();
+            }
+        });
+
+        // Add input event listeners to recalculate totals dynamically
+        document.getElementById('debit-accounts').addEventListener('input', validateAmounts);
+        document.getElementById('credit-accounts').addEventListener('input', validateAmounts);
+    });
+
+    $(document).ready(function () {
+        // Initialize Select2 for searchable dropdown
+        $('#debitAccount1').select2({
+            placeholder: "Select a party name",
+            allowClear: true,
+            width: '100%', // Ensure it takes the full width of the container
+        });
+    });
+
+    $(document).ready(function () {
+        // Initialize Select2 for searchable dropdown
+        $('#creditAccount1').select2({
+            placeholder: "Select a party name",
+            allowClear: true,
+            width: '100%', // Ensure it takes the full width of the container
+        });
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        // Add new credit account dynamically with fadeIn animation
+        document.getElementById('add-credit-account').addEventListener('click', function () {
+            const creditAccountsDiv = document.getElementById('credit-accounts');
+            const index = creditAccountsDiv.querySelectorAll('.credit-account').length;
+            const newCreditAccount = `
+                <div class="card mb-2 shadow-sm animate__animated animate__fadeIn">
+                    <div class="card-body credit-account">
+                        <div class="row align-items-center">
+                            <div class="col-md-4 mb-3">
+                                <label for="creditAccount${index + 1}" class="form-label">Credit Account:</label>
+                                <select name="creditAccounts[${index}][account]" id="creditAccount${index + 1}" class="form-select" required>
+                                    <option value="" disabled selected>Select a party name</option>
+                                    <% accounts.forEach(account => { %>
+                                        <option value="<%= account._id %>"><%= account.name %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="creditAmount${index + 1}" class="form-label">Amount:</label>
+                                <input type="number" name="creditAccounts[${index}][credit]" id="creditAmount${index + 1}" class="form-control" required oninput="validateAmount(this)">
+                                <div class="form-feedback" id="creditFeedback${index + 1}"></div>
+                            </div>
+                            <div class="col-md-4 mb-3 text-end">
+                                <button type="button" class="btn btn-outline-danger remove-credit-account">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            creditAccountsDiv.insertAdjacentHTML('beforeend', newCreditAccount);
+            $('#creditAccount' + (index + 1)).select2({ width: '100%' });
+        });
+
+        // Add new debit account dynamically with fadeIn animation
+        document.getElementById('add-debit-account').addEventListener('click', function () {
+            const debitAccountsDiv = document.getElementById('debit-accounts');
+            const index = debitAccountsDiv.querySelectorAll('.debit-account').length;
+            const newDebitAccount = `
+                <div class="card mb-2 shadow-sm animate__animated animate__fadeIn">
+                    <div class="card-body debit-account">
+                        <div class="row align-items-center">
+                            <div class="col-md-4 mb-3">
+                                <label for="debitAccount${index + 1}" class="form-label">Debit Account:</label>
+                                <select name="debitAccounts[${index}][account]" id="debitAccount${index + 1}" class="form-select" required>
+                                    <option value="" disabled selected>Select a party name</option>
+                                    <% accounts.forEach(account => { %>
+                                        <option value="<%= account._id %>"><%= account.name %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="debitAmount${index + 1}" class="form-label">Amount:</label>
+                                <input type="number" name="debitAccounts[${index}][debit]" id="debitAmount${index + 1}" class="form-control" required oninput="validateAmount(this)">
+                                <div class="form-feedback" id="debitFeedback${index + 1}"></div>
+                            </div>
+                            <div class="col-md-4 mb-3 text-end">
+                                <button type="button" class="btn btn-outline-danger remove-debit-account">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            debitAccountsDiv.insertAdjacentHTML('beforeend', newDebitAccount);
+            $('#debitAccount' + (index + 1)).select2({ width: '100%' });
+        });
+
+        // Remove credit account
+        $('#credit-accounts').on('click', '.remove-credit-account', function () {
+            $(this).closest('.card').fadeOut(300, function () {
+                $(this).remove();
+            });
+        });
+
+        // Remove debit account
+        $('#debit-accounts').on('click', '.remove-debit-account', function () {
+            $(this).closest('.card').fadeOut(300, function () {
+                $(this).remove();
+            });
+        });
+
+        // Tooltip initialization
+        $('[data-bs-toggle="tooltip"]').tooltip();
+    });
+
+
+    function confirmCancel() {
+        return confirm("Are you sure you want to cancel this voucher?");
+    }
+
+    function confirmReactivate() {
+        return confirm("Are you sure you want to reactivate this voucher?");
+    }
+
+</script>
+
+<style>
+    .wow-form {
+        font-family: 'Arial', sans-serif;
+        background: linear-gradient(to right, #ffffff, #e0e0e0);
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .section-header {
+        border-bottom: 2px solid #007bff;
+        margin-bottom: 15px;
+    }
+
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    }
+
+    .btn {
+        transition: background-color 0.3s ease;
+    }
+
+    .btn:hover {
+        background-color: #0056b3;
+        color: white;
+    }
+
+    .form-feedback {
+        color: red;
+        font-size: 0.9em;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+        .wow-form {
+            padding: 15px;
+        }
+    }
+</style>

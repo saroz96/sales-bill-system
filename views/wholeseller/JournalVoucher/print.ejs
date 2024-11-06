@@ -83,9 +83,21 @@
                             <% debitTransactions.forEach(function(debitTransaction) { %>
                                 <tr>
                                     <td>
-                                        <%= debitTransaction.account.name %>
+                                        <% if (journalVoucher.isActive) { %>
+
+                                            <%= debitTransaction.account.name %>
+
+                                                <% } else { %>
+                                                    <span class="text-danger">Canceled</span>
+                                                    <% } %>
                                     </td>
-                                    <td>Rs. <%= debitTransaction.debit.toFixed(2) %>
+                                    <td>
+                                        <% if (journalVoucher.isActive) { %>
+
+                                            <%= debitTransaction.debit.toFixed(2) %>
+                                                <% } else { %>
+                                                    <span class="text-danger">0.00</span>
+                                                    <% } %>
                                     </td>
                                 </tr>
                                 <% }) %>
@@ -112,9 +124,20 @@
                             <% creditTransactions.forEach(function(creditTransaction) { %>
                                 <tr>
                                     <td>
-                                        <%= creditTransaction.account.name %>
+                                        <% if (journalVoucher.isActive) { %>
+
+                                            <%= creditTransaction.account.name %>
+
+                                                <% } else { %>
+                                                    <span class="text-danger">Canceled</span>
+                                                    <% } %>
                                     </td>
-                                    <td>Rs. <%= creditTransaction.credit.toFixed(2) %>
+                                    <td>
+                                        <% if (journalVoucher.isActive) { %>
+                                            <%= creditTransaction.credit.toFixed(2) %>
+                                                <% } else { %>
+                                                    <span class="text-danger">0.00</span>
+                                                    <% } %>
                                     </td>
                                 </tr>
                                 <% }) %>

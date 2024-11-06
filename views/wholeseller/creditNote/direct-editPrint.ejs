@@ -24,7 +24,7 @@
                 <hr style="border: 0.5px solid;">
             </div>
         </div>
-        <h1 class="text-center" style="text-decoration: underline;letter-spacing: 3px;">Debit Note</h1>
+        <h1 class="text-center" style="text-decoration: underline;letter-spacing: 3px;">Credit Note</h1>
         <!-- Voucher Details -->
         <div class="row">
             <div class="col-md-6">
@@ -34,13 +34,13 @@
                         <tr>
                             <th>Date:</th>
                             <td>
-                                <%= debitNotes.date ? debitNotes.date.toISOString().split('T')[0] : 'N/A' %>
+                                <%= creditNotes.date ? creditNotes.date.toISOString().split('T')[0] : 'N/A' %>
                             </td>
                         </tr>
                         <tr>
                             <th>Voucher No:</th>
                             <td>
-                                <%= debitNotes.billNumber %>
+                                <%= creditNotes.billNumber %>
                             </td>
                         </tr>
                     </tbody>
@@ -52,14 +52,14 @@
                         <tr>
                             <th>Voucher ID:</th>
                             <td>
-                                <%= debitNotes._id %>
+                                <%= creditNotes._id %>
                             </td>
                         </tr>
 
                         <tr>
                             <th>Created By:</th>
                             <td>
-                                <%= debitNotes.user.name %>
+                                <%= creditNotes.user.name %>
                             </td>
                         </tr>
                     </tbody>
@@ -69,49 +69,6 @@
 
         <!-- Transactions Section -->
         <div class="row mt-4">
-            <div class="col-md-6">
-                <h5>Debit Transactions</h5>
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Account</th>
-                            <th>Amount (Rs.)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% if (debitTransactions.length> 0) { %>
-                            <% debitTransactions.forEach(function(debitTransaction) { %>
-                                <tr>
-                                    <td>
-
-                                        <% if (debitNotes.isActive) { %>
-
-                                            <%= debitTransaction.account.name %>
-
-                                                <% } else { %>
-                                                    <span class="text-danger">Canceled</span>
-                                                    <% } %>
-                                    </td>
-                                    <td>
-                                        <% if (debitNotes.isActive) { %>
-
-                                            <%= debitTransaction.debit.toFixed(2) %>
-
-                                                <% } else { %>
-                                                    <span class="text-danger">0.00</span>
-                                                    <% } %>
-                                    </td>
-                                </tr>
-                                <% }) %>
-                                    <% } else { %>
-                                        <tr>
-                                            <td colspan="2" class="text-center">No Debit Transactions Found</td>
-                                        </tr>
-                                        <% } %>
-                    </tbody>
-                </table>
-            </div>
-
             <div class="col-md-6">
                 <h5>Credit Transactions</h5>
                 <table class="table table-striped">
@@ -126,22 +83,9 @@
                             <% creditTransactions.forEach(function(creditTransaction) { %>
                                 <tr>
                                     <td>
-                                        <% if (debitNotes.isActive) { %>
-
-                                            <%= creditTransaction.account.name %>
-
-                                                <% } else { %>
-                                                    <span class="text-danger">Canceled</span>
-                                                    <% } %>
+                                        <%= creditTransaction.account.name %>
                                     </td>
-                                    <td>
-                                        <% if (debitNotes.isActive) { %>
-
-                                            <%= creditTransaction.credit.toFixed(2) %>
-
-                                                <% } else { %>
-                                                    <span class="text-danger">0.00</span>
-                                                    <% } %>
+                                    <td>Rs. <%= creditTransaction.credit.toFixed(2) %>
                                     </td>
                                 </tr>
                                 <% }) %>
@@ -153,14 +97,43 @@
                     </tbody>
                 </table>
             </div>
+
+            <div class="col-md-6">
+                <h5>Debit Transactions</h5>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Amount (Rs.)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (debitTransactions.length> 0) { %>
+                            <% debitTransactions.forEach(function(debitTransaction) { %>
+                                <tr>
+                                    <td>
+                                        <%= debitTransaction.account.name %>
+                                    </td>
+                                    <td>Rs. <%= debitTransaction.debit.toFixed(2) %>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="2" class="text-center">No Debit Transactions Found</td>
+                                        </tr>
+                                        <% } %>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <p>Note: <%=debitNotes.description%>
+        <p>Note: <%=creditNotes.description%>
         </p>
         <!-- Print Button -->
         <div class="text-center mt-4">
             <button class="btn btn-primary" onclick="window.print()">Print Voucher</button>
-            <a href="/debit-note/list" class="btn btn-secondary">All Vouchers</a>
-            <a href="/debit-note/new" class="btn btn-secondary">Create</a>
+            <a href="/credit-note/list" class="btn btn-secondary">All Vouchers</a>
+            <a href="/credit-note/new" class="btn btn-secondary">Create</a>
         </div>
     </div>
 
@@ -336,6 +309,23 @@
 
 <!-- JavaScript for Handling PAN/VAT Display -->
 <script>
+
+    function handlePrint() {
+        // Trigger the print dialog
+        window.print();
+
+        // Set a timeout to redirect after the print dialog is closed
+        setTimeout(function () {
+            // Redirect after printing or canceling the print dialog
+            window.location.href = '/credit-note/<%=creditNotes._id%>'; // Redirect to the payments page
+        }, 1000); // Adjust the time as necessary based on user experience
+    }
+
+    // Call handlePrint when the page loads
+    window.onload = function () {
+        handlePrint();
+    };
+
     const panVatNo = '<%= currentCompany.pan %>';
     const container = document.getElementById('pan-vat-container');
 
@@ -350,5 +340,4 @@
     function showLoadingSpinner() {
         document.getElementById('loadingSpinner').style.display = 'block';
     }
-
 </script>

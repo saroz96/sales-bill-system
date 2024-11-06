@@ -5,7 +5,6 @@
 <div class="container my-5" id="mainContainer">
     <!-- Header Section -->
     <div class="voucher" id="voucher">
-
         <!-- Print Header -->
         <div id="printHeader" class="text-center mb-4">
             <div class="header" style="text-align: center;">
@@ -24,23 +23,23 @@
                 <hr style="border: 0.5px solid;">
             </div>
         </div>
-        <h1 class="text-center" style="text-decoration: underline;letter-spacing: 3px;">Debit Note</h1>
+        <h1 class="text-center" style="text-decoration: underline;letter-spacing: 3px;">Journal Voucher</h1>
+
         <!-- Voucher Details -->
         <div class="row">
             <div class="col-md-6">
                 <table class="voucher-table table table-bordered">
                     <tbody>
-
                         <tr>
                             <th>Date:</th>
                             <td>
-                                <%= debitNotes.date ? debitNotes.date.toISOString().split('T')[0] : 'N/A' %>
+                                <%= journalVoucher.date ? journalVoucher.date.toISOString().split('T')[0] : 'N/A' %>
                             </td>
                         </tr>
                         <tr>
                             <th>Voucher No:</th>
                             <td>
-                                <%= debitNotes.billNumber %>
+                                <%= journalVoucher.billNumber %>
                             </td>
                         </tr>
                     </tbody>
@@ -52,14 +51,13 @@
                         <tr>
                             <th>Voucher ID:</th>
                             <td>
-                                <%= debitNotes._id %>
+                                <%= journalVoucher._id %>
                             </td>
                         </tr>
-
                         <tr>
                             <th>Created By:</th>
                             <td>
-                                <%= debitNotes.user.name %>
+                                <%= journalVoucher.user.name %>
                             </td>
                         </tr>
                     </tbody>
@@ -83,23 +81,10 @@
                             <% debitTransactions.forEach(function(debitTransaction) { %>
                                 <tr>
                                     <td>
-
-                                        <% if (debitNotes.isActive) { %>
-
-                                            <%= debitTransaction.account.name %>
-
-                                                <% } else { %>
-                                                    <span class="text-danger">Canceled</span>
-                                                    <% } %>
+                                        <%= debitTransaction.account.name %>
                                     </td>
                                     <td>
-                                        <% if (debitNotes.isActive) { %>
-
-                                            <%= debitTransaction.debit.toFixed(2) %>
-
-                                                <% } else { %>
-                                                    <span class="text-danger">0.00</span>
-                                                    <% } %>
+                                        <%= debitTransaction.debit.toFixed(2) %>
                                     </td>
                                 </tr>
                                 <% }) %>
@@ -126,22 +111,10 @@
                             <% creditTransactions.forEach(function(creditTransaction) { %>
                                 <tr>
                                     <td>
-                                        <% if (debitNotes.isActive) { %>
-
-                                            <%= creditTransaction.account.name %>
-
-                                                <% } else { %>
-                                                    <span class="text-danger">Canceled</span>
-                                                    <% } %>
+                                        <%= creditTransaction.account.name %>
                                     </td>
                                     <td>
-                                        <% if (debitNotes.isActive) { %>
-
-                                            <%= creditTransaction.credit.toFixed(2) %>
-
-                                                <% } else { %>
-                                                    <span class="text-danger">0.00</span>
-                                                    <% } %>
+                                        <%= creditTransaction.credit.toFixed(2) %>
                                     </td>
                                 </tr>
                                 <% }) %>
@@ -154,13 +127,13 @@
                 </table>
             </div>
         </div>
-        <p>Note: <%=debitNotes.description%>
+        <p>Note: <%=journalVoucher.description%>
         </p>
         <!-- Print Button -->
-        <div class="text-center mt-4">
-            <button class="btn btn-primary" onclick="window.print()">Print Voucher</button>
-            <a href="/debit-note/list" class="btn btn-secondary">All Vouchers</a>
-            <a href="/debit-note/new" class="btn btn-secondary">Create</a>
+        <div class="row mt-5">
+            <div class="col-12 text-center">
+                <button class="btn btn-primary btn-lg" onclick="window.print()">Print Voucher</button>
+            </div>
         </div>
     </div>
 
@@ -168,7 +141,6 @@
     <div id="loadingSpinner" class="spinner-border text-primary" role="status" style="display:none;">
         <span class="sr-only">Loading...</span>
     </div>
-
 </div>
 
 <!-- Print-Specific Styles -->
@@ -187,7 +159,6 @@
             float: left;
             width: 50%;
         }
-
 
         #voucher,
         #voucher * {
@@ -334,8 +305,26 @@
     }
 </style>
 
-<!-- JavaScript for Handling PAN/VAT Display -->
+<!-- JavaScript for Handling Print -->
 <script>
+
+    // Function to handle print and redirect after printing
+    function handlePrint() {
+        // Trigger the print dialog
+        window.print();
+
+        // Listen for the onafterprint event to redirect after printing is done
+
+        window.onafterprint = function () {
+            window.location.href = '/journal/<%=journalVoucher._id%>'; // Redirect to the payments page
+        };
+    }
+
+    // Function to automatically trigger print when the page loads
+    window.onload = function () {
+        handlePrint(); // Call handlePrint instead of window.print
+    };
+
     const panVatNo = '<%= currentCompany.pan %>';
     const container = document.getElementById('pan-vat-container');
 
@@ -350,5 +339,4 @@
     function showLoadingSpinner() {
         document.getElementById('loadingSpinner').style.display = 'block';
     }
-
 </script>

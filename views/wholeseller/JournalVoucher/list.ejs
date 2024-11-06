@@ -159,32 +159,55 @@
                                 <%= voucher.date.toLocaleDateString() %>
                             </td>
                             <td>
-                                <% voucher.debitAccounts.forEach(debitAccount=> { %>
-                                    <div>
-                                        <%= debitAccount.account ? debitAccount.account.name : 'N/A' %>
-                                    </div>
-                                    <% }) %>
+                                <% if (voucher.isActive) { %>
+
+                                    <% voucher.debitAccounts.forEach(debitAccount=> { %>
+                                        <div>
+                                            <%= debitAccount.account ? debitAccount.account.name : 'N/A' %>
+                                        </div>
+                                        <% }) %>
+                                            <% } else { %>
+                                                <span class="text-danger">Canceled</span>
+                                                <% } %>
                             </td>
                             <td>
-                                <% voucher.debitAccounts.forEach(debitAccount=> { %>
-                                    <span class="debit-amount badge badge-debit">
-                                        <%= debitAccount.debit.toFixed(2) %>
-                                    </span>
-                                    <% }) %>
+                                <% if (voucher.isActive) { %>
+
+                                    <% voucher.debitAccounts.forEach(debitAccount=> { %>
+                                        <span class="debit-amount badge badge-debit">
+                                            <%= debitAccount.debit.toFixed(2) %>
+                                        </span>
+                                        <% }) %>
+                                            <% } else { %>
+                                                <span class="text-danger">0.00</span>
+                                                <% } %>
+
                             </td>
                             <td>
-                                <% voucher.creditAccounts.forEach(creditAccount=> { %>
-                                    <div>
-                                        <%= creditAccount.account ? creditAccount.account.name : 'N/A' %>
-                                    </div>
-                                    <% }) %>
+                                <% if (voucher.isActive) { %>
+
+                                    <% voucher.creditAccounts.forEach(creditAccount=> { %>
+                                        <div>
+                                            <%= creditAccount.account ? creditAccount.account.name : 'N/A' %>
+                                        </div>
+                                        <% }) %>
+                                            <% } else { %>
+                                                <span class="text-danger">Canceled</span>
+                                                <% } %>
+
                             </td>
                             <td>
-                                <% voucher.creditAccounts.forEach(creditAccount=> { %>
-                                    <span class="credit-amount badge badge-credit">
-                                        <%= creditAccount.credit.toFixed(2) %>
-                                    </span>
-                                    <% }) %>
+                                <% if (voucher.isActive) { %>
+
+                                    <% voucher.creditAccounts.forEach(creditAccount=> { %>
+                                        <span class="credit-amount badge badge-credit">
+                                            <%= creditAccount.credit.toFixed(2) %>
+                                        </span>
+                                        <% }) %>
+                                            <% } else { %>
+                                                <span class="text-success">0.00</span>
+                                                <% } %>
+
                             </td>
                             <td>
                                 <%= voucher.description %>

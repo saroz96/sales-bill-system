@@ -329,8 +329,8 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
             const debitTransaction = new Transaction({
                 account,
                 type: 'Pymt',
-                mainType: 'Pymt',
                 paymentAccountId: payment._id,
+                drCrNoteAccountTypes: 'Debit',
                 // billNumber: billCounter.count,
                 billNumber: billNumber,
                 accountType: paymentAccount,
@@ -358,15 +358,15 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
 
             const creditTransaction = new Transaction({
                 receiptAccount: paymentAccount,
-                type: 'Rcpt',
-                mainType: 'Pymt',
+                type: 'Pymt',
                 paymentAccountId: payment._id,
+                drCrNoteAccountTypes: 'Credit',
                 // billNumber: billCounter.count,
                 billNumber: billNumber,
                 accountType: account,
                 debit: 0,
                 credit: debit,
-                paymentMode: 'Receipt',
+                paymentMode: 'Payment',
                 // paymentAccount,
                 balance: previousCreditBalance - debit,
                 date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),
@@ -638,15 +638,14 @@ router.get('/payments/edit/billNumber', ensureAuthenticated, ensureCompanySelect
         }
     }
 });
-
-// Update an existing payment
+// PUT - Update an existing payment voucher by ID
 router.put('/payments/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
-            const paymentId = req.params.id;
             const { billDate, nepaliDate, paymentAccount, account, debit, InstType, InstNo, description } = req.body;
+            const { id } = req.params;
             const companyId = req.session.currentCompany;
-            const fiscalYearId = req.session.currentFiscalYear.id;
+            const currentFiscalYear = req.session.currentFiscalYear._id;
             const userId = req.user._id;
 
             if (!account || !debit || !paymentAccount) {
@@ -661,13 +660,44 @@ router.put('/payments/:id', ensureAuthenticated, ensureCompanySelected, ensureTr
                 return res.status(400).json({ message: 'Debit amount must be a positive number.' });
             }
 
-            // Find the existing payment
-            const existingPayment = await Payment.findById(paymentId);
+            // Find the existing payment voucher
+            const existingPayment = await Payment.findById(id);
             if (!existingPayment) {
-                return res.status(404).json({ message: 'Payment not found.' });
+                return res.status(404).json({ message: 'Payment voucher not found.' });
             }
 
-            // Update payment fields
+            // Delete outdated debit transaction
+            await Transaction.deleteMany({
+                paymentAccountId: existingPayment._id,
+                account: existingPayment.account,
+                type: 'Pymt',
+                drCrNoteAccountTypes: 'Debit'
+            });
+
+            // Delete outdated credit transaction
+            await Transaction.deleteMany({
+                paymentAccountId: existingPayment._id,
+                receiptAccount: existingPayment.paymentAccount,
+                type: 'Pymt',
+                drCrNoteAccountTypes: 'Credit'
+            });
+
+            // Fetch the new debited and credited accounts
+            const debitedAccount = await Account.findById(account);
+            if (!debitedAccount) {
+                return res.status(404).json({ message: 'Debited account not found.' });
+            }
+
+            const creditAccount = await Account.findById(paymentAccount);
+            if (!creditAccount) {
+                return res.status(404).json({ message: 'Payment account not found.' });
+            }
+
+            // Get the bill number for this payment (retain or update as needed)
+            const billNumber = existingPayment.billNumber || await getNextBillNumber(companyId, currentFiscalYear, 'Payment');
+
+            // Update payment voucher details
+            existingPayment.billNumber = billNumber;
             existingPayment.date = nepaliDate ? new Date(nepaliDate) : new Date(billDate);
             existingPayment.account = account;
             existingPayment.paymentAccount = paymentAccount;
@@ -675,42 +705,83 @@ router.put('/payments/:id', ensureAuthenticated, ensureCompanySelected, ensureTr
             existingPayment.InstType = InstType;
             existingPayment.InstNo = InstNo;
             existingPayment.description = description;
-            existingPayment.user = userId;
-
-            // Update or create debit transaction
-            const debitTransaction = await Transaction.findOne({ paymentAccountId: paymentId, type: 'Pymt', mainType: 'Pymt' });
-            if (debitTransaction) {
-                debitTransaction.account = account;
-                debitTransaction.debit = debit;
-                debitTransaction.balance += (debit - debitTransaction.debit);
-                debitTransaction.date = existingPayment.date;
-                await debitTransaction.save();
-            } else {
-                return res.status(404).json({ message: 'Debit transaction not found.' });
-            }
-
-            // Update or create credit transaction
-            const creditTransaction = await Transaction.findOne({ paymentAccountId: paymentId, type: 'Rcpt', mainType: 'Pymt' });
-            if (creditTransaction) {
-                creditTransaction.account = paymentAccount;
-                creditTransaction.credit = debit;
-                creditTransaction.balance -= (debit - creditTransaction.credit);
-                creditTransaction.date = existingPayment.date;
-                await creditTransaction.save();
-            } else {
-                return res.status(404).json({ message: 'Credit transaction not found.' });
-            }
-
             await existingPayment.save();
+
+            // Fetch the last balance for the updated debit account
+            let previousDebitBalance = 0;
+            const lastDebitTransaction = await Transaction.findOne({ account }).sort({ transactionDate: -1 });
+            if (lastDebitTransaction) {
+                previousDebitBalance = lastDebitTransaction.balance;
+            }
+
+            // Create or update the debit transaction
+            const debitTransaction = new Transaction({
+                account,
+                type: 'Pymt',
+                paymentAccountId: existingPayment._id,
+                billNumber: billNumber,
+                accountType: paymentAccount,
+                debit,
+                credit: 0,
+                paymentMode: 'Payment',
+                drCrNoteAccountTypes: 'Debit',
+                balance: previousDebitBalance + debit,
+                date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),
+                isActive: true,
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear,
+            });
+
+            await debitTransaction.save();
+            await Account.findByIdAndUpdate(account, { $push: { transactions: debitTransaction._id } });
+
+            // Fetch the last balance for the updated credit account
+            let previousCreditBalance = 0;
+            const lastCreditTransaction = await Transaction.findOne({ account: paymentAccount }).sort({ transactionDate: -1 });
+            if (lastCreditTransaction) {
+                previousCreditBalance = lastCreditTransaction.balance;
+            }
+
+            // Create or update the credit transaction
+            const creditTransaction = new Transaction({
+                receiptAccount: paymentAccount,
+                type: 'Pymt',
+                paymentAccountId: existingPayment._id,
+                billNumber: billNumber,
+                accountType: account,
+                debit: 0,
+                credit: debit,
+                paymentMode: 'Payment',
+                drCrNoteAccountTypes: 'Credit',
+                balance: previousCreditBalance - debit,
+                date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),
+                isActive: true,
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear,
+            });
+
+            await creditTransaction.save();
+            await Account.findByIdAndUpdate(paymentAccount, { $push: { transactions: creditTransaction._id } });
+
+            // if (req.query.print === 'true') {
+            //     // Redirect to the print route
+            //     res.redirect(`/payments/${existingPayment._id}/direct-print`);
+            // } else {
+            //     // Redirect to the payments list or another appropriate page
+            //     req.flash('success', 'Payment updated successfully!');
+            //     res.redirect('/payments');
+            // }
 
             if (req.query.print === 'true') {
                 // Redirect to the print route
-                res.redirect(`/payments/${paymentId}/direct-print-edit`);
+                res.redirect(`/payments/${existingPayment._id}/direct-print-edit`);
                 req.flash('success', 'Payment updated successfully!');
             } else {
                 // Redirect to the bills list or another appropriate page
                 req.flash('success', 'Payment saved successfully!');
-                res.redirect(`/payments/${paymentId}`);
+                res.redirect(`/payments/${existingPayment._id}`);
             }
         } catch (error) {
             console.error('Error updating payment:', error);
@@ -795,7 +866,7 @@ router.get('/payments/:id/print', ensureAuthenticated, ensureCompanySelected, en
 
             // Optionally, you can also retrieve related transactions
             const debitTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Pymt' }).populate('account');
-            const creditTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Rcpt' }).populate('receiptAccount');
+            const creditTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Pymt' }).populate('receiptAccount');
 
             // Render the payment voucher view (using EJS or any other view engine)
             res.render('wholeseller/payment/print', {
@@ -892,7 +963,7 @@ router.get('/payments/:id/direct-print', ensureAuthenticated, ensureCompanySelec
 
             // Optionally, you can also retrieve related transactions
             const debitTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Pymt' }).populate('account');
-            const creditTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Rcpt' }).populate('receiptAccount');
+            const creditTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Pymt' }).populate('receiptAccount');
 
             // Render the payment voucher view (using EJS or any other view engine)
             res.render('wholeseller/payment/direct-print', {
@@ -990,7 +1061,7 @@ router.get('/payments/:id/direct-print-edit', ensureAuthenticated, ensureCompany
 
             // Optionally, you can also retrieve related transactions
             const debitTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Pymt' }).populate('account');
-            const creditTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Rcpt' }).populate('receiptAccount');
+            const creditTransaction = await Transaction.findOne({ paymentAccountId: payment._id, type: 'Pymt' }).populate('receiptAccount');
 
             // Render the payment voucher view (using EJS or any other view engine)
             res.render('wholeseller/payment/direct-editPrint', {
@@ -1028,7 +1099,7 @@ router.post('/payments/cancel/:billNumber', ensureAuthenticated, ensureCompanySe
 
             // Mark related transactions as 'canceled' and set isActive to false
             const updateTransactionsStatus = await Transaction.updateMany(
-                { billNumber, mainType: 'Pymt' },
+                { billNumber, type: 'Pymt' },
                 { status: 'canceled', isActive: false }
             );
             console.log('Related transactions update result:', updateTransactionsStatus);
@@ -1055,7 +1126,7 @@ router.post('/payments/reactivate/:billNumber', ensureAuthenticated, ensureCompa
 
             // Reactivate related transactions and set isActive to true
             await Transaction.updateMany(
-                { billNumber, mainType: 'Pymt' },
+                { billNumber, type: 'Pymt' },
                 { status: 'active', isActive: true }  // Add isActive: true if you have added this field
             );
 

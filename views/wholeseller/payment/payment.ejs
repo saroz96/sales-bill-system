@@ -2,13 +2,44 @@
     <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 
-<div class="container mt-4" id="mainContainer">
-    <div class="card">
+<style>
+    .wow-form {
+        font-family: 'Arial', sans-serif;
+        background: linear-gradient(to right, #ffffff, #e0e0e0);
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    }
+
+    .btn {
+        transition: background-color 0.3s ease;
+    }
+
+    .btn:hover {
+        background-color: #0056b3;
+        color: white;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+        .wow-form {
+            padding: 15px;
+        }
+    }
+</style>
+
+<div class="container mt-4 wow-form" id="mainContainer">
+    <div class="card shadow-lg p-4 animate__animated animate__fadeInUp">
         <div class="card-header">
             <h5 class="card-title">Add Payment</h5>
         </div>
         <div class="card-body">
-            <form id="paymentForm" action="/payments" method="post">
+            <form id="paymentForm" action="/payments" method="post" class="wow-form">
                 <!-- Date Input -->
                 <div class="form-group row mb-3">
                     <% if (companyDateFormat==='nepali' ) { %>
@@ -135,7 +166,7 @@
                 </div>
 
                 <div class="d-flex justify-content-between">
-                    <div class="col-9">
+                    <div class="col">
                         <input type="text" class="form-control" name="description" id="description"
                             placeholder="Add Notes">
                     </div>

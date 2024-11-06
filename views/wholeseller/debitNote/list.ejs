@@ -161,37 +161,58 @@
                                     <%= debitNote.date.toLocaleDateString() %>
                                 </td>
                                 <td>
-                                    <% debitNote.debitAccounts.forEach(debitAccount=> { %>
-                                        <div>
-                                            <%= debitAccount.account ? debitAccount.account.name : 'N/A' %>
-                                        </div>
-                                        <% }) %>
+                                    <% if (debitNote.isActive) { %>
+                                        <% debitNote.debitAccounts.forEach(debitAccount=> { %>
+                                            <div>
+                                                <%= debitAccount.account ? debitAccount.account.name : 'N/A' %>
+                                            </div>
+                                            <% }) %>
+                                                <% } else { %>
+                                                    <span class="text-danger">Canceled</span>
+                                                    <% } %>
                                 </td>
                                 <td>
-                                    <% debitNote.debitAccounts.forEach(debitAccount=> { %>
-                                        <span class="debit-amount badge badge-debit">
-                                            <%= debitAccount.debit %>
-                                        </span>
-                                        <% }) %>
+                                    <% if (debitNote.isActive) { %>
+                                        <% debitNote.debitAccounts.forEach(debitAccount=> { %>
+                                            <span class="debit-amount badge badge-debit">
+                                                <%= debitAccount.debit %>
+                                            </span>
+                                            <% }) %>
+                                                <% } else { %>
+                                                    <span class="text-danger">0.00</span>
+                                                    <% } %>
                                 </td>
                                 <td>
-                                    <% debitNote.creditAccounts.forEach(creditAccount=> { %>
-                                        <div>
-                                            <%= creditAccount.account ? creditAccount.account.name : 'N/A' %>
-                                        </div>
-                                        <% }) %>
+                                    <% if (debitNote.isActive) { %>
+                                        <% debitNote.creditAccounts.forEach(creditAccount=> { %>
+                                            <div>
+                                                <%= creditAccount.account ? creditAccount.account.name : 'N/A' %>
+                                            </div>
+                                            <% }) %>
+                                                <% } else { %>
+                                                    <span class="text-danger">Canceled</span>
+                                                    <% } %>
                                 </td>
                                 <td>
-                                    <% debitNote.creditAccounts.forEach(creditAccount=> { %>
-                                        <span class="credit-amount badge badge-credit">
-                                            <%= creditAccount.credit %>
-                                        </span>
-                                        <% }) %>
+                                    <% if (debitNote.isActive) { %>
+                                        <% debitNote.creditAccounts.forEach(creditAccount=> { %>
+                                            <span class="credit-amount badge badge-credit">
+                                                <%= creditAccount.credit %>
+                                            </span>
+                                            <% }) %>
+                                                <% } else { %>
+                                                    <span class="text-success">0.00</span>
+                                                    <% } %>
                                 </td>
                                 <td>
                                     <%= debitNote.description %>
                                 </td>
-                                <td><a href="/debit-note/<%= debitNote._id %>/print">View</a></td>
+                                <td>
+                                    <a href="/debit-note/<%= debitNote._id %>/print"><button class="btn-sm btn-info"><i
+                                                class="fas fa-eye"></i></button></a>
+                                    <a href="/debit-note/<%= debitNote._id %>"><button class="btn btn-sm btn-warning"><i
+                                                class="fas fa-edit"></i></button></a>
+                                </td>
                             </tr>
                             <% }) %>
                                 <% } else { %>

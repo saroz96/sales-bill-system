@@ -2,44 +2,75 @@
     <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 
-<div class="container mt-4">
-    <div class="card">
+<style>
+    .wow-form {
+        font-family: 'Arial', sans-serif;
+        background: linear-gradient(to right, #ffffff, #e0e0e0);
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    }
+
+    .btn {
+        transition: background-color 0.3s ease;
+    }
+
+    .btn:hover {
+        background-color: #0056b3;
+        color: white;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+        .wow-form {
+            padding: 15px;
+        }
+    }
+</style>
+
+<div class="container mt-4 wow-form">
+    <div class="card shadow-lg p-4 animate__animated animate__fadeInUp">
         <div class="card-header">
             <h5 class="card-title">Add Receipt</h5>
         </div>
         <div class="card-body">
-            <form id="receiptForm" action="/receipts" method="post">
+            <form id="receiptForm" action="/receipts" method="post" class="wow-form">
                 <!-- Date Input -->
                 <div class="form-group row mb-3">
                     <% if (companyDateFormat==='nepali' ) { %>
-                        <div class="col-md-6">
+                        <div class="col">
                             <label for="nepaliDate">Date:</label>
                             <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
                                 value="<%= nepaliDate || '' %>" autofocus>
                         </div>
-                        <div class="col-md-6 d-none">
+                        <div class="col d-none">
                             <label for="billDate">Date:</label>
                             <input type="date" name="billDate" id="billDate" class="form-control"
                                 value="<%= new Date().toISOString().split('T')[0] %>" disabled autofocus>
                         </div>
                         <% } else { %>
-                            <div class="col-md-6">
+                            <div class="col">
                                 <label for="billDate">Date:</label>
                                 <input type="date" name="billDate" id="billDate" class="form-control" required
                                     value="<%= new Date().toISOString().split('T')[0] %>" autofocus>
                             </div>
-                            <div class="col-md-6 d-none">
+                            <div class="col d-none">
                                 <label for="nepaliDate">Date:</label>
                                 <input type="text" name="nepaliDate" id="nepaliDate" class="form-control"
                                     value="<%= nepaliDate || '' %>" disabled autofocus>
                             </div>
                             <% } %>
-                                <div class="col-md-6">
+                                <div class="col">
                                     <label for="billNumber">Voucher Number:</label>
                                     <input type="number" name="billNumber" id="billNumber" class="form-control"
                                         value="<%= nextBillNumber %>" required readonly>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col">
                                     <label for="accountType">Account Type:</label>
                                     <input type="text" name="accountType" id="accountType" class="form-control"
                                         value="Receipt" readonly>
@@ -134,7 +165,7 @@
                     </div>
                 </div>
                 <div class="d-flex justify-content-between">
-                    <div class="col-9">
+                    <div class="col">
                         <input type="text" class="form-control" name="description" id="description"
                             placeholder="Add Notes">
                     </div>
