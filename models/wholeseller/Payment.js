@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({
+    fiscalYear: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'FiscalYear',
+        required: true
+    },
     billNumber: { type: Number, unique: true, required: true },
     date: { type: Date, required: true },
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
@@ -26,6 +31,6 @@ const paymentSchema = new mongoose.Schema({
 });
 
 // Index to ensure unique account names within a company
-paymentSchema.index({ billNumber: 1, company: 1 }, { unique: true });
+paymentSchema.index({ billNumber: 1, company: 1, fiscalYear: 1 }, { unique: true });
 
 module.exports = mongoose.model('Payment', paymentSchema);

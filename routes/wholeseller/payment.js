@@ -59,7 +59,7 @@ router.get('/payments-list', ensureAuthenticated, ensureCompanySelected, ensureT
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
 
-        const payments = await Payment.find()
+        const payments = await Payment.find({ fiscalYear: fiscalYear, company: companyId })
             .populate('account', 'name') // Assuming 'name' field exists in Account schema
             .populate('user', 'name') // Assuming 'username' field exists in User schema
             .populate('paymentAccount', 'name') // Assuming 'name' field exists in Account schema for paymentAccount
@@ -67,8 +67,9 @@ router.get('/payments-list', ensureAuthenticated, ensureCompanySelected, ensureT
         res.render('wholeseller/payment/list', {
             company, currentFiscalYear,
             payments, currentCompanyName, currentCompany,
-            title: 'View Payment',
-            body: 'wholeseller >> payment >> view payments',
+            title: '',
+            body: '',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
@@ -192,9 +193,9 @@ router.get('/payments', ensureAuthenticated, ensureCompanySelected, ensureTradeT
                 companyDateFormat,
                 currentCompanyName: req.session.currentCompanyName,
                 date: new Date().toISOString().split('T')[0], // Today's date in ISO format
+                title: '',
+                body: '',
                 user: req.user,
-                title: 'Add Payment',
-                body: 'wholeseller >> payment >> add payment',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
@@ -252,9 +253,9 @@ router.get('/payments/finds', ensureAuthenticated, ensureCompanySelected, ensure
             companyDateFormat,
             currentCompanyName: req.session.currentCompanyName,
             date: new Date().toISOString().split('T')[0], // Today's date in ISO format
+            title: '',
+            body: '',
             user: req.user,
-            title: 'Add Payment',
-            body: 'wholeseller >> payment >> add payment',
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         })
     }
@@ -323,6 +324,7 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 user: userId,
                 companyGroups: companyId,
                 fiscalYear: currentFiscalYear,
+                company: companyId
 
             });
 
@@ -508,9 +510,9 @@ router.get('/payments/:id', ensureAuthenticated, ensureCompanySelected, ensureTr
                 companyDateFormat,
                 currentCompanyName: req.session.currentCompanyName,
                 date: new Date().toISOString().split('T')[0], // Today's date in ISO format
+                title: '',
+                body: '',
                 user: req.user,
-                title: 'Add Payment',
-                body: 'wholeseller >> payment >> add payment',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
@@ -627,9 +629,9 @@ router.get('/payments/edit/billNumber', ensureAuthenticated, ensureCompanySelect
                 companyDateFormat,
                 currentCompanyName: req.session.currentCompanyName,
                 date: new Date().toISOString().split('T')[0], // Today's date in ISO format
+                title: '',
+                body: '',
                 user: req.user,
-                title: 'Add Payment',
-                body: 'wholeseller >> payment >> add payment',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
@@ -877,9 +879,9 @@ router.get('/payments/:id/print', ensureAuthenticated, ensureCompanySelected, en
                 currentCompany,
                 date: new Date().toISOString().split('T')[0], // Today's date in ISO format
                 company: companyId,
+                title: '',
+                body: '',
                 user: req.user,
-                title: 'Print Payment',
-                body: 'wholeseller >> payment >> print',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             }); // Change 'paymentVoucher' to your view file name
         } catch (error) {
@@ -973,9 +975,9 @@ router.get('/payments/:id/direct-print', ensureAuthenticated, ensureCompanySelec
                 currentCompany,
                 date: new Date().toISOString().split('T')[0], // Today's date in ISO format
                 company: companyId,
+                title: '',
+                body: '',
                 user: req.user,
-                title: 'Print Payment',
-                body: 'wholeseller >> payment >> print',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             }); // Change 'paymentVoucher' to your view file name
         } catch (error) {
@@ -1071,9 +1073,9 @@ router.get('/payments/:id/direct-print-edit', ensureAuthenticated, ensureCompany
                 currentCompany,
                 date: new Date().toISOString().split('T')[0], // Today's date in ISO format
                 company: companyId,
+                title: '',
+                body: '',
                 user: req.user,
-                title: 'Print Payment',
-                body: 'wholeseller >> payment >> print',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             }); // Change 'paymentVoucher' to your view file name
         } catch (error) {
