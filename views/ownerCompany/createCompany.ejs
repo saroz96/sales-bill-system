@@ -161,7 +161,38 @@
         </div>
     </nav>
     <div class="container">
+        <div class="text-center">
+            <span class="text-danger">(Maximum of 3 companies allowed.)</span>
+        </div>
         <h1>Create a New Company</h1>
+        <!-- Modal Structure -->
+        <div class="modal fade custom-right-modal" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="messageModalLabel">Message</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Dynamic message -->
+                        <% if (messages && messages.length) { %>
+                            <div class="alert alert-success">
+                                <%= messages %>
+                            </div>
+                            <% } %>
+                                <% if (error && error.length) { %>
+                                    <div class="alert alert-danger">
+                                        <%= error %>
+                                    </div>
+                                    <% } %>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="okButton" type="button" class="btn btn-primary" autofocus>OK</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <form action="/company" method="POST" class="needs-validation" novalidate>
             <div class="row g-3">
                 <div class="col-md-6">
@@ -203,17 +234,21 @@
 
                 <div class="col-md-6">
                     <label for="pan" class="form-label">PAN:</label>
-                    <input type="text" class="form-control" id="pan" name="pan" required>
-                    <div class="invalid-feedback">Please enter the PAN number.</div>
+                    <input type="text" class="form-control" id="pan" name="pan" maxlength="9" minlength="9"
+                        placeholder="PAN no should be 9 digits" required>
+                    <div class="invalid-feedback">Please enter the correct PAN number.</div>
                 </div>
             </div>
 
             <div class="row g-3">
                 <div class="col-md-6">
                     <label for="phone" class="form-label">Phone:</label>
-                    <input type="tel" class="form-control" id="phone" name="phone" required>
-                    <div class="invalid-feedback">Please enter a valid phone number.</div>
+                    <input type="tel" class="form-control" id="phone" name="phone"
+                        pattern="^\+?[0-9]{1,4}[- ]?[0-9]{7,10}$" required placeholder="+977-9801234567 or 9801234567">
+                    <div class="invalid-feedback">Please enter a valid phone number (e.g., +977-9801234567 or
+                        9801234567).</div>
                 </div>
+
 
                 <div class="col-md-6">
                     <label for="ward" class="form-label">Ward No:</label>
@@ -323,6 +358,38 @@
                 });
             })();
         });
+
+        document.addEventListener('DOMContentLoaded', function () {
+        <% if (messages && messages.length || error && error.length) { %>
+            var messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+
+                // Show modal
+                messageModal.show();
+
+                // Automatically focus on the OK button
+                // var okButton = document.getElementById('okButton');
+                // okButton.focus();
+
+                // Handle 'Enter' key press to trigger OK button
+                document.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter') {
+                        okButton.click();
+                    }
+                });
+
+                // Prevent closing the modal until 'OK' is pressed
+                okButton.addEventListener('click', function () {
+                    // Perform any additional actions if needed
+                    messageModal.hide(); // Close modal only when OK is pressed
+                });
+
+                // Cancel button logic (optional, already handled by data-bs-dismiss)
+                var cancelButton = document.getElementById('cancelButton');
+                cancelButton.addEventListener('click', function () {
+                    // Optional: Handle cancellation logic if needed
+                });
+        <% } %>
+    });
     </script>
 </body>
 

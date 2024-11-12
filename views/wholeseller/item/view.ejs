@@ -1,100 +1,97 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
-<br>
-<div class="container" id="mainContainer">
-    <div class="card">
-        <div class="card-header">
-            <h2>
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+    <div class="container mt-4 wow-form">
+        <div class="card shadow-lg p-4 animate__animated animate__fadeInUp">
+            <div class="card-header">
+                <!-- <h2>
                 Items Details
-            </h2>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5 class="card-title">Details</h5>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item"><strong>Item Name:</strong>
-                            <%= items.name %>
-                        </li>
-                        <li class="list-group-item"><strong>Itms H.S. Code: </strong>
-                            <%=items.hscode%>
-                        </li>
-                        <li class="list-group-item"><strong>VAT Status:</strong>
-                            <%= items.vatStatus %>
-                        </li>
-                        <li class="list-group-item"><strong>Unit:</strong>
-                            <%= items.unit ? items.unit.name : 'No Unit' %>
-                        </li>
-                        <li class="list-group-item"><strong>Category:</strong>
-                            <%= items.category ? items.category.name : 'No Category' %>
-                        </li>
-                    </ul>
+            </h2> -->
+                <h2 style="text-align: center;text-decoration: underline;">Items Details</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="card-title">Details</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>Item Name:</strong>
+                                <%= items.name %>
+                            </li>
+                            <li class="list-group-item"><strong>Itms H.S. Code: </strong>
+                                <%=items.hscode%>
+                            </li>
+                            <li class="list-group-item"><strong>VAT Status:</strong>
+                                <%= items.vatStatus %>
+                            </li>
+                            <li class="list-group-item"><strong>Unit:</strong>
+                                <%= items.unit ? items.unit.name : 'No Unit' %>
+                            </li>
+                            <li class="list-group-item"><strong>Category:</strong>
+                                <%= items.category ? items.category.name : 'No Category' %>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="card-title">
+                            <%=items._id%>
+                        </h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>Sales Price:</strong>
+                                <%= salesPrice %>
+                            </li>
+                            <li class="list-group-item"><strong>Purchase Price:</strong>
+                                <%= purchasePrice %>
+                            </li>
+                            <li class="list-group-item"><strong>Opening Stock:</strong>
+                                <%= openingStock %>
+                            </li>
+                            <li class="list-group-item"><strong>Opening Stock Balance:</strong>
+                                <%= openingStockBalance.toFixed(2) || 0.00 %>
+                            </li>
+                            <li class="list-group-item"><strong>Re-Order Level:</strong>
+                                <%=items.reorderLevel%>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <h5 class="card-title">
-                        <%=items._id%>
-                    </h5>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item"><strong>Sales Price:</strong>
-                            <%= salesPrice %>
-                        </li>
-                        <li class="list-group-item"><strong>Purchase Price:</strong>
-                            <%= purchasePrice %>
-                        </li>
-                        <li class="list-group-item"><strong>Opening Stock:</strong>
-                            <%= openingStock %>
-                        </li>
-                        <li class="list-group-item"><strong>Opening Stock Balance:</strong>
-                            <%= openingStockBalance.toFixed(2) || 0.00 %>
-                        </li>
-                        <li class="list-group-item"><strong>Re-Order Level:</strong>
-                            <%=items.reorderLevel%>
-                        </li>
-                    </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Exit Confirmation Modal -->
+    <div class="modal fade" id="exitConfirmationModal" tabindex="-1" aria-labelledby="exitConfirmationModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exitConfirmationModalLabel">Exit Confirmation</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to exit without saving?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmExit" autofocus>Yes, Exit</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <a href="/items" class="btn btn-secondary mt-3">Back</a>
-</div>
+    <script>
+        //Handle scape buttons
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                event.preventDefault(); // Prevent default escape behavior
+                var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
+                exitModal.show();
+            }
+        });
 
-<!-- Exit Confirmation Modal -->
-<div class="modal fade" id="exitConfirmationModal" tabindex="-1" aria-labelledby="exitConfirmationModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exitConfirmationModalLabel">Exit Confirmation</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to exit without saving?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmExit" autofocus>Yes, Exit</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    //Handle scape buttons
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            event.preventDefault(); // Prevent default escape behavior
-            var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
-            exitModal.show();
-        }
-    });
-
-    // Handle the exit confirmation
-    document.getElementById('confirmExit').addEventListener('click', function () {
-        // Redirect to the home page
-        window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
-    });
-</script>
+        // Handle the exit confirmation
+        document.getElementById('confirmExit').addEventListener('click', function () {
+            // Redirect to the home page
+            window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
+        });
+    </script>

@@ -72,10 +72,10 @@ router.get('/bills-list', ensureAuthenticated, ensureCompanySelected, ensureTrad
             currentFiscalYear,
             bills,
             currentCompany,
-            user: req.user,
             currentCompanyName,
             title: 'Sales Bill',
             body: 'wholeseller >> sales >> bills',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
@@ -104,7 +104,7 @@ router.get('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType
             .populate('unit')
             .populate({
                 path: 'stockEntries',
-                match: { quantity: { $gt: 0 } },//Only fetch stock entries with remaining quantity
+                match: { quantity: { $gt: 0 } }, // Only fetch stock entries with remaining quantity
                 select: 'batchNumber expiryDate quantity', // Select only necessary fields
             });
         const bills = await SalesBill.find({ company: companyId }).populate('account').populate('items.item');
@@ -136,7 +136,6 @@ router.get('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType
                 endDate: currentFiscalYear.endDate,
                 name: currentFiscalYear.name,
                 dateFormat: currentFiscalYear.dateFormat,
-                // isActive: currentFiscalYear.isActive
                 isActive: true
             };
 
@@ -151,11 +150,17 @@ router.get('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType
         const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear });
 
         // Get the next bill number based on company, fiscal year, and transaction type ('sales')
-        let billCounter = await BillCounter.findOne({
-            company: companyId,
-            fiscalYear: fiscalYear,
-            transactionType: 'Sales' // Specify the transaction type for sales bill
-        });
+        let billCounter;
+        try {
+            billCounter = await BillCounter.findOne({
+                company: companyId,
+                fiscalYear: fiscalYear,
+                transactionType: 'Sales' // Specify the transaction type for sales bill
+            });
+        } catch (error) {
+            console.error('Error fetching bill counter:', error);
+            return res.status(500).json({ error: 'An error occurred while fetching the bill counter.' });
+        }
 
         let nextBillNumber;
         if (billCounter) {
@@ -176,19 +181,19 @@ router.get('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType
             initialCurrentFiscalYear,
             currentFiscalYear,
             currentCompany,
-            user: req.user,
             currentCompanyName: req.session.currentCompanyName,
             title: 'Sales',
             body: 'wholeseller >> sales >> add',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
 });
 
-
 // POST route to handle sales bill creation
 router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
+        let newBillNumber;
         try {
             const {
                 account,
@@ -204,11 +209,25 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
                 roundOffAmount: manualRoundOffAmount,
             } = req.body;
             const companyId = req.session.currentCompany;
-            const currentFiscalYear = req.session.currentFiscalYear.id
+            const currentFiscalYear = req.session.currentFiscalYear.id;
             const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
             const userId = req.user._id;
 
             console.log('Request Body:', req.body);
+
+            // Define date format regex pattern (e.g., YYYY-MM-DD)
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+            // Validate the date formats for English and Nepali dates
+            if (
+                (transactionDateRoman && !dateRegex.test(transactionDateRoman)) ||
+                (transactionDateNepali && !dateRegex.test(transactionDateNepali)) ||
+                (billDate && !dateRegex.test(billDate)) ||
+                (nepaliDate && !dateRegex.test(nepaliDate))
+            ) {
+                req.flash('error', 'Invalid date format. Please use YYYY-MM-DD.');
+                return res.redirect('/bills');
+            }
 
             const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
             const discount = parseFloat(discountPercentage) || 0;
@@ -270,16 +289,6 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
                     return res.redirect('/bills');
                 }
             }
-            // // Find the counter for the company
-            // let billCounter = await BillCounter.findOne({ company: companyId });
-            // if (!billCounter) {
-            //     billCounter = new BillCounter({ company: companyId });
-            // }
-            // // Increment the counter
-            // billCounter.count += 1;
-            // await billCounter.save();
-
-            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Sales')
 
             // Apply discount proportionally to vatable and non-vatable items
             const discountForTaxable = (totalTaxableAmount * discount) / 100;
@@ -301,12 +310,12 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
             // Check if round off is enabled in settings
             let roundOffForSales = await Settings.findOne({
                 companyId, userId, fiscalYear: currentFiscalYear
-            }); // Assuming you have a single settings document
+            });
 
             // Handle case where settings is null
             if (!roundOffForSales) {
                 console.log('No settings found, using default settings or handling as required');
-                roundOffForSales = { roundOffSales: false }; // Provide default settings or handle as needed
+                roundOffForSales = { roundOffSales: false };
             }
             let roundOffAmount = 0;
             if (roundOffForSales.roundOffSales) {
@@ -317,10 +326,12 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
                 finalAmount = totalAmount + roundOffAmount;
             }
 
+            // Create the bill number **after successful validation and processing**
+            newBillNumber = await getNextBillNumber(companyId, fiscalYearId, 'Sales');
+
             // Create new bill
             const newBill = new SalesBill({
-                // billNumber: billCounter.count,
-                billNumber: billNumber,
+                billNumber: newBillNumber,
                 account,
                 purchaseSalesType: 'Sales',
                 items: [], // We'll update this later
@@ -365,7 +376,7 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
                 }
             }
 
-            // Create transactions
+            // Create transactions for items
             const billItems = await Promise.all(items.map(async item => {
                 const product = await Item.findById(item.item);
 
@@ -373,16 +384,15 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
                 const transaction = new Transaction({
                     item: product._id,
                     account: account,
-                    // billNumber: billCounter.count,
-                    billNumber: billNumber,
+                    billNumber: newBillNumber,
                     quantity: item.quantity,
                     price: item.price,
-                    unit: item.unit,  // Include the unit field                    type: 'Sale',
+                    unit: item.unit,
+                    type: 'Sale',
                     billId: newBill._id,  // Set billId to the new bill's ID
                     purchaseSalesType: 'Sales',
-                    type: 'Sale',
                     debit: finalAmount,  // Set debit to the item's total amount
-                    credit: 0,        // Credit is 0 for sales transactions
+                    credit: 0,  // Credit is 0 for sales transactions
                     paymentMode: paymentMode,
                     balance: previousBalance - finalAmount, // Update the balance based on item total
                     date: nepaliDate ? nepaliDate : new Date(billDate),
@@ -404,6 +414,8 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
                     quantity: item.quantity,
                     price: item.price,
                     unit: item.unit,  // Include the unit field in the bill items
+                    batchNumber: item.batchNumber,  // Add batch number
+                    expiryDate: item.expiryDate,  // Add expiry date
                     vatStatus: product.vatStatus,
                     fiscalYear: fiscalYearId
                 };
@@ -415,31 +427,6 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
             console.log('billItems', billItems);
             await newBill.save();
 
-            // If payment mode is cash, also create a transaction for the "Cash in Hand" account
-            if (paymentMode === 'cash') {
-                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
-                if (cashAccount) {
-                    const cashTransaction = new Transaction({
-                        account: cashAccount._id,
-                        // billNumber: billCounter.count,
-                        billNumber: billNumber,
-                        type: 'Sale',
-                        billId: newBill._id,  // Set billId to the new bill's ID
-                        purchaseSalesType: 'Sales',
-                        debit: finalAmount,  // Debit is 0 for cash-in-hand as we're receiving cash
-                        credit: 0,  // Credit is the total amount since we're receiving cash
-                        paymentMode: paymentMode,
-                        balance: previousBalance + finalAmount, // Update the balance
-                        date: nepaliDate ? nepaliDate : new Date(billDate),
-                        company: companyId,
-                        user: userId,
-                        fiscalYear: currentFiscalYear
-
-                    });
-                    await cashTransaction.save();
-                }
-            }
-
             if (req.query.print === 'true') {
                 // Redirect to the print route
                 res.redirect(`/bills/${newBill._id}/direct-print`);
@@ -449,9 +436,9 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
                 res.redirect('/bills');
             }
         } catch (error) {
-            console.error("Error creating bill:", error);
-            req.flash('error', 'Error creating bill');
-            res.redirect('/bills');
+            console.error('Error while creating sales bill:', error);
+            req.flash('error', 'An error occurred while processing the bill.');
+            return res.redirect('/bills');
         }
     }
 });
@@ -1741,8 +1728,8 @@ router.get('/bills/:id/print', ensureAuthenticated, ensureCompanySelected, ensur
                 companyDateFormat,
                 title: 'Sales Bill Print',
                 body: 'wholeseller >> sales >> print',
+                user: req.user,
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
-
 
             });
         } catch (error) {
@@ -1851,6 +1838,8 @@ router.get('/bills/:id/direct-print', ensureAuthenticated, ensureCompanySelected
                 nepaliDate,
                 englishDate: bill.englishDate,
                 companyDateFormat,
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
 
             });
         } catch (error) {
@@ -2188,6 +2177,7 @@ router.get('/sales-vat-report', ensureAuthenticated, ensureCompanySelected, ensu
             currentCompanyName,
             title: 'Statement',
             body: 'wholeseller >> report >> statement',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } else {
@@ -2252,6 +2242,7 @@ router.get('/statement', ensureAuthenticated, ensureCompanySelected, ensureTrade
                     toDate: '', paymentMode, companyDateFormat, nepaliDate, currentCompanyName,
                     title: 'Statement',
                     body: 'wholeseller >> report >> statement',
+                    user: req.user,
                     isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
                 });
             }
@@ -2342,7 +2333,8 @@ router.get('/statement', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 currentCompanyName, companyDateFormat, nepaliDate,
                 title: 'Statement',
                 body: 'wholeseller >> report >> statement',
-                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor' // Pass role info to the view
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
             console.error("Error fetching statement:", error);

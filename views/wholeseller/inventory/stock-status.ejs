@@ -1,413 +1,478 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css"
+        rel="stylesheet">
 
-<style>
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: auto;
-    }
-
-    th,
-    td {
-        padding: 8px;
-        text-align: left;
-        border: 1px solid black;
-        white-space: nowrap;
-    }
-
-    th {
-        background-color: #f2f2f2;
-    }
-
-    @media print {
-        @page {
-            size: A4 landscape;
-            margin: 10mm;
-        }
-
-        body {
-            font-size: 12px;
-            margin: 10mm;
-        }
-
-        #printHeader {
-            display: block;
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
         }
 
         th,
         td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid black;
             white-space: nowrap;
         }
 
-        #filterForm,
-        #searchInput,
-        #itemsList .searchClass td:last-child {
-            display: none;
+        th {
+            background-color: #f2f2f2;
         }
 
-        #mainContainer {
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+
+            body {
+                font-size: 12px;
+                margin: 10mm;
+            }
+
+            #printHeader {
+                display: block;
+            }
+
+            th,
+            td {
+                white-space: nowrap;
+            }
+
+            #filterForm,
+            #searchInput,
+            #itemsList .searchClass td:last-child {
+                display: none;
+            }
+
+            #mainContainer {
+                width: 100%;
+            }
+        }
+
+        @media screen {
+            #printHeader {
+                display: none;
+            }
+        }
+
+
+        /* Custom styles to resize the form */
+        .expanded-container {
+            max-width: 90%;
+            /* Expand the container to 90% of the viewport width */
+        }
+
+        .expanded-card {
             width: 100%;
+            /* Ensure the card takes full width of the container */
         }
-    }
 
-    @media screen {
-        #printHeader {
-            display: none;
+        @media (min-width: 768px) {
+            .expanded-container {
+                max-width: 90%;
+                /* Adjust width for medium and larger screens */
+            }
         }
-    }
-</style>
+    </style>
 
-<div class="container mt-5" id="mainContainer">
-    <h1>Stock Status</h1>
-    <form method="get" action="/wholeseller/stock-status" id="stockStatusForm">
-        <div class="row">
-            <div class="col form-group">
-                <label for="showPurchaseValue">
-                    <input type="checkbox" name="showPurchaseValue" id="showPurchaseValue" value="true" <% if
-                        (showPurchaseValue) { %>checked<% } %>> St.Value On C.P
-                </label>
+    <div class="container wow-form expanded-container">
+        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <h1 class="mb-4" id="printh1" style="text-align: center; text-decoration: underline;">Stock Status</h1>
+            <div class="text-center">
+                <label for=" asOn">As on: </label>
+                <span id="currentDate"></span>
+                (F.Y: <%= currentFiscalYear ? currentFiscalYear.name : (initialCurrentFiscalYear ?
+                    initialCurrentFiscalYear.name : 'Not selected' ) %>)
             </div>
-            <div class="col form-group">
-                <label for="showSalesValue">
-                    <input type="checkbox" name="showSalesValue" id="showSalesValue" value="true" <% if (showSalesValue)
-                        { %>checked<% } %>> St.Value On S.P
-                </label>
+
+            <div class="row g-3 align-items-center mb-4"> <!-- Align items vertically in the center -->
+                <div class="col-9">
+                    <form class="input-group"> <!-- Use d-flex for horizontal alignment -->
+                        <input type="text" class="form-control" id="searchInput"
+                            placeholder="Search by invoice number, party name & users..." aria-label="Search" autofocus>
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch">Clear</button>
+                        <!-- Added clear button -->
+                    </form>
+                </div>
+                <div class="col-3">
+                    <form method="get" action="/wholeseller/stock-status" id="stockStatusForm">
+                        <div class="row g-3 align-items-center mb-4">
+                            <div class="col">
+                                <label for="showPurchaseValue">
+                                    <input type="checkbox" name="showPurchaseValue" id="showPurchaseValue" value="true"
+                                        <% if (showPurchaseValue) { %>checked<% } %>> St.Value On C.P
+                                </label>
+                            </div>
+                            <div class="col">
+                                <label for="showSalesValue">
+                                    <input type="checkbox" name="showSalesValue" id="showSalesValue" value="true" <% if
+                                        (showSalesValue) { %>checked<% } %>> St.Value On S.P
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </div>
-    </form>
 
-    <!-- Print Header -->
-    <div id="printHeader" class="d-none text-center">
-        <div class="header" style="text-align: center;">
-            <h2 class="card-subtitle mb-2">
-                <%= currentCompanyName %>
-            </h2>
-            <b>
-                <h4>
-                    <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
-                                <%=currentCompany.country%> <br><br>
-                                    Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
-                                            <br><br>
-                                            VAT NO.: <span id="pan-vat-container"></span>
-                </h4>
-            </b>
-            <hr style="border: 0.5px solid;">
-        </div>
-    </div>
+            <div class="row">
+                <div class="col">
+                    <!-- Print Button -->
+                    <a href="/items" class="btn btn-primary mb-3"><i class="bi bi-receipt"></i></a>
+                    <button id="printAll" class="btn btn-secondary mb-3"><i class="bi bi-printer">
+                            All</i></button>
+                    <button id="printFiltered" class="btn btn-secondary mb-3"><i class="bi bi-printer">
+                            Filtered</i></button>
+                </div>
+            </div>
 
-    <div class="row align-items-center">
-        <div class="col mb-3">
-            <form class="d-flex">
-                <input type="text" class="form-control me-2" id="searchInput"
-                    placeholder="Search by items name & category..." aria-label="Search">
-            </form>
-        </div>
-    </div>
-    <!-- Print Button -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div>
-            <button id="printAll" class="btn btn-secondary mb-3">Print All</button>
-            <button id="printFiltered" class="btn btn-secondary mb-3">Print Filtered</button>
-        </div>
-        <div>
-            As on: <span id="currentDate"></span>
-        </div>
-        <div>
-            (F.Y: <%= currentFiscalYear ? currentFiscalYear.name : (initialCurrentFiscalYear ?
-                initialCurrentFiscalYear.name : 'Not selected' ) %>)
-        </div>
-    </div>
 
-    <table class="table table-striped" id="itemsList">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Item Name</th>
-                <th>Category</th>
-                <th>Unit</th>
-                <th>Total Stock</th>
-                <th>Op. Stock</th>
-                <th>Qty. In</th>
-                <th>Qty. Out</th>
-                <th>Min Stock</th>
-                <th>Max Stock</th>
-                <th>C.P</th>
-                <th>S.P</th>
-                <% if (showPurchaseValue) { %>
-                    <th>St.Val (C.P)</th>
-                    <% } %>
-                        <% if (showSalesValue) { %>
-                            <th>St.Val (S.P)</th>
+            <table class="table table-striped" id="itemsList">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Item Name</th>
+                        <th>Category</th>
+                        <th>Unit</th>
+                        <th>Total Stock</th>
+                        <th>Op. Stock</th>
+                        <th>Qty. In</th>
+                        <th>Qty. Out</th>
+                        <th>Min Stock</th>
+                        <th>Max Stock</th>
+                        <th>C.P</th>
+                        <th>S.P</th>
+                        <% if (showPurchaseValue) { %>
+                            <th>St.Val (C.P)</th>
                             <% } %>
-            </tr>
-        </thead>
-        <tbody>
-            <% items.forEach((item, index)=> { %>
-                <tr class="searchClass">
-                    <td>
-                        <%= index + 1 %>
-                    </td>
-                    <td>
-                        <%= item.name %>
-                    </td>
-                    <td>
-                        <%= item.category.name %>
-                    </td>
-                    <td>
-                        <%= item.unit.name %>
-                    </td>
-                    <td>
-                        <%= item.stockEntries ? item.stockEntries.reduce((acc, entry)=> acc +
-                            entry.quantity, 0) : 0
-                            %>
-                    </td>
-                    <td>
-                        <%= item.openingStockByFiscalYear.length ? item.openingStockByFiscalYear[0].openingStock : 0 %>
-                    </td>
-                    <td>
-                        <%= item.totalQtyIn %>
-                    </td>
-                    <td>
-                        <%= item.totalQtyOut %>
-                    </td>
-                    <td>
-                        <%= item.minStock %>
-                    </td>
-                    <td>
-                        <%= item.maxStock %>
-                    </td>
-                    <td>
-                        <%= item.avgPuPrice.toFixed(2) %>
-                    </td>
-                    <td>
-                        <%= item.avgPrice.toFixed(2) %>
-                    </td>
-                    <% if (showPurchaseValue) { %>
-                        <td>
-                            <%= item.totalStockValuePurchase.toFixed(2) %>
-                        </td>
-                        <% } %>
-                            <% if (showSalesValue) { %>
+                                <% if (showSalesValue) { %>
+                                    <th>St.Val (S.P)</th>
+                                    <% } %>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% items.forEach((item, index)=> { %>
+                        <tr class="searchClass">
+                            <td>
+                                <%= index + 1 %>
+                            </td>
+                            <td>
+                                <%= item.name %>
+                            </td>
+                            <td>
+                                <%= item.category.name %>
+                            </td>
+                            <td>
+                                <%= item.unit.name %>
+                            </td>
+                            <td>
+                                <%= item.stockEntries ? item.stockEntries.reduce((acc, entry)=> acc +
+                                    entry.quantity, 0) : 0
+                                    %>
+                            </td>
+                            <td>
+                                <%= item.openingStockByFiscalYear.length ? item.openingStockByFiscalYear[0].openingStock
+                                    : 0 %>
+                            </td>
+                            <td>
+                                <%= item.totalQtyIn %>
+                            </td>
+                            <td>
+                                <%= item.totalQtyOut %>
+                            </td>
+                            <td>
+                                <%= item.minStock %>
+                            </td>
+                            <td>
+                                <%= item.maxStock %>
+                            </td>
+                            <td>
+                                <%= item.avgPuPrice.toFixed(2) %>
+                            </td>
+                            <td>
+                                <%= item.avgPrice.toFixed(2) %>
+                            </td>
+                            <% if (showPurchaseValue) { %>
                                 <td>
-                                    <%= item.totalStockValueSales.toFixed(2) %>
+                                    <%= item.totalStockValuePurchase.toFixed(2) %>
                                 </td>
                                 <% } %>
-                </tr>
-                <% }); %>
-        </tbody>
-        <tfoot>
-            <tr>
-                <th colspan="4">Total</th>
-                <th id="totalStock"></th>
-                <th id="totalOpeningStock"></th>
-                <th id="totalQtyIn"></th>
-                <th id="totalQtyOut"></th>
-                <th id="totalMinStock"></th>
-                <th id="totalMaxStock"></th>
-                <th id="purchasePrice"></th>
-                <th id="salesPrice"></th>
-                <% if (showPurchaseValue) { %>
-                    <th id="totalPurchaseValue"></th>
-                    <% } %>
-                        <% if (showSalesValue) { %>
-                            <th id="totalSalesValue"></th>
+                                    <% if (showSalesValue) { %>
+                                        <td>
+                                            <%= item.totalStockValueSales.toFixed(2) %>
+                                        </td>
+                                        <% } %>
+                        </tr>
+                        <% }); %>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="4">Total</th>
+                        <th id="totalStock"></th>
+                        <th id="totalOpeningStock"></th>
+                        <th id="totalQtyIn"></th>
+                        <th id="totalQtyOut"></th>
+                        <th id="totalMinStock"></th>
+                        <th id="totalMaxStock"></th>
+                        <th id="purchasePrice"></th>
+                        <th id="salesPrice"></th>
+                        <% if (showPurchaseValue) { %>
+                            <th id="totalPurchaseValue"></th>
                             <% } %>
-            </tr>
-        </tfoot>
-    </table>
-</div>
+                                <% if (showSalesValue) { %>
+                                    <th id="totalSalesValue"></th>
+                                    <% } %>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
 
-<script>
-    // Add event listeners to checkboxes
-    document.getElementById('showPurchaseValue').addEventListener('change', function () {
-        document.getElementById('stockStatusForm').submit();
-    });
-
-    document.getElementById('showSalesValue').addEventListener('change', function () {
-        document.getElementById('stockStatusForm').submit();
-    });
-
-    // Function to handle search input changes
-    document.getElementById('searchInput').addEventListener('input', function () {
-        filterBills();
-    });
-
-    // Function to filter bills based on search input
-    function filterBills() {
-        const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
-        const itemsList = document.getElementById('itemsList');
-        const rows = itemsList.querySelectorAll('tbody tr.searchClass');
-
-        rows.forEach(row => {
-            const itemName = row.cells[1].textContent.trim().toLowerCase();
-            const itemCategory = row.cells[2].textContent.trim().toLowerCase();
-
-            const matchesSearch = itemName.includes(searchQuery) || itemCategory.includes(searchQuery);
-            row.style.display = matchesSearch ? '' : 'none';
+    <script>
+        // Add event listeners to checkboxes
+        document.getElementById('showPurchaseValue').addEventListener('change', function () {
+            document.getElementById('stockStatusForm').submit();
         });
 
-        // Update totals based on visible rows
-        updateTotals();
-    }
+        document.getElementById('showSalesValue').addEventListener('change', function () {
+            document.getElementById('stockStatusForm').submit();
+        });
 
-    // Function to update totals based on visible rows
-    function updateTotals() {
-        let totalStock = 0;
-        let totalOpeningStock = 0;
-        let totalQtyIn = 0;
-        let totalQtyOut = 0;
-        let totalPurchaseValue = 0;
-        let totalSalesValue = 0;
+        // Function to handle search input changes
+        document.getElementById('searchInput').addEventListener('input', function () {
+            filterBills();
+        });
 
-        const visibleRows = document.querySelectorAll('#itemsList tbody tr.searchClass:not([style*="display: none"])');
+        // Function to filter bills based on search input
+        function filterBills() {
+            const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+            const itemsList = document.getElementById('itemsList');
+            const rows = itemsList.querySelectorAll('tbody tr.searchClass');
 
-        visibleRows.forEach(row => {
-            totalStock += parseFloat(row.cells[4].textContent) || 0; // Total Stock
-            totalOpeningStock += parseFloat(row.cells[5].textContent) || 0; // Op. Stock
-            totalQtyIn += parseFloat(row.cells[6].textContent) || 0; // Qty. In
-            totalQtyOut += parseFloat(row.cells[7].textContent) || 0; // Qty. Out
+            rows.forEach(row => {
+                const itemName = row.cells[1].textContent.trim().toLowerCase();
+                const itemCategory = row.cells[2].textContent.trim().toLowerCase();
+
+                const matchesSearch = itemName.includes(searchQuery) || itemCategory.includes(searchQuery);
+                row.style.display = matchesSearch ? '' : 'none';
+            });
+
+            // Update totals based on visible rows
+            updateTotals();
+        }
+
+        function updateTotals() {
+            let totalStock = 0;
+            let totalOpeningStock = 0;
+            let totalQtyIn = 0;
+            let totalQtyOut = 0;
+            let totalPurchaseValue = 0;
+            let totalSalesValue = 0;
+
+            const visibleRows = document.querySelectorAll('#itemsList tbody tr.searchClass:not([style*="display: none"])');
+
+            // Determine column indices based on checked options
+            const hasPurchaseValue = document.getElementById('showPurchaseValue').checked;
+            const hasSalesValue = document.getElementById('showSalesValue').checked;
+
+            const totalStockIndex = 4;
+            const totalOpeningStockIndex = 5;
+            const totalQtyInIndex = 6;
+            const totalQtyOutIndex = 7;
+            const totalPurchaseValueIndex = hasPurchaseValue ? 12 : -1;
+            const totalSalesValueIndex = hasSalesValue ? (hasPurchaseValue ? 13 : 12) : -1;
+
+            visibleRows.forEach(row => {
+                totalStock += parseFloat(row.cells[totalStockIndex].textContent) || 0;
+                totalOpeningStock += parseFloat(row.cells[totalOpeningStockIndex].textContent) || 0;
+                totalQtyIn += parseFloat(row.cells[totalQtyInIndex].textContent) || 0;
+                totalQtyOut += parseFloat(row.cells[totalQtyOutIndex].textContent) || 0;
+
+                // Only add purchase value if the column is present
+                if (hasPurchaseValue && totalPurchaseValueIndex !== -1) {
+                    totalPurchaseValue += parseFloat(row.cells[totalPurchaseValueIndex].textContent) || 0;
+                }
+
+                // Only add sales value if the column is present
+                if (hasSalesValue && totalSalesValueIndex !== -1) {
+                    totalSalesValue += parseFloat(row.cells[totalSalesValueIndex].textContent) || 0;
+                }
+            });
+
+            // Update the footer totals
+            document.getElementById('totalStock').textContent = totalStock;
+            document.getElementById('totalOpeningStock').textContent = totalOpeningStock;
+            document.getElementById('totalQtyIn').textContent = totalQtyIn;
+            document.getElementById('totalQtyOut').textContent = totalQtyOut;
+
+            if (hasPurchaseValue) {
+                document.getElementById('totalPurchaseValue').textContent = totalPurchaseValue.toFixed(2);
+            }
+
+            if (hasSalesValue) {
+                document.getElementById('totalSalesValue').textContent = totalSalesValue.toFixed(2);
+            }
+        }
+
+
+        // Initialize totals on page load
+        document.addEventListener('DOMContentLoaded', updateTotals);
+
+        // Print all bills
+        document.getElementById('printAll').addEventListener('click', function () {
+            printBills(document.querySelectorAll('#itemsList tbody tr.searchClass'));
+        });
+
+        // Print filtered bills
+        document.getElementById('printFiltered').addEventListener('click', function () {
+            printBills(document.querySelectorAll('#itemsList tbody tr.searchClass:not([style*="display: none"])'));
+        });
+
+        function printBills(itemsRows) {
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write('<html><head><title>Print Stock Status</title>');
+            printWindow.document.write(`
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+        <style>
+            @page { size: A4 landscape; margin: 10mm; }
+            body { font-size: 12px; margin: 10mm; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; }
+            th { background-color: #f2f2f2; }
+        </style>
+    `);
+            printWindow.document.write('</head><body>');
+
+            // Custom Header
+            printWindow.document.write(`
+        <div style="text-align: center;">
+            <h1>Stock Status</h1>
+            <p>As on: ${new Date().toLocaleString()}</p>
+            <p>(F.Y: ${document.querySelector('#currentDate').textContent})</p>
+        </div>
+    `);
+
+            // Start of Table
+            printWindow.document.write('<table><thead><tr>');
+            printWindow.document.write(`
+        <th>#</th>
+        <th>Item Name</th>
+        <th>Category</th>
+        <th>Unit</th>
+        <th>Total Stock</th>
+        <th>Op. Stock</th>
+        <th>Qty. In</th>
+        <th>Qty. Out</th>
+        <th>Min Stock</th>
+        <th>Max Stock</th>
+        <th>C.P</th>
+        <th>S.P</th>
+    `);
+
             if (document.getElementById('showPurchaseValue').checked) {
-                totalPurchaseValue += parseFloat(row.cells[12].textContent) || 0; // St.Val (C.P)
+                printWindow.document.write('<th>St.Val (C.P)</th>');
             }
             if (document.getElementById('showSalesValue').checked) {
-                totalSalesValue += parseFloat(row.cells[13].textContent) || 0; // St.Val (S.P)
+                printWindow.document.write('<th>St.Val (S.P)</th>');
             }
-        });
 
-        // Update the footer totals
-        document.getElementById('totalStock').textContent = totalStock;
-        document.getElementById('totalOpeningStock').textContent = totalOpeningStock;
-        document.getElementById('totalQtyIn').textContent = totalQtyIn;
-        document.getElementById('totalQtyOut').textContent = totalQtyOut;
-        document.getElementById('totalPurchaseValue').textContent = totalPurchaseValue.toFixed(2);
-        document.getElementById('totalSalesValue').textContent = totalSalesValue.toFixed(2);
-    }
+            printWindow.document.write('</tr></thead><tbody>');
 
-    // Initialize totals on page load
-    document.addEventListener('DOMContentLoaded', updateTotals);
+            // Initialize totals
+            let totalStock = 0;
+            let totalOpStock = 0;
+            let totalQtyIn = 0;
+            let totalQtyOut = 0;
+            let totalPurchaseValue = 0;
+            let totalSalesValue = 0;
 
-    // Print all bills
-    document.getElementById('printAll').addEventListener('click', function () {
-        printBills(document.querySelectorAll('#itemsList tbody tr.searchClass'));
-    });
+            // Populate Table Rows and calculate totals
+            itemsRows.forEach((row, index) => {
+                printWindow.document.write('<tr>');
+                const cells = row.querySelectorAll('td');
 
-    // Print filtered bills
-    document.getElementById('printFiltered').addEventListener('click', function () {
-        printBills(document.querySelectorAll('#itemsList tbody tr.searchClass:not([style*="display: none"])'));
-    });
 
-    // Function to print the selected bills
-    function printBills(itemsRows) {
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write('<html><head><title>Print Stock Status</title>');
-        printWindow.document.write('<style>@page { size: A4 landscape; margin: 10mm; } table { width: 100%; border-collapse: collapse; } th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; } th { background-color: #f2f2f2; }</style>');
-        printWindow.document.write('</head><body>');
-        printWindow.document.write(document.getElementById('printHeader').innerHTML); // Include the header
+                // Extract values from cells and update totals
+                const totalStockVal = parseFloat(cells[4]?.textContent) || 0;
+                const opStockVal = parseFloat(cells[5]?.textContent) || 0;
+                const qtyInVal = parseFloat(cells[6]?.textContent) || 0;
+                const qtyOutVal = parseFloat(cells[7]?.textContent) || 0;
 
-        // Function to format the current date and time
-        function getCurrentDateTime() {
-            const now = new Date();
-            const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            return now.toLocaleString(undefined, options);
-        }
+                // Determine the index for purchase and sales value based on the checkboxes
+                let purchaseValueIndex = -1;
+                let salesValueIndex = -1;
 
-        printWindow.document.write(`
-  <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h3>Stock Status</h3> As on: ${getCurrentDateTime()}
-    <h3>(F.Y: <%= currentFiscalYear ? currentFiscalYear.name : (initialCurrentFiscalYear ? initialCurrentFiscalYear.name: 'Not selected') %>)</h3>
-  </div>
-`);
-        printWindow.document.write('<table><thead><tr><th>#</th><th>Item Name</th><th>Category</th><th>Unit</th><th>Total Stock</th><th>Op. Stock</th><th>Qty. In</th><th>Qty. Out</th><th>Min Stock</th><th>Max Stock</th><th>C.P</th><th>S.P</th>');
+                if (document.getElementById('showPurchaseValue').checked) {
+                    purchaseValueIndex = 12;
+                    if (document.getElementById('showSalesValue').checked) {
+                        salesValueIndex = 13;
+                    }
+                } else if (document.getElementById('showSalesValue').checked) {
+                    salesValueIndex = 12;
+                }
 
-        // Include Purchase and Sales values conditionally
-        if (document.getElementById('showPurchaseValue').checked) {
-            printWindow.document.write('<th>St.Val (C.P)</th>');
-        }
-        if (document.getElementById('showSalesValue').checked) {
-            printWindow.document.write('<th>St.Val (S.P)</th>');
-        }
+                const purchaseValue = purchaseValueIndex !== -1 ? parseFloat(cells[purchaseValueIndex]?.textContent) || 0 : 0;
+                const salesValue = salesValueIndex !== -1 ? parseFloat(cells[salesValueIndex]?.textContent) || 0 : 0;
 
-        printWindow.document.write('</tr></thead><tbody>');
+                totalStock += totalStockVal;
+                totalOpStock += opStockVal;
+                totalQtyIn += qtyInVal;
+                totalQtyOut += qtyOutVal;
+                totalPurchaseValue += purchaseValue;
+                totalSalesValue += salesValue;
 
-        itemsRows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            printWindow.document.write('<tr>');
+                // Print the row
+                cells.forEach(cell => {
+                    printWindow.document.write(`<td>${cell.textContent}</td>`);
+                });
+                printWindow.document.write('</tr>');
+            });
 
-            // Write cells up to the last cell that corresponds to the printed table
-            for (let i = 0; i < cells.length; i++) {
-                printWindow.document.write('<td>' + cells[i].textContent + '</td>');
+            // Add footer row for totals
+            printWindow.document.write('<tr style="font-weight: bold;">');
+            printWindow.document.write('<td colspan="4">Totals</td>');
+            printWindow.document.write(`<td>${totalStock.toFixed(2)}</td>`);
+            printWindow.document.write(`<td>${totalOpStock.toFixed(2)}</td>`);
+            printWindow.document.write(`<td>${totalQtyIn.toFixed(2)}</td>`);
+            printWindow.document.write(`<td>${totalQtyOut.toFixed(2)}</td>`);
+            printWindow.document.write('<td colspan="4"></td>'); // Min Stock and Max Stock are skipped
+
+            if (document.getElementById('showPurchaseValue').checked) {
+                printWindow.document.write(`<td>${totalPurchaseValue.toFixed(2)}</td>`);
+            }
+            if (document.getElementById('showSalesValue').checked) {
+                printWindow.document.write(`<td>${totalSalesValue.toFixed(2)}</td>`);
             }
 
             printWindow.document.write('</tr>');
-        });
 
-        printWindow.document.write('</tbody><tfoot>');
+            printWindow.document.write('</tbody></table></body></html>');
 
-        // Calculate totals for visible rows to display in the printout
-        let totalStock = 0;
-        let totalOpeningStock = 0;
-        let totalQtyIn = 0;
-        let totalQtyOut = 0;
-        let totalPurchaseValue = 0;
-        let totalSalesValue = 0;
-
-        itemsRows.forEach(row => {
-            totalStock += parseFloat(row.cells[4].textContent) || 0; // Total Stock
-            totalOpeningStock += parseFloat(row.cells[5].textContent) || 0; // Op. Stock
-            totalQtyIn += parseFloat(row.cells[6].textContent) || 0; // Qty. In
-            totalQtyOut += parseFloat(row.cells[7].textContent) || 0; // Qty. Out
-            if (document.getElementById('showPurchaseValue').checked) {
-                totalPurchaseValue += parseFloat(row.cells[12].textContent) || 0; // St.Val (C.P)
-            }
-            if (document.getElementById('showSalesValue').checked) {
-                totalSalesValue += parseFloat(row.cells[13].textContent) || 0; // St.Val (S.P)
-            }
-        });
-
-        // Write totals in the footer
-        printWindow.document.write('<tr>');
-        printWindow.document.write('<th colspan="4">Total</th>');
-        printWindow.document.write('<th>' + totalStock + '</th>');
-        printWindow.document.write('<th>' + totalOpeningStock + '</th>');
-        printWindow.document.write('<th>' + totalQtyIn + '</th>');
-        printWindow.document.write('<th>' + totalQtyOut + '</th>');
-        printWindow.document.write('<th></th>');
-        printWindow.document.write('<th></th>');
-        printWindow.document.write('<th></th>');
-        printWindow.document.write('<th></th>');
-        if (document.getElementById('showPurchaseValue').checked) {
-            printWindow.document.write('<th>' + totalPurchaseValue.toFixed(2) + '</th>');
+            printWindow.document.close();
+            printWindow.print();
         }
-        if (document.getElementById('showSalesValue').checked) {
-            printWindow.document.write('<th>' + totalSalesValue.toFixed(2) + '</th>');
+
+
+        // Function to format the date
+        function getCurrentDate() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return now.toLocaleDateString(undefined, options);
         }
-        printWindow.document.write('</tr>');
 
-        printWindow.document.write('</tfoot></table>');
-        printWindow.document.write('</body></html>');
-        printWindow.document.close();
-        printWindow.print();
-    }
+        // Set the current date in the header
+        document.getElementById('currentDate').textContent = getCurrentDate();
 
-    // Function to format the date
-    function getCurrentDate() {
-        const now = new Date();
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
-        return now.toLocaleDateString(undefined, options);
-    }
+        const panVatNo = '<%= currentCompany.pan %>';
+        const container = document.getElementById('pan-vat-container');
 
-    // Set the current date in the header
-    document.getElementById('currentDate').textContent = getCurrentDate();
-
-    const panVatNo = '<%= currentCompany.pan %>';
-    const container = document.getElementById('pan-vat-container');
-
-    for (let i = 0; i < panVatNo.length; i++) {
-        const digit = document.createElement('span');
-        digit.className = 'bordered-digit';
-        digit.textContent = panVatNo[i];
-        container.appendChild(digit);
-    }
-</script>
+        for (let i = 0; i < panVatNo.length; i++) {
+            const digit = document.createElement('span');
+            digit.className = 'bordered-digit';
+            digit.textContent = panVatNo[i];
+            container.appendChild(digit);
+        }
+    </script>

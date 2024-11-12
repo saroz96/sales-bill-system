@@ -4,963 +4,639 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
+    <link rel="stylesheet" href="../../../public/stylesheets/header.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <title>Header</title>
     <style>
-        .side-nav {
-            height: 100%;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 200px;
-            background-color: #f8f9fa;
-            padding-top: 20px;
-            transition: transform 0.5s ease, width 0.5s ease;
-            z-index: 1000;
-            overflow-y: auto;
-            /* Add this line to make the sidebar scrollable */
+        *,
+        *::before,
+        ::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
-        .side-nav.hidden {
-            transform: translateX(-100%);
-            width: 0;
+        body {
+            font-family: Arial, Helvetica, sans-serif;
         }
 
-        .main-content {
-            margin-left: 250px;
-            transition: margin-left 0.5s ease;
+        .header {
+            border-bottom: 3px solid #ededed;
+            background-color: #fff;
+            min-height: 68px;
+            display: flex;
         }
 
-        .main-content.expanded {
-            margin-left: 0;
+        .header .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            position: relative;
         }
 
-        .toggle-btn {
-            position: fixed;
-            /* top: 10px; */
-            /* left: 10px; */
-            z-index: 1001;
+        .header .mobile-toggler {
+            color: #fff;
+            background-color: #0088cc;
+            cursor: pointer;
+            padding: 7px 13px;
+            text-align: center;
+            font-size: 13px;
+            vertical-align: middle;
+            margin: 8px 0 8px 1px;
+            line-height: 20px;
+        }
+
+        .hero {
+            background: rgb(5, 146, 200);
+            background: linear-gradient(107deg, rgba(5, 146, 200, 1)0%, rgba(15, 113, 117, 1)100%);
+            padding: 50px 20px;
+            min-height: 80vh;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+        }
+
+        .container {
+            margin-right: auto;
+            margin-left: auto;
+        }
+
+        @media(max-width:36em) {
+            .container {
+                max-width: 540px;
+            }
+        }
+
+        @media(min-width:36em) {
+            .container {
+                max-width: 540px;
+            }
+        }
+
+        @media(min-width:48em) {
+            .container {
+                max-width: 720px;
+            }
+        }
+
+        @media(min-width:62em) {
+            .container {
+                max-width: 960px;
+            }
+        }
+
+        @media(min-width:75em) {
+            .container {
+                max-width: 1140px;
+            }
+        }
+
+        @media(min-width:87.5em) {
+            .container {
+                max-width: 1380px;
+            }
         }
 
         .hidden {
             display: none;
         }
 
-        /* for Vat Reports */
-        #vatReportHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
+        .slideInUp {
+            animation-name: slideInUp;
+            animation-duration: .6s;
         }
 
-        #vatReportHeader:hover {
-            background-color: 007bff;
-            /* Blue background */
-            color: white;
+        @keyframes slideInUp {
+            0% {
+                transform: translateY(15%);
+            }
+
+            100% {
+                transform: translateY(0);
+            }
         }
 
-        #vatReportContent .subheader {
+        .slideInDown {
+            animation-name: slideInDown;
+            animation-duration: .6s;
+        }
+
+        @keyframes slideInDown {
+            0% {
+                transform: translateY(-100%);
+            }
+
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        /*Mobile menu styles*/
+        .header .header-row .mobile-menu {
+            position: absolute;
+            background-color: #fff;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            border-top: 3px solid #e9900a;
+            padding: 15px 20px;
+            box-shadow: 0 5px 8px rgb(0 0 0 / 15%);
+
+        }
+
+        .header .header-row .mobile-menu ul {
+            list-style: none;
+        }
+
+        .header .header-row .mobile-menu ul li {
+            margin-bottom: 10px;
+        }
+
+        .header .header-row .mobile-menu ul:hover {
+            background-color: rgba(225, 225, 226, 0.466);
+        }
+
+        .header .header-row .mobile-menu ul a {
+            text-decoration: none;
             display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            color: white;
-            text-decoration: none;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: rgb(128, 131, 131);
+            padding-top: 8px;
+            padding-bottom: 8px;
+            padding-left: 8px;
         }
 
-        #vatReportContent .subheader:hover {
-            background-color: lightgreen;
+        /*single dropdown menu style for mobile view*/
+        .header .header-row .mobile-menu ul li.dropdown {
+            position: relative;
         }
 
-        /* for account header */
-        #accountHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
+        .header .header-row .mobile-menu ul li.dropdown .sub-menu-wrapper {
+            display: none;
         }
 
-        #accountHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #accountHeaderContent .subheader {
+        .header .header-row .mobile-menu ul li.dropdown:hover .sub-menu-wrapper {
             display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            text-decoration: none;
-            color: white;
-            border: none;
-            cursor: pointer;
         }
 
-        #accountHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-
-        }
-
-        /* for items header */
-        #itemsHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #itemsHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #itemsHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            color: white;
-            text-decoration: none;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-
-        }
-
-        #itemsHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-        /* for sales header */
-        #salesHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #salesHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #salesHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            background-color: gray;
-            color: white;
-            text-decoration: none;
-        }
-
-        #salesHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-        /* for sales return header */
-        #salesReturnHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #salesReturnHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #salesReturnHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            background-color: gray;
-            color: white;
-            text-decoration: none;
-        }
-
-        #salesReturnHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-        /* for others header */
-        #configurationHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #configurationHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #configurationHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-        }
-
-        #configurationHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-
-        /* for stock adjustment header */
-        #stockAdjustmentsHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #stockAdjustmentsHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #stockAdjustmentsHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-        }
-
-        #stockAdjustmentsHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-        /* for home header */
-        #homeHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #homeHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #homeHeader .subheader {
-            background-color: transparent;
-            /* Remove background color */
-            color: black;
-        }
-
-        #homeHeader .subheader:hover {
-            /* Remove background color */
-            color: white;
-            text-decoration: none;
-        }
-
-        /* for items ledger header */
-        #itemsLedgerHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #itemsLedgerHeader .subheader {
-            background-color: transparent;
-            /* Remove background color */
-            color: black;
-            text-decoration: none;
-        }
-
-        #itemsLedgerHeader .subheader:hover {
-            /* Remove background color */
-            color: white;
-            text-decoration: none;
-        }
-
-        #itemsLedgerHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-
-        /* for purchase header */
-        #purchaseHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #purchaseHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #purchaseHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            color: white;
-            text-decoration: none;
-        }
-
-        #purchaseHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-        /* for purchase return header */
-        #purchaseReturnHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #purchaseReturnHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #purchaseReturnHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            color: white;
-            text-decoration: none;
-        }
-
-        #purchaseReturnHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-        /*for payment header*/
-        #paymentHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #paymentHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #paymentHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            color: white;
-            text-decoration: none;
-        }
-
-        #paymentHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-        /*for receipt header*/
-        #receiptHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
+        .header .header-row .mobile-menu ul li.dropdown:hover .sub-menu-wrapper ul li a {
+            font-weight: 400;
+            padding-left: 15px;
         }
 
-        #receiptHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
+        /*mega menu*/
+        header .header-row .mobile-menu ul li.mega-menu {
+            position: relative;
         }
 
-        #receiptHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            color: white;
-            text-decoration: none;
+        header .header-row .mobile-menu ul li.mega-menu .mega-menu-wrapper {
+            display: none;
         }
-
-        #receiptHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-        /*for journal header*/
-        #journalHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #journalHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #journalHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            color: white;
-            text-decoration: none;
-        }
-
-        #journalHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-        /*for debit note header*/
-        #debitNoteHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #debitNoteHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #debitNoteHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            color: white;
-            text-decoration: none;
-        }
-
-        #debitNoteHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-        /*for credit note header*/
-        #creditNoteHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #creditNoteHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #creditNoteHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            color: white;
-            text-decoration: none;
-        }
-
-        #creditNoteHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-
-        /*for fiscalYear header*/
-        #fiscalYearHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #fiscalYearHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #fiscalYearHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            color: white;
-            text-decoration: none;
-        }
-
-        #fiscalYearHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-
-        /* for My Company header */
-        #myCompanyHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #myCompanyHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #myCompanyHeader .subheader {
-            background-color: transparent;
-            /* Remove background color */
-            color: black;
-            text-decoration: none;
-        }
-
-        #myCompanyHeader .subheader:hover {
-            color: white;
-        }
-
-        /*for User Management header*/
-        #userManagementHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #userManagementHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #userManagementHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            color: white;
-            text-decoration: none;
-        }
-
-        #userManagementHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-        /*for Outstanding analysis(Ageing) header*/
-        #ageingHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #ageingHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #ageingHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            color: white;
-            text-decoration: none;
-        }
-
-        #ageingHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-        /*for inventory/stock-status header*/
-        #inventoryHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #inventoryHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #inventoryHeaderContent .subheader {
-            display: block;
-            margin: 5px 0;
-            padding: 10px;
-            background-color: gray;
-            /* Remove background color */
-            border: none;
-            cursor: pointer;
-            color: white;
-            text-decoration: none;
-        }
-
-        #inventoryHeaderContent .subheader:hover {
-            background-color: lightgreen;
-            color: white;
-        }
-
-
-        /* for Logout header */
-        #logoutHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #logoutHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #logoutHeader .subheader {
-            background-color: transparent;
-            /* Remove background color */
-            color: black;
-            text-decoration: none;
-        }
-
-        #logoutHeader .subheader:hover {
-            color: white;
-        }
-
-        /* for change password header */
-        #changePasswordHeader {
-            cursor: pointer;
-            background-color: #f2f2f2;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-
-        #changePasswordHeader:hover {
-            background-color: #007bff;
-            /* Blue background */
-            color: white;
-        }
-
-        #changePasswordHeader .subheader {
-            background-color: transparent;
-            /* Remove background color */
-            color: black;
-            text-decoration: none;
-        }
-
-        #changePasswordHeader .subheader:hover {
-            color: white;
-        }
-
 
-        /* Resize the text in the navigation menu */
-        .side-nav ul li a.subheader {
-            font-size: 12px;
-            /* Adjust this size as needed */
+        header .header-row .mobile-menu ul li.mega-menu:hover .mega-menu-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 20px;
         }
+
+        header .header-row .mobile-menu ul li.mega-menu .mega-menu-wrapper .mega-menu-col {
+            margin-bottom: 20px;
+        }
+
+        header .header-row .mobile-menu ul li.mega-menu .mega-menu-wrapper .mega-menu-col h5 {
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        header .header-row .mobile-menu ul li.mega-menu .mega-menu-wrapper .mega-menu-col ul li a {
+            font-weight: 400;
+        }
+
+        /*Hide desktop menu on mobile view up to 48em*/
+        @media(max-width:48em) {
+            .header .header-row .header-right .main-menu {
+                display: none;
+            }
+        }
+
+        /*Show menu on desktop 48em and above*/
+        @media(min-width:48em) {
+            .header .header-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                position: relative;
+            }
+
+            .header .mobile-toggler {
+                display: none;
+            }
+
+            .header .header-row .header-right .main-menu {
+                display: flex;
+            }
+
+            .header .header-row .header-right .main-menu li.menu-item {
+                display: block;
+            }
+
+            .header .header-row .header-right .main-menu li.dropdown {
+                position: relative;
+            }
+
+            .header .header-row .header-right .main-menu li.menu-item:not(:last-child) {
+                margin: 0 20px 0 0;
+            }
+
+            .header .header-row .header-right .main-menu li.menu-item>a {
+                font-size: 13px;
+                font-weight: 600;
+                line-height: 20px;
+                color: #444444;
+                padding: 20px 10px 20px 10px;
+                display: inline-block;
+                text-decoration: none;
+                text-transform: uppercase;
+            }
+
+            .header .header-row .header-right .main-menu li.menu-item a.active {
+                color: #e9900a;
+            }
+
+            .header .header-row .header-right .main-menu .sub-menu-wrapper {
+                position: absolute;
+                text-align: left;
+                margin: 0;
+                z-index: 111;
+                min-width: 100%;
+                line-height: 20px;
+                display: none;
+            }
+
+            /*Show single dropdown menu on hover*/
+            .header .header-row .header-right .main-menu>li.menu-item:hover .sub-menu-wrapper {
+                display: block;
+            }
+
+            .header .header-row .header-right .main-menu .dropdown ul.sub-menu {
+                background-color: #fff;
+                border-top: 3px solid #e9900a;
+                padding: 0px 0px;
+                box-shadow: 0 5px 8px rgb(0 0 0 / 15%);
+                min-width: 200px;
+                text-transform: none;
+            }
+
+            .header .header-row .header-right .main-menu li.menu-item:hover .sub-menu-wrapper li.menu-item {
+                padding: 0;
+                margin-right: 0;
+            }
+
+            .header .header-row .header-right .main-menu li.menu-item:hover .sub-menu-wrapper li.menu-item>a {
+                padding: 8px;
+                display: block;
+                text-transform: none;
+                color: #6d6c6c;
+                font-size: 14px;
+                font-weight: 400;
+            }
+
+            .header .header-row .header-right .main-menu .sub-menu-wrapper ul li:not(:last-child) {
+                border-bottom: 1px solid rgba(204, 204, 204, 0.432);
+            }
+
+            .header .header-row .header-right .main-menu .sub-menu-wrapper ul li:hover {
+                background-color: #ededed;
+            }
+
+            /*Mega menu on desktop*/
+
+            .header .header-row .header-right .main-menu .mega-menu .mega-menu-wrapper {
+                position: absolute;
+                left: 0;
+                padding: 20px 25px;
+                background-color: #fff;
+                border-top: 3px solid #e9900a;
+                box-shadow: 0 5px 8px rgb(0 0 0 / 15%);
+                width: 100%;
+                display: none;
+
+            }
+
+            /*Show mega menu on hover*/
+
+            .header .header-row .header-right .main-menu li.mega-menu:hover .mega-menu-wrapper {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .header .header-row .header-right .main-menu li.mega-menu:hover .mega-menu-wrapper .mega-menu-col ul {
+                list-style: none;
+                margin-left: 0px;
+                margin-right: 20px;
+            }
+
+            .header .header-row .header-right .main-menu li.mega-menu:hover .mega-menu-wrapper .mega-menu-col ul li a {
+                text-decoration: none;
+                padding: 8px;
+                display: block;
+                font-size: 14px;
+                color: rgba(149, 151, 151, 1);
+            }
+
+            .header .header-row .header-right .main-menu li.mega-menu:hover .mega-menu-wrapper .mega-menu-col ul li:hover a {
+                background-color: rgba(222, 225, 226, 0.466);
+            }
 
-        /* Optional: Adjust font size for main headers like "Accounts" */
-        .side-nav ul li {
-            font-size: 16px;
-            /* Adjust size for list items */
         }
     </style>
 </head>
 
 <body>
+    <header class="header">
+        <div class="header-row container-fluid" role="navigation">
+            <!-- <div class="header-left">
+                <div class="logo">
+                    <h1>Logo</h1>
+                </div>
+            </div> -->
+            <!--Desktop Menu-->
+            <div class="header-right">
+                <ul class="main-menu">
+                    <li class="menu-item"><a href="/wholesellerDashboard" class="active">Home</a></li>
+                    <!-- <li class="menu-item mega-menu">
+                        <a href="#" class="active">Accounts+</a>
+                        <div class="mega-menu-wrapper slideInUp">
+                            <div class="mega-menu-col">
+                                <h5>Mega Block 1</h5>
+                                <ul class="mega-sub-menu">
+                                    <li><a href="#">Mega block item 1</a></li>
+                                    <li><a href="#">Mega block item 2</a></li>
+                                    <li><a href="#">Mega block item 3</a></li>
+                                    <li><a href="#">Mega block item 4</a></li>
+                                    <li><a href="#">Mega block item 5</a></li>
 
-    <!-- Toggle Button -->
-    <div>
-        <button class="btn btn-primary toggle-btn" onclick="toggleMenu()" id="toggleContainerClass"><i
-                class="fas fa-bars"></i></button>
-    </div>
-    <!-- Side Navigation Bar -->
-    <div class="side-nav">
-        <br>
-        <ul class="nav flex-column">
-            <li id="homeHeader">
-                <a class="subheader" href="/wholesellerDashboard">Home</a>
-            </li>
+                                </ul>
+                            </div>
+                            <div class="mega-menu-col">
+                                <h5>Mega Block 2</h5>
+                                <ul class="mega-sub-menu">
+                                    <li><a href="#">Mega block item 1</a></li>
+                                    <li><a href="#">Mega block item 2</a></li>
+                                    <li><a href="#">Mega block item 3</a></li>
+                                    <li><a href="#">Mega block item 4</a></li>
+                                    <li><a href="#">Mega block item 5</a></li>
 
-            <li id="accountHeader">Accounts
-                <div id="accountHeaderContent" class="hidden">
-                    <a class="subheader" href="/companies">Account</a>
-                    <a class="subheader" href="/account-group">Account Group</a>
-                </div>
-            </li>
+                                </ul>
+                            </div>
+                            <div class="mega-menu-col">
+                                <h5>Mega Block 3</h5>
+                                <ul class="mega-sub-menu">
+                                    <li><a href="#">Mega block item 1</a></li>
+                                    <li><a href="#">Mega block item 2</a></li>
+                                    <li><a href="#">Mega block item 3</a></li>
+                                    <li><a href="#">Mega block item 4</a></li>
+                                    <li><a href="#">Mega block item 5</a></li>
 
-            <li id="itemsHeader">Items
-                <div id="itemsHeaderContent" class="hidden">
-                    <a class="subheader" href="/items">Item</a>
-                    <a class="subheader" href="/categories">Category</a>
-                    <a class="subheader" href="/units">Unit</a>
-                </div>
-            </li>
+                                </ul>
+                            </div>
+                            <div class="mega-menu-col">
+                                <h5>Mega Block 4</h5>
+                                <ul class="mega-sub-menu">
+                                    <li><a href="#">Mega block item 1</a></li>
+                                    <li><a href="#">Mega block item 2</a></li>
+                                    <li><a href="#">Mega block item 3</a></li>
+                                    <li><a href="#">Mega block item 4</a></li>
+                                    <li><a href="#">Mega block item 5</a></li>
 
-            <li id="salesHeader">Sales
-                <div id="salesHeaderContent" class="hidden">
-                    <a class="subheader" href="/bills">Add Sales</a>
-                    <a class="subheader" href="/billsTrackBatch">Add Sales-Track Batch</a>
-                    <a class="subheader" href="/billsTrackBatchOpen">Add Sales Open</a>
-                    <a class="subheader" href="/bills-list">View Sales</a>
-                </div>
-            </li>
-            <li id="salesReturnHeader">Sales Return
-                <div id="salesReturnHeaderContent" class="hidden">
-                    <a class="subheader" href="/sales-return">Add Sales Return</a>
-                    <a class="subheader" href="/sales-return/list">View Sales Return</a>
-                </div>
-            </li>
-            <li id="purchaseHeader">Purchase
-                <div id="purchaseHeaderContent" class="hidden">
-                    <a class="subheader" href="/purchase-bills">Add Purchase</a>
-                    <a class="subheader" href="/purchase-bills-list">View Purchase</a>
-                </div>
-            </li>
-            <li id="purchaseReturnHeader">Purchase Return
-                <div id="purchaseReturnHeaderContent" class="hidden">
-                    <a class="subheader" href="/purchase-return">Add Purchase Return</a>
-                    <a class="subheader" href="/purchase-return/list">View Purchase Return</a>
-                </div>
-            </li>
-            <li id="paymentHeader">Payment
-                <div id="paymentHeaderContent" class="hidden">
-                    <a class="subheader" href="/payments">Add Payment</a>
-                    <a class="subheader" href="/payments/finds">Edit Payment</a>
-                    <a class="subheader" href="/payments-list">View Payment</a>
-                </div>
-            </li>
-            <li id="receiptHeader">Receipt
-                <div id="receiptHeaderContent" class="hidden">
-                    <a class="subheader" href="/receipts">Add Receipt</a>
-                    <a class="subheader" href="/receipts/finds">Edit Receipt</a>
-                    <a class="subheader" href="/receipts-list">View Receipt</a>
-                </div>
-            </li>
-            <li id="journalHeader">Journal
-                <div id="journalHeaderContent" class="hidden">
-                    <a class="subheader" href="/journal/new">Add Journal</a>
-                    <a class="subheader" href="/journals/finds">Edit Journal</a>
-                    <a class="subheader" href="/journal/list">View Journal</a>
-                </div>
-            </li>
-            <li id="debitNoteHeader">Debit Note
-                <div id="debitNoteHeaderContent" class="hidden">
-                    <a class="subheader" href="/debit-note/new">Add Debit Note</a>
-                    <a class="subheader" href="/debitnote/finds">Edit Debit Note</a>
-                    <a class="subheader" href="/debit-note/list">View Debit Note</a>
-                </div>
-            </li>
-            <li id="creditNoteHeader">Credit Note
-                <div id="creditNoteHeaderContent" class="hidden">
-                    <a class="subheader" href="/credit-note/new">Add Credit Note</a>
-                    <a class="subheader" href="/creditnote/finds">Edit credit Note</a>
-                    <a class="subheader" href="/credit-note/list">View Credit Note</a>
-                </div>
-            </li>
-            <li id="stockAdjustmentsHeader">Stock Adjustment
-                <div id="stockAdjustmentsHeaderContent" class="hidden">
-                    <a class="subheader" href="/stockAdjustments/new">Add</a>
-                    <a class="subheader" href="/stockAdjustments">View</a>
-                </div>
-            </li>
-            <li id="itemsLedgerHeader">
-                <a class="subheader" href="/items-list">Item Ledger</a>
-            </li>
-            <li id="vatReportHeader">Report
-                <div id="vatReportContent" class="hidden">
-                    <a class="subheader" href="/statement">Statement</a>
-                    <a class="subheader" href="/sales-vat-report">Sales VAT Report</a>
-                    <a class="subheader" href="/salesReturn-vat-report">Sales Return Vat Report</a>
-                    <a class="subheader" href="/purchase-vat-report">Purchase VAT Report</a>
-                    <a class="subheader" href="/purchaseReturn-vat-report">Purchase Return VAT Report</a>
-                </div>
-            </li>
-
-            <li id="ageingHeader">Outstanding report
-                <div id="ageingHeaderContent" class="hidden">
-                    <a class="subheader" href="/aging/accounts">Accounts</a>
-                </div>
-            </li>
-            <li id="inventoryHeader">Inventory
-                <div id="inventoryHeaderContent" class="hidden">
-                    <a class="subheader" href="/wholeseller/stock-status">Stock Status</a>
-                    <a class="subheader" href="/items/reorder">Re-Order Level(Prefixed)</a>
-                    <a class="subheader" href="items/average-reorder-level">Re-order Level(by sales)</a>
-                </div>
-            </li>
-
-            <li id="configurationHeader">Configuration
-                <div id="configurationHeaderContent" class="hidden">
-                    <a class="subheader" href="/settings">Voucher Settings Configuration</a>
-                </div>
-            </li>
-            <li id="fiscalYearHeader">Fiscal Year Management
-                <div id="fiscalYearHeaderContent" class="hidden">
-                    <a class="subheader" href="/change-fiscal-year">Change Fiscal Year</a>
-                    <a class="subheader" href="/switch-fiscal-year">Existing Fiscal Year</a>
-                </div>
-            </li>
-            <li id="myCompanyHeader">
-                <a class="subheader" href="/dashboard">My Company</a>
-            </li>
-            <% if (isAdminOrSupervisor) { %>
-                <li id="userManagementHeader">User Management
-                    <div id="userManagementHeaderContent" class="hidden">
-                        <a class="subheader" href="/admin/create-user/new">Add User</a>
-                        <a class="subheader" href="/admin/users/list">Users</a>
-                    </div>
-                </li>
-                <% } %>
-                    <li id="changePasswordHeader">
-                        <a class="subheader" href="/user/change-password">Change Password</a>
+                                </ul>
+                            </div>
+                        </div>
+                    </li> -->
+                    <li class="menu-item dropdown">
+                        <a href="#" class="active">Accounts</a>
+                        <div class="sub-menu-wrapper slideInUp">
+                            <ul class="sub-menu">
+                                <li class="menu-item"><a href="/companies">Account</a></li>
+                                <li class="menu-item"><a href="/account-group">Account Group</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="menu-item dropdown">
+                        <a href="#" class="active">Items</a>
+                        <div class="sub-menu-wrapper slideInUp">
+                            <ul class="sub-menu">
+                                <li class="menu-item"><a href="/items">Item</a></li>
+                                <li class="menu-item"><a href="/categories">Category</a></li>
+                                <li class="menu-item"><a href="/units">Unit</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="menu-item dropdown">
+                        <a href="#" class="active">Sales Register</a>
+                        <div class="sub-menu-wrapper slideInUp">
+                            <ul class="sub-menu">
+                                <li class="menu-item"><a href="/bills">Sales</a></li>
+                                <li class="menu-item"><a href="/billsTrackBatchOpen">Sales Open</a></li>
+                                <li class="menu-item"><a href="bills-list">View</a></li>
+                                <li class="menu-item"><a href="/sales-return">Sales Return</a></li>
+                                <li class="menu-item"><a href="/sales-return/list">View</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="menu-item dropdown">
+                        <a href="#" class="active">Purchase Register</a>
+                        <div class="sub-menu-wrapper slideInUp">
+                            <ul class="sub-menu">
+                                <li class="menu-item"><a href="/purchase-bills">Purchase</a></li>
+                                <li class="menu-item"><a href="/purchase-bills-list">View</a></li>
+                                <li class="menu-item"><a href="/purchase-return">Purchase Return</a></li>
+                                <li class="menu-item"><a href="/purchase-return/list">View</a></li>
+                            </ul>
+                        </div>
                     </li>
 
-                    <li id="logoutHeader">
-                        <a class="subheader" href="/logout">Logout</a>
+                    <li class="menu-item dropdown">
+                        <a href="#" class="active">Inventory</a>
+                        <div class="sub-menu-wrapper slideInUp">
+                            <ul class="sub-menu">
+                                <li class="menu-item"><a href="/items-list">Item Ledger</a></li>
+                                <li class="menu-item"><a href="/stockAdjustments/new">Stock Adjustment</a></li>
+                                <li class="menu-item"><a href="/stockAdjustments">View</a></li>
+                                <li class="menu-item"><a href="/wholeseller/stock-status">Stock Status</a></li>
+                                <li class="menu-item"><a href="/items/reorder">Re Order Level</a></li>
+                            </ul>
+                        </div>
                     </li>
+                    <li class="menu-item dropdown">
+                        <a href="#" class="active">Account Department</a>
+                        <div class="sub-menu-wrapper slideInUp">
+                            <ul class="sub-menu">
+                                <li class="menu-item"><a href="/payments">Payment</a></li>
+                                <li class="menu-item"><a href="/payments/finds">Edit</a></li>
+                                <li class="menu-item"><a href="/payments-list">View</a></li>
+                                <li class="menu-item"><a href="/receipts">Receipt</a></li>
+                                <li class="menu-item"><a href="/receipts/finds">Edit</a></li>
+                                <li class="menu-item"><a href="/receipts-list">View</a></li>
+                                <li class="menu-item"><a href="/journal/new">Journal</a></li>
+                                <li class="menu-item"><a href="/journals/finds">Edit</a></li>
+                                <li class="menu-item"><a href="/journal/list">View</a></li>
+                                <li class="menu-item"><a href="/debit-note/new">Debit Note</a></li>
+                                <li class="menu-item"><a href="/debitnote/finds">Edit</a></li>
+                                <li class="menu-item"><a href="/debit-note/list">View</a></li>
+                                <li class="menu-item"><a href="/credit-note/new">Credit Note</a></li>
+                                <li class="menu-item"><a href="/creditnote/finds">Edit</a></li>
+                                <li class="menu-item"><a href="/credit-note/list">View</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="menu-item dropdown">
+                        <a href="#" class="active">Outstanding</a>
+                        <div class="sub-menu-wrapper slideInUp">
+                            <ul class="sub-menu">
+                                <li class="menu-item"><a href="/aging/accounts">Ageing</a></li>
+                                <li class="menu-item"><a href="/statement">Statements</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="menu-item dropdown">
+                        <a href="#" class="active">Vat Summary</a>
+                        <div class="sub-menu-wrapper slideInUp">
+                            <ul class="sub-menu">
+                                <li class="menu-item"><a href="/sales-vat-report">Sales Vat Register</a></li>
+                                <li class="menu-item"><a href="/salesReturn-vat-report">Sales Return Register</a></li>
+                                <li class="menu-item"><a href="/purchase-vat-report">Purchase Vat Register</a></li>
+                                <li class="menu-item"><a href="/purchaseReturn-vat-report">Purchase Return Register</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="menu-item dropdown">
+                        <a href="#" class="active">Configuration</a>
+                        <div class="sub-menu-wrapper slideInUp">
+                            <ul class="sub-menu">
+                                <li class="menu-item"><a href="/settings">Voucher Configuration</a></li>
+                                <li class="menu-item"><a href="/change-fiscal-year">Change Fiscal Year</a></li>
+                                <li class="menu-item"><a href="/switch-fiscal-year">Existing Fiscal Year</a></li>
 
-        </ul>
-    </div>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="menu-item dropdown">
+                        <a href="#" class="active"><i class="bi bi-person" style="font-size: 20px;"></i></a>
+                        <div class="sub-menu-wrapper slideInUp">
+                            <ul class="sub-menu">
+                                <li class="menu-item"><a href="#">
+                                        <%= user.name %>
+                                    </a></li>
+                                <li class="menu-item"><a href="/user/change-password">Change Password</a></li>
+                                <% if (isAdminOrSupervisor) { %>
+                                    <li class="menu-item"><a href="/admin/create-user/new">Add User</a></li>
+                                    <li class="menu-item"><a href="/admin/users/list">Users</a></li>
+                                    <% } %>
+                                        <li class="menu-item"><a href="dashboard">My Company</a></li>
+                                        <li class="menu-item"><a href="/logout">Logout</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+                <a href="#" id="three-dots" class="mobile-toggler"><i class="fas fa-bars"></i></a>
+            </div>
+
+            <!-- Mobile Menu
+            <div id="mobile-menu" class="mobile-menu hidden slideInDown">
+                <ul>
+                    <li class="menu-item"><a href="#" class="active">Home</a></li>
+                    <li class="menu-item mega-menu">
+                        <a href="#" class="active">Accounts+</a>
+                        <div class="mega-menu-wrapper slideInUp">
+                            <div class="mega-menu-col">
+                                <h5>Mega Block 1</h5>
+                                <ul class="mega-sub-menu">
+                                    <li><a href="#">Mega block item 1</a></li>
+                                    <li><a href="#">Mega block item 2</a></li>
+                                    <li><a href="#">Mega block item 3</a></li>
+                                    <li><a href="#">Mega block item 4</a></li>
+                                    <li><a href="#">Mega block item 5</a></li>
+
+                                </ul>
+                            </div>
+
+
+                            <div class="mega-menu-col">
+                                <h5>Mega Block 2</h5>
+                                <ul class="mega-sub-menu">
+                                    <li><a href="#">Mega block item 1</a></li>
+                                    <li><a href="#">Mega block item 2</a></li>
+                                    <li><a href="#">Mega block item 3</a></li>
+                                    <li><a href="#">Mega block item 4</a></li>
+                                    <li><a href="#">Mega block item 5</a></li>
+
+                                </ul>
+                            </div>
+                            <div class="mega-menu-col">
+                                <h5>Mega Block 3</h5>
+                                <ul class="mega-sub-menu">
+                                    <li><a href="#">Mega block item 1</a></li>
+                                    <li><a href="#">Mega block item 2</a></li>
+                                    <li><a href="#">Mega block item 3</a></li>
+                                    <li><a href="#">Mega block item 4</a></li>
+                                    <li><a href="#">Mega block item 5</a></li>
+
+                                </ul>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="menu-item"><a href="#" class="active">Items</a></li>
+                    <li class="menu-item dropdown">
+                        <a href="#" class="active">Sales Register</a>
+                        <div class="sub-menu-wrapper">
+                            <ul class="sub-menu">
+                                <li class="menu-item"><a href="#">Sales</a></li>
+                                <li class="menu-item"><a href="#">Sales Open</a></li>
+                                <li class="menu-item"><a href="#">View</a></li>
+
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="menu-item"><a href="#" class="active">Sales Return</a></li>
+                    <li class="menu-item"><a href="#" class="active">Purchase</a></li>
+                    <li class="menu-item"><a href="#" class="active">Purchase Return</a></li>
+
+                </ul>
+            </div> -->
+        </div>
+    </header>
+
+    <!-- <section class="hero">
+        <div class="container">
+            <h1>Sajilo</h1>
+        </div>
+    </section> -->
     <script>
-        // Function to toggle side menu visibility
-        function toggleMenu() {
-            const sideNav = document.querySelector('.side-nav');
-            sideNav.classList.toggle('hidden');
-        }
+        const mobileBtn = document.getElementById('three-dots');
+        const mobileMenu = document.getElementById("mobile-menu");
 
-        // if (toggleMenu() === 'click') {
+        const mobileMenuIcon = document.querySelector('#three-dots i');
+        mobileBtn.addEventListener('click', () => {
+            //Open/Hide mobile menu(three dots)
+            mobileMenu.classList.toggle('hidden');
 
-        // }
-        // Toggle container class between 'container' and 'container-fluid'
-        document.getElementById('toggleContainerClass').addEventListener('click', function () {
-            var mainContainer = document.getElementById('mainContainer');
-            if (mainContainer.classList.contains('container')) {
-                mainContainer.classList.remove('container');
-                mainContainer.classList.add('container-fluid');
+            //Change mobile toggler icon on open close
+            if (!mobileMenu.classList.contains('hidden')) {
+                mobileMenuIcon.classList.remove('fa-bars')
+                mobileMenuIcon.classList.add('bi-x')
             } else {
-                mainContainer.classList.remove('container-fluid');
-                mainContainer.classList.add('container');
+                mobileMenuIcon.classList.remove('bi-x')
+                mobileMenuIcon.classList.add('fa-bars')
             }
         });
-        // Add event listeners for each header to toggle their content
-        document.addEventListener('DOMContentLoaded', function () {
-            function setupToggle(headerId, contentId) {
-                const header = document.getElementById(headerId);
-                const content = document.getElementById(contentId);
-                header.addEventListener('click', function () {
-                    content.classList.toggle('hidden');
-                    content.style.display = content.classList.contains('hidden') ? 'none' : 'block';
-                });
-            }
 
-            setupToggle('vatReportHeader', 'vatReportContent');
-            setupToggle('accountHeader', 'accountHeaderContent');
-            setupToggle('itemsHeader', 'itemsHeaderContent');
-            setupToggle('salesHeader', 'salesHeaderContent');
-            setupToggle('stockAdjustmentsHeader', 'stockAdjustmentsHeaderContent');
-            setupToggle('configurationHeader', 'configurationHeaderContent');
-            setupToggle('purchaseHeader', 'purchaseHeaderContent');
-            setupToggle('paymentHeader', 'paymentHeaderContent');
-            setupToggle('receiptHeader', 'receiptHeaderContent');
-            setupToggle('journalHeader', 'journalHeaderContent');
-            setupToggle('salesReturnHeader', 'salesReturnHeaderContent');
-            setupToggle('purchaseReturnHeader', 'purchaseReturnHeaderContent');
-            setupToggle('debitNoteHeader', 'debitNoteHeaderContent');
-            setupToggle('creditNoteHeader', 'creditNoteHeaderContent');
-            setupToggle('fiscalYearHeader', 'fiscalYearHeaderContent');
-            setupToggle('userManagementHeader', 'userManagementHeaderContent');
-            setupToggle('ageingHeader', 'ageingHeaderContent');
-            setupToggle('inventoryHeader', 'inventoryHeaderContent');
-        });
     </script>
 </body>
 

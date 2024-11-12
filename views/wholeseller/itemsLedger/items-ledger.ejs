@@ -1,155 +1,254 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css"
+        rel="stylesheet">
 
-<div class="container" id="mainContainer">
-    <h1 class="mt-4 mb-4">Items Ledger</h1>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
+            /* Let columns size automatically based on content */
+        }
 
-    <% if (Object.keys(itemsLedger).length> 0) { %>
-        <% Object.keys(itemsLedger).forEach(itemId=> { %>
-            <% const item=itemsLedger[itemId].item; %>
-                <% const entries=itemsLedger[itemId].entries; %>
-                    <% const hasOpeningStock=item.stock && item.stock !==0; %>
-                        <% const hasEntries=entries && entries.length> 0; %>
+        th,
+        td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid black;
+            white-space: nowrap;
+        }
 
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <h2 class="card-title text-center">
-                                        <%= item.name %>
-                                    </h2>
-                                </div>
-                                <div class="container">
-                                    <div class="row mb-4">
-                                        <div class="col-md-6">
-                                            <form>
-                                                <div class="form-group">
-                                                    <label for="searchInput">Search Party:</label>
-                                                    <input type="text" class="form-control" id="searchInput"
-                                                        placeholder="Search by party name...">
-                                                </div>
-                                            </form>
+        th {
+            background-color: #f2f2f2;
+        }
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+
+            body {
+                font-size: 12px;
+                margin: 10mm;
+            }
+
+            #printHeader {
+                display: block;
+                /* Show header when printing */
+            }
+
+            /* Ensure no text wrapping when printing */
+            th,
+            td {
+                white-space: nowrap;
+            }
+
+            /* Hide unnecessary elements during printing */
+            #filterForm,
+            #searchInput,
+            #billsList .searchClass td:last-child {
+                display: none;
+            }
+
+            /* Adjust the container width to fit landscape */
+            #mainContainer {
+                width: 100%;
+            }
+        }
+
+        @media screen {
+            #printHeader {
+                display: none;
+                /* Hide header when on screen */
+            }
+        }
+
+
+        /* Custom styles to resize the form */
+        .expanded-container {
+            max-width: 90%;
+            /* Expand the container to 90% of the viewport width */
+        }
+
+        .expanded-card {
+            width: 100%;
+            /* Ensure the card takes full width of the container */
+        }
+
+        @media (min-width: 768px) {
+            .expanded-container {
+                max-width: 90%;
+                /* Adjust width for medium and larger screens */
+            }
+        }
+    </style>
+
+    <div class="container wow-form expanded-container">
+        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+
+            <% if (Object.keys(itemsLedger).length> 0) { %>
+                <% Object.keys(itemsLedger).forEach(itemId=> { %>
+                    <% const item=itemsLedger[itemId].item; %>
+                        <% const entries=itemsLedger[itemId].entries; %>
+                            <% const hasOpeningStock=item.stock && item.stock !==0; %>
+                                <% const hasEntries=entries && entries.length> 0; %>
+
+                                    <div class="card mb-4">
+                                        <div class="card-header">
+                                            <h2 class="card-title text-center">
+                                                <%= item.name %>
+                                            </h2>
                                         </div>
-                                        <div class="col-md-6">
-                                            <form id="filterForm">
-                                                <div class="form-group">
-                                                    <label for="adjustmentTypeFilter">Filter by Type:</label>
-                                                    <select class="form-control" id="adjustmentTypeFilter">
-                                                        <option value="">All</option>
-                                                        <option value="xcess">Xcess</option>
-                                                        <option value="short">Short</option>
-                                                        <option value="Sales">Sales</option>
-                                                        <option value="Purchase">Purchase</option>
-                                                    </select>
+                                        <div class="container-fluid">
+                                            <div class="row">
+                                                <div class="col-md-9">
+                                                    <form>
+                                                        <div class="form-group">
+                                                            <label for="searchInput">Search Party:</label>
+                                                            <input type="text" class="form-control" id="searchInput"
+                                                                placeholder="Search by party name...">
+                                                        </div>
+                                                    </form>
                                                 </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <% if (hasOpeningStock || hasEntries) { %>
-                                        <table class="table table-bordered table-striped" id="adjustmentList">
-                                            <thead class="thead-dark">
-                                                <tr>
-                                                    <th>Date</th>
-                                                    <th>Party Name</th>
-                                                    <th>Type</th>
-                                                    <th>Vouch/Bill</th>
-                                                    <th>Qty. In</th>
-                                                    <th>Qty. Out</th>
-                                                    <th>Unit</th>
-                                                    <th>Rate (Rs.)</th>
-                                                    <th>Balance</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <% if (openingStock) { %>
-                                                    <tr>
-                                                        <td colspan="8"><strong>Opening Balance</strong></td>
-                                                        <td>
-                                                            <%= openingStock.toFixed(2) %>
-                                                        </td>
-                                                    </tr>
-                                                    <% } %>
+                                                <div class="col-md-3">
+                                                    <form id="filterForm">
+                                                        <div class="form-group">
+                                                            <label for="adjustmentTypeFilter">Filter by Type:</label>
+                                                            <select class="form-control" id="adjustmentTypeFilter">
+                                                                <option value="">All</option>
+                                                                <option value="xcess">Xcess</option>
+                                                                <option value="short">Short</option>
+                                                                <option value="Sales">Sales</option>
+                                                                <option value="Purchase">Purchase</option>
+                                                            </select>
+                                                        </div>
+                                                    </form>
+                                                </div>
 
-                                                        <% if (hasEntries) { %>
-                                                            <% entries.forEach(entry=> { %>
-                                                                <tr class="searchClass"
-                                                                    data-adjustment-type="<%= entry.type %>">
-                                                                    <td>
-                                                                        <% if (companyDateFormat==='nepali' ) { %>
-                                                                            <%= new
-                                                                                Date(entry.date).toLocaleDateString() %>
-                                                                                <% } else { %>
+                                                <div class="row">
+                                                    <div class="col">
+                                                        <a href="/items" class="btn btn-primary mb-3"><i
+                                                                class="bi bi-receipt"></i></a>
+                                                        <button id="printAllBills" class="btn btn-secondary mb-3"><i
+                                                                class="bi bi-printer"> All</i></button>
+                                                        <button id="printFilteredBills"
+                                                            class="btn btn-secondary mb-3"><i class="bi bi-printer">
+                                                                Filtered</i></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <% if (hasOpeningStock || hasEntries) { %>
+                                                <table class="table table-bordered table-striped" id="adjustmentList">
+                                                    <thead class="thead-dark">
+                                                        <tr>
+                                                            <th>Date</th>
+                                                            <th>Party Name</th>
+                                                            <th>Type</th>
+                                                            <th>Vouch/Bill</th>
+                                                            <th>Qty. In</th>
+                                                            <th>Qty. Out</th>
+                                                            <th>Unit</th>
+                                                            <th>Rate (Rs.)</th>
+                                                            <th>Balance</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <% if (openingStock) { %>
+                                                            <tr>
+                                                                <td colspan="8"><strong>Opening Balance</strong>
+                                                                </td>
+                                                                <td>
+                                                                    <%= openingStock.toFixed(2) %>
+                                                                </td>
+                                                            </tr>
+                                                            <% } %>
+
+                                                                <% if (hasEntries) { %>
+                                                                    <% entries.forEach(entry=> { %>
+                                                                        <tr class="searchClass"
+                                                                            data-adjustment-type="<%= entry.type %>">
+                                                                            <td>
+                                                                                <% if (companyDateFormat==='nepali' ) {
+                                                                                    %>
                                                                                     <%= new
                                                                                         Date(entry.date).toLocaleDateString()
                                                                                         %>
-                                                                                        <% } %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= entry.partyName %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= entry.type %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= entry.billNumber %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= entry.qtyIn %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= entry.qtyOut %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= entry.unit %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= entry.price %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= entry.balance.toFixed(2) %>
-                                                                    </td>
-                                                                </tr>
-                                                                <% }) %>
-                                                                    <% } %>
-                                            </tbody>
-                                        </table>
+                                                                                        <% } else { %>
+                                                                                            <%= new
+                                                                                                Date(entry.date).toLocaleDateString()
+                                                                                                %>
+                                                                                                <% } %>
+                                                                            </td>
+                                                                            <td>
+                                                                                <%= entry.partyName %>
+                                                                            </td>
+                                                                            <td>
+                                                                                <%= entry.type %>
+                                                                            </td>
+                                                                            <td>
+                                                                                <%= entry.billNumber %>
+                                                                            </td>
+                                                                            <td>
+                                                                                <%= entry.qtyIn %>
+                                                                            </td>
+                                                                            <td>
+                                                                                <%= entry.qtyOut %>
+                                                                            </td>
+                                                                            <td>
+                                                                                <%= entry.unit %>
+                                                                            </td>
+                                                                            <td>
+                                                                                <%= entry.price %>
+                                                                            </td>
+                                                                            <td>
+                                                                                <%= entry.balance.toFixed(2) %>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <% }) %>
+                                                                            <% } %>
+                                                    </tbody>
+                                                </table>
+                                                <% } else { %>
+                                                    <h1 class="text-center">No transactions available.</h1>
+                                                    <% } %>
+                                        </div>
+                                    </div>
+                                    <% }) %>
                                         <% } else { %>
                                             <h1 class="text-center">No transactions available.</h1>
                                             <% } %>
-                                </div>
-                            </div>
-                            <% }) %>
-                                <% } else { %>
-                                    <h1 class="text-center">No transactions available.</h1>
-                                    <% } %>
-</div>
+        </div>
+    </div>
 
-<script>
-    document.getElementById('searchInput').addEventListener('input', filterAdjustment);
-    document.getElementById('adjustmentTypeFilter').addEventListener('change', filterAdjustment);
+    <script>
+        document.getElementById('searchInput').addEventListener('input', filterAdjustment);
+        document.getElementById('adjustmentTypeFilter').addEventListener('change', filterAdjustment);
 
-    function filterAdjustment() {
-        const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
-        const selectedAdjustmentType = document.getElementById('adjustmentTypeFilter').value.trim().toLowerCase();
-        const adjustmentList = document.getElementById('adjustmentList');
-        const rows = adjustmentList.querySelectorAll('tbody tr.searchClass');
+        function filterAdjustment() {
+            const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+            const selectedAdjustmentType = document.getElementById('adjustmentTypeFilter').value.trim().toLowerCase();
+            const adjustmentList = document.getElementById('adjustmentList');
+            const rows = adjustmentList.querySelectorAll('tbody tr.searchClass');
 
-        rows.forEach(row => {
-            const itemName = row.querySelector('td:nth-child(2)').textContent.trim().toLowerCase();
-            const adjustmentType = row.querySelector('td:nth-child(3)').textContent.trim().toLowerCase();
+            rows.forEach(row => {
+                const itemName = row.querySelector('td:nth-child(2)').textContent.trim().toLowerCase();
+                const adjustmentType = row.querySelector('td:nth-child(3)').textContent.trim().toLowerCase();
 
-            const matchesSearch = itemName.includes(searchQuery);
-            const matchesAdjustmentType = selectedAdjustmentType === '' || adjustmentType === selectedAdjustmentType;
+                const matchesSearch = itemName.includes(searchQuery);
+                const matchesAdjustmentType = selectedAdjustmentType === '' || adjustmentType === selectedAdjustmentType;
 
-            if (matchesSearch && matchesAdjustmentType) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
-    }
+                if (matchesSearch && matchesAdjustmentType) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
 
-    // Initial calculation of total quantity
-    filterAdjustment();
-</script>
+        // Initial calculation of total quantity
+        filterAdjustment();
+    </script>

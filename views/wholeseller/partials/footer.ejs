@@ -5,12 +5,79 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Footer</title>
+
+    <style>
+        *,
+        *::before,
+        ::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+
+        .footer {
+            text-align: center;
+            margin-top: 0px;
+            padding: 10px 0;
+            background-color: #f0f2f5;
+            font-size: 0.75rem;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="container">
-        <!-- <input type="text" class="form-control" value="<%=currentCompanyName%>" readonly> -->
-    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="row">
+            <div class="col">
+                <%= currentCompanyName %>
+            </div>
+            <div class="col">
+                User: <%= user.name %> ( <%= user.role %> )
+            </div>
+            <div class="col">
+                F.Y: <%= currentFiscalYear ? currentFiscalYear.name : (initialCurrentFiscalYear ?
+                    initialCurrentFiscalYear.name : 'Not selected' ) %>
+            </div>
+            <div class="col">
+                <% if (company.renewalDate) { %>
+                    Valid Upto:
+                    <%= company.renewalDate %>
+                        <% } else { %>
+                            Demo Version
+                            <% } %>
+            </div>
+            <div class="col" id="live-time"></div>
+
+        </div>
+    </footer>
+
+    <script>
+        // Function to update live time
+        function updateLiveTime() {
+            const liveTimeElement = document.getElementById('live-time');
+            const now = new Date();
+
+            // Format the time as HH:MM:SS
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            // Display the time
+            liveTimeElement.innerText = `${hours}:${minutes}:${seconds}`;
+        }
+
+        // Update the time every second
+        setInterval(updateLiveTime, 1000);
+        // Initialize the live time immediately
+        updateLiveTime();
+    </script>
 </body>
 
 </html>

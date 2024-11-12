@@ -54,6 +54,7 @@ router.get('/units', ensureAuthenticated, ensureCompanySelected, ensureTradeType
             currentCompanyName,
             title: 'Item Unit',
             body: 'wholeseller >> item >> unit',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         })
     }
@@ -67,6 +68,16 @@ router.post('/units', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
         const newUnit = new Unit({ name, company: companyId });
         await newUnit.save();
         console.log(newUnit);
+        res.redirect('/units');
+    }
+});
+
+// Route to handle form submission and delete the category
+router.delete('/units/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        const { id } = req.params;
+        await Unit.findByIdAndDelete(id);
+        req.flash('success', 'unit deleted successfully');
         res.redirect('/units');
     }
 })

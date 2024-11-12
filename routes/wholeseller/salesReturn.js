@@ -72,10 +72,10 @@ router.get('/sales-return/list', ensureAuthenticated, ensureCompanySelected, ens
             currentFiscalYear,
             bills,
             currentCompany,
-            user: req.user,
             currentCompanyName,
-            title: 'Sales Bill Bill',
-            body: 'wholeseller >> sales >> bills list',
+            title: '',
+            body: '',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
@@ -538,10 +538,10 @@ router.get('/sales-return/:id/print', ensureAuthenticated, ensureCompanySelected
                 transactionDateNepali,
                 englishDate: bill.englishDate,
                 companyDateFormat,
-                title: 'Sales Return Print',
-                body: 'wholeseller >> sales return >> print',
+                title: '',
+                body: '',
+                user: req.user,
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
-
 
             });
         } catch (error) {
@@ -637,8 +637,9 @@ router.get('/salesReturn-vat-report', ensureAuthenticated, ensureCompanySelected
             fromDate: req.query.fromDate,
             toDate: req.query.toDate,
             currentCompanyName,
-            title: 'Statement',
-            body: 'wholeseller >> report >> statement',
+            title: '',
+            body: '',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } else {

@@ -1,383 +1,423 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
-<style>
-    .card {
-        margin-bottom: 20px;
-    }
-</style>
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
-<div class="container" id="mainContainer">
-    <h1 class="mt-5">Items</h1>
+    <style>
+        .card {
+            margin-bottom: 20px;
+        }
 
-    <!-- Add Item Form -->
-    <div class="card mt-4">
-        <div class="card-header">
-            Add New Item
+        /* Styling for Select2 dropdown */
+        .select2-container .select2-selection--single {
+            height: 38px;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+
+    <div class="container mt-4 wow-form">
+        <!-- <h1 class="mt-5">Items</h1> -->
+
+        <!-- Add Item Form -->
+        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
+            <h1 style="text-align: center;text-decoration: underline;">Items</h1>
+            <div class="card-header">
+                Add New Item
+            </div>
+            <div class="card-body">
+                <form action="/items" method="post" class="wow-form">
+                    <div class="form-group row">
+                        <div class="col">
+                            <label for="name">Item Name <i style="color: red;">*</i></label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter item name"
+                                onkeydown="handleItemNameInputKeydown(event)" required>
+                        </div>
+                        <div class="col">
+                            <label for="hscode">Item H.S. Code</label>
+                            <input type="number" class="form-control" id="hscode" name="hscode"
+                                placeholder="Enter item H.S code" onkeydown="handleItemHsCodeInputKeydown(event)">
+                        </div>
+                        <div class="col">
+                            <label for="category">Category <i style="color: red;">*</i></label>
+                            <select class="form-control" id="category" name="category" required
+                                onkeydown="handleItemCategoryInputKeydown(event)">
+                                <% if (categories && categories.length> 0) { %>
+                                    <option value="" disabled selected>Select a category</option>
+                                    <% categories.forEach(category=> { %>
+                                        <option value="<%= category._id %>">
+                                            <%= category.name %>
+                                        </option>
+                                        <% }); %>
+                                            <% } else { %>
+                                                <option disabled>No categories available</option>
+                                                <% } %>
+                            </select>
+                        </div>
+
+
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label for="unit">Unit <i style="color: red;">*</i></label>
+                            <select class="form-control" id="unit" name="unit" required
+                                onkeydown="handleItemUnitInputKeydown(event)">
+                                <% if (units && units.length> 0) { %>
+                                    <option value="" disabled selected>Select a Unit</option>
+                                    <% units.forEach(unit=> { %>
+                                        <option value="<%= unit._id %>">
+                                            <%= unit.name %>
+                                        </option>
+                                        <% }); %>
+                                            <% } else { %>
+                                                <option disabled>No units available</option>
+                                                <% } %>
+                            </select>
+                        </div>
+
+                        <div class="col">
+                            <label for="vatStatus">VAT Status <i style="color: red;">*</i></label>
+                            <select class="form-control" id="vatStatus" name="vatStatus"
+                                onkeydown="handleItemVatStatusInputKeydown(event)" required>
+                                <option value="" disabled selected>Select Vat Status</option>
+                                <option value="vatable">Vatable</option>
+                                <option value="vatExempt">VAT Exempt</option>
+                            </select>
+                        </div>
+                        <div class="col">
+                            <label for="reorderLevel">Re-Order Level(Qty)</label>
+                            <input type="number" class="form-control" id="reorderLevel" name="reorderLevel" value="10"
+                                aria-selected="true">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label for="price">Sales Price</label>
+                            <input type="number" class="form-control" id="price" name="price" step="0.01"
+                                onkeydown="handleItemSalesPriceInputKeydown(event)" value="0.00">
+                        </div>
+                        <div class="col">
+                            <label for="puPrice">Purchase Price</label>
+                            <input type="number" class="form-control" id="puPrice" name="puPrice" step="0.01"
+                                onkeydown="handleItemPurchasePriceInputKeydown(event)"
+                                oninput="calculateTotalOpeningStockBalance()" value="0.00">
+                        </div>
+                        <div class="col">
+                            <label for="openingStock">Opening Stock</label>
+                            <input type="number" class="form-control" id="openingStock" name="openingStock"
+                                onkeydown="handleItemOpeningStockInputKeydown(event)"
+                                oninput="calculateTotalOpeningStockBalance()" value="0.00">
+                        </div>
+                        <div class="col">
+                            <label for="openingStockBalance">Opening Stock Balance</label>
+                            <input type="number" class="form-control" id="openingStockBalance"
+                                name="openingStockBalance" value="0.00">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="saveItem">Add Item</button>
+                </form>
+            </div>
         </div>
-        <div class="card-body">
-            <form action="/items" method="post">
-                <div class="form-group row">
-                    <div class="col">
-                        <label for="name">Item Name <i style="color: red;">*</i></label>
-                        <input type="text" class="form-control" id="name" name="name" placeholder="Enter item name"
-                            onkeydown="handleItemNameInputKeydown(event)" required>
-                    </div>
-                    <div class="col">
-                        <label for="hscode">Item H.S. Code</label>
-                        <input type="number" class="form-control" id="hscode" name="hscode"
-                            placeholder="Enter item H.S code" onkeydown="handleItemHsCodeInputKeydown(event)">
-                    </div>
-                    <div class="col">
-                        <label for="category">Category <i style="color: red;">*</i></label>
-                        <select class="form-control" id="category" name="category" required
-                            onkeydown="handleItemCategoryInputKeydown(event)">
-                            <% if (categories && categories.length> 0) { %>
-                                <option value="" disabled selected>Select a category</option>
-                                <% categories.forEach(category=> { %>
-                                    <option value="<%= category._id %>">
-                                        <%= category.name %>
-                                    </option>
-                                    <% }); %>
-                                        <% } else { %>
-                                            <option disabled>No categories available</option>
-                                            <% } %>
-                        </select>
-                    </div>
 
-
+        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
+            <h1 style="text-align: center;text-decoration: underline;">Existing Items</h1>
+            <!--print buttons-->
+            <div class="mb-3">
+                <div class="btn btn-primary" onclick="printItems()"><i class="bi bi-printer"></i></div>
+            </div>
+            <!-- Search Form -->
+            <form class="mb-4">
+                <div class="form-group">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search items by name...">
                 </div>
-                <div class="form-group row">
-                    <div class="col">
-                        <label for="unit">Unit <i style="color: red;">*</i></label>
-                        <select class="form-control" id="unit" name="unit" required
-                            onkeydown="handleItemUnitInputKeydown(event)">
-                            <% if (units && units.length> 0) { %>
-                                <option value="" disabled selected>Select a Unit</option>
-                                <% units.forEach(unit=> { %>
-                                    <option value="<%= unit._id %>">
-                                        <%= unit.name %>
-                                    </option>
-                                    <% }); %>
-                                        <% } else { %>
-                                            <option disabled>No units available</option>
-                                            <% } %>
-                        </select>
-                    </div>
-
-                    <div class="col">
-                        <label for="vatStatus">VAT Status <i style="color: red;">*</i></label>
-                        <select class="form-control" id="vatStatus" name="vatStatus"
-                            onkeydown="handleItemVatStatusInputKeydown(event)" required>
-                            <option value="" disabled selected>Select Vat Status</option>
-                            <option value="vatable">Vatable</option>
-                            <option value="vatExempt">VAT Exempt</option>
-                        </select>
-                    </div>
-                    <div class="col">
-                        <label for="reorderLevel">Re-Order Level(Qty)</label>
-                        <input type="number" class="form-control" id="reorderLevel" name="reorderLevel" value="10"
-                            aria-selected="true">
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <div class="col">
-                        <label for="price">Sales Price</label>
-                        <input type="number" class="form-control" id="price" name="price" step="0.01"
-                            onkeydown="handleItemSalesPriceInputKeydown(event)" value="0.00">
-                    </div>
-                    <div class="col">
-                        <label for="puPrice">Purchase Price</label>
-                        <input type="number" class="form-control" id="puPrice" name="puPrice" step="0.01"
-                            onkeydown="handleItemPurchasePriceInputKeydown(event)"
-                            oninput="calculateTotalOpeningStockBalance()" value="0.00">
-                    </div>
-                    <div class="col">
-                        <label for="openingStock">Opening Stock</label>
-                        <input type="number" class="form-control" id="openingStock" name="openingStock"
-                            onkeydown="handleItemOpeningStockInputKeydown(event)"
-                            oninput="calculateTotalOpeningStockBalance()" value="0.00">
-                    </div>
-                    <div class="col">
-                        <label for="openingStockBalance">Opening Stock Balance</label>
-                        <input type="number" class="form-control" id="openingStockBalance" name="openingStockBalance"
-                            value="0.00">
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary" id="saveItem">Add Item</button>
             </form>
-        </div>
-    </div>
 
-    <!-- Existing Items List -->
-    <h2 class="mt-5">Existing Items</h2>
-    <!-- Search Form -->
-    <form class="mb-4">
-        <div class="form-group">
-            <input type="text" class="form-control" id="searchInput" placeholder="Search items by name...">
-        </div>
-    </form>
-
-    <!--print buttons-->
-    <div class="mb-3">
-        <div class="btn btn-primary" onclick="printItems()">Print Items</div>
-    </div>
-
-    <table class="table mt-3">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Sales Price</th>
-                <th>Purchase Price</th>
-                <th>Unit</th>
-                <th>VAT Status</th>
-                <th>Stock</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="itemsList">
-            <% if (items && items.length> 0) { %>
-                <% items.forEach((item, index)=> { %>
-                    <tr class="searchClass">
-                        <td><strong>
-                                <%=index +1 %>. <%= item.name %>
-                            </strong></td>
-                        <td><small><b>
-                                    <%= item.category.name %>
-                                </b></small></td>
-                        <td><span class="badge badge-primary">Rs.<%= item.price.toFixed(2) %></span></td>
-                        <td><span class="badge badge-secondary">Rs.<%= item.puPrice %></span></td>
-                        <td><span>
-                                <%= item.unit.name %>
-                            </span></td>
-                        <td><span class="badge <%= item.vatStatus === 'vatable' ? 'badge-success' : 'badge-warning' %>">
-                                <%= item.vatStatus==='vatable' ? 'Vatable' : 'VAT Exempt' %>
-                            </span></td>
-                        <td><small>
-                                <small>
-                                    <%= item.stockEntries ? item.stockEntries.reduce((acc, entry)=> acc +
-                                        entry.quantity, 0) : 0
-                                        %>
-                                </small><br>
-                                <%= item.unit.name %>
-                            </small></td>
-                        <td>
-                            <a href="/items/<%= item._id %>"><button class="btn-sm btn-info"><i
-                                        class="fas fa-eye"></i></button></a>
-                            <button class="btn btn-sm btn-warning" onclick="editItem('<%= item._id %>', '<%= item.name %>','<%= item.hscode %>', '<%= item.category._id %>', 
+            <table class="table mt-3">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>S.Price</th>
+                        <th>C.Price</th>
+                        <th>Stock</th>
+                        <th>Unit</th>
+                        <th>VAT Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsList">
+                    <% if (items && items.length> 0) { %>
+                        <% items.forEach((item, index)=> { %>
+                            <tr class="searchClass">
+                                <td><strong>
+                                        <%=index +1 %>. <%= item.name %>
+                                    </strong></td>
+                                <td><small><b>
+                                            <%= item.category.name %>
+                                        </b></small></td>
+                                <td><span class="badge badge-primary">Rs.<%= item.price.toFixed(2) %></span></td>
+                                <td><span class="badge badge-secondary">Rs.<%= item.puPrice %></span></td>
+                                <td><small>
+                                        <%= item.stockEntries ? item.stockEntries.reduce((acc, entry)=> acc +
+                                            entry.quantity, 0) : 0
+                                            %>
+                                    </small></td>
+                                <td><span>
+                                        <%= item.unit.name %>
+                                    </span></td>
+                                <td><span
+                                        class="badge <%= item.vatStatus === 'vatable' ? 'badge-success' : 'badge-warning' %>">
+                                        <%= item.vatStatus==='vatable' ? 'Vatable' : 'VAT Exempt' %>
+                                    </span></td>
+                                <td>
+                                    <a href="/items/<%= item._id %>"><button class="btn-sm btn-info"><i
+                                                class="fas fa-eye"></i></button></a>
+                                    <button class="btn btn-sm btn-warning" onclick="editItem('<%= item._id %>', '<%= item.name %>','<%= item.hscode %>', '<%= item.category._id %>', 
                                     '<%= item.unit._id %>','<%= item.vatStatus %>','<%= item.reorderLevel %>', '<%= item.price %>','<%= item.puPrice %>',
                                      '<%= item.openingStock %>','<%= item.openingStockBalance %>')"><i
-                                    class="fas fa-edit"></i></button>
-                            <form action="/items/<%= item._id %>?_method=DELETE" method="post" class="d-inline"
-                                onsubmit="return confirmDeletion()">
-                                <button type="submit" class="btn btn-sm btn-danger"><i
-                                        class="fas fa-trash"></i></button>
-                            </form>
-                        </td>
-                    </tr>
-                    <% }); %>
-                        <% } else { %>
-                            <tr>
-                                <td colspan="8">No items available</td>
+                                            class="fas fa-edit"></i></button>
+                                    <form action="/items/<%= item._id %>?_method=DELETE" method="post" class="d-inline"
+                                        onsubmit="return confirmDeletion()">
+                                        <button type="submit" class="btn btn-sm btn-danger"><i
+                                                class="fas fa-trash"></i></button>
+                                    </form>
+                                </td>
                             </tr>
-                            <% } %>
-        </tbody>
-    </table>
+                            <% }); %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="8">No items available</td>
+                                    </tr>
+                                    <% } %>
+                </tbody>
+            </table>
+        </div>
 
 
-    <!-- Edit Item Modal -->
-    <div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editItemModalLabel">Edit Item</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <!-- Edit Item Modal -->
+        <div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editItemModalLabel">Edit Item</h5>
+                        <!-- <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="editItemForm" method="post">
+                    </button> -->
+                        <button type="button" class="close text-danger" data-bs-dismiss="modal"><span
+                                aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editItemForm" method="post">
 
-                        <div class="form-group row">
-                            <div class="col">
-                                <label for="editName">Item Name <i style="color: red;">*</i></label>
-                                <input type="text" class="form-control" id="editName" name="name" required>
+                            <div class="form-group row">
+                                <div class="col">
+                                    <label for="editName">Item Name <i style="color: red;">*</i></label>
+                                    <input type="text" class="form-control" id="editName" name="name" required>
+                                </div>
+                                <div class="col">
+                                    <label for="editHscode">H.S. Code</label>
+                                    <input type="number" class="form-control" id="editHscode" name="hscode">
+                                </div>
+                                <div class="col">
+                                    <label for="editCategory">Category <i style="color: red;">*</i></label>
+                                    <select class="form-control" id="editCategory" name="category" required>
+                                        <% if (categories && categories.length> 0) { %>
+                                            <% categories.forEach(category=> { %>
+                                                <option value="<%= category._id %>">
+                                                    <%= category.name %>
+                                                </option>
+                                                <% }); %>
+                                                    <% } else { %>
+                                                        <option disabled>No categories available</option>
+                                                        <% } %>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="col">
-                                <label for="editHscode">H.S. Code</label>
-                                <input type="number" class="form-control" id="editHscode" name="hscode">
+                            <div class="form-group row">
+                                <div class="col">
+                                    <label for="editUnit">Unit <i style="color: red;">*</i></label>
+                                    <select class="form-control" id="editUnit" name="unit" required>
+                                        <% if (units && units.length> 0) { %>
+                                            <% units.forEach(unit=> { %>
+                                                <option value="<%= unit._id %>">
+                                                    <%= unit.name %>
+                                                </option>
+                                                <% }); %>
+                                                    <% } else { %>
+                                                        <option disabled>No units available</option>
+                                                        <% } %>
+                                    </select>
+                                </div>
+                                <div class="col">
+                                    <label for="editVatStatus">VAT Status <i style="color: red;">*</i></label>
+                                    <select class="form-control" id="editVatStatus" name="vatStatus" required>
+                                        <option value="vatable">Vatable</option>
+                                        <option value="vatExempt">VAT Exempt</option>
+                                    </select>
+                                </div>
+                                <div class="col">
+                                    <label for="editReorderLevel">Re-Order Level</label>
+                                    <input type="number" class="form-control" id="editReorderLevel" name="reorderLevel">
+                                </div>
                             </div>
-                            <div class="col">
-                                <label for="editCategory">Category <i style="color: red;">*</i></label>
-                                <select class="form-control" id="editCategory" name="category" required>
-                                    <% if (categories && categories.length> 0) { %>
-                                        <% categories.forEach(category=> { %>
-                                            <option value="<%= category._id %>">
-                                                <%= category.name %>
-                                            </option>
-                                            <% }); %>
-                                                <% } else { %>
-                                                    <option disabled>No categories available</option>
-                                                    <% } %>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <div class="col">
-                                <label for="editUnit">Unit <i style="color: red;">*</i></label>
-                                <select class="form-control" id="editUnit" name="unit" required>
-                                    <% if (units && units.length> 0) { %>
-                                        <% units.forEach(unit=> { %>
-                                            <option value="<%= unit._id %>">
-                                                <%= unit.name %>
-                                            </option>
-                                            <% }); %>
-                                                <% } else { %>
-                                                    <option disabled>No units available</option>
-                                                    <% } %>
-                                </select>
-                            </div>
-                            <div class="col">
-                                <label for="editVatStatus">VAT Status <i style="color: red;">*</i></label>
-                                <select class="form-control" id="editVatStatus" name="vatStatus" required>
-                                    <option value="vatable">Vatable</option>
-                                    <option value="vatExempt">VAT Exempt</option>
-                                </select>
-                            </div>
-                            <div class="col">
-                                <label for="editReorderLevel">Re-Order Level</label>
-                                <input type="number" class="form-control" id="editReorderLevel" name="reorderLevel">
-                            </div>
-                        </div>
-                        <div class="form-group row">
+                            <div class="form-group row">
 
-                            <div class="col">
-                                <label for="editPrice">Sales Price</label>
-                                <input type="number" class="form-control" id="editPrice" name="price" step="0.01"
-                                    required>
-                            </div>
-                            <div class="col">
-                                <label for="editpuPrice">Purchase Price</label>
-                                <input type="number" class="form-control" id="editpuPrice" name="puPrice" step="0.01"
-                                    oninput="calculateTotalOpeningStockBalanceInEditForm()" value="0.00" required>
-                            </div>
+                                <div class="col">
+                                    <label for="editPrice">Sales Price</label>
+                                    <input type="number" class="form-control" id="editPrice" name="price" step="0.01"
+                                        required>
+                                </div>
+                                <div class="col">
+                                    <label for="editpuPrice">Purchase Price</label>
+                                    <input type="number" class="form-control" id="editpuPrice" name="puPrice"
+                                        step="0.01" oninput="calculateTotalOpeningStockBalanceInEditForm()" value="0.00"
+                                        required>
+                                </div>
 
-                            <div class="col">
-                                <label for="editOpeningStock">Opening stock</label>
-                                <input type="number" class="form-control" id="editOpeningStock" name="openingStock"
-                                    value="0.00" oninput="calculateTotalOpeningStockBalanceInEditForm()">
+                                <div class="col">
+                                    <label for="editOpeningStock">Opening stock</label>
+                                    <input type="number" class="form-control" id="editOpeningStock" name="openingStock"
+                                        value="0.00" oninput="calculateTotalOpeningStockBalanceInEditForm()">
+                                </div>
+                                <div class="col">
+                                    <label for="editOpeningStockBalance">Opening Stock Balance</label>
+                                    <input type="number" class="form-control" id="editOpeningStockBalance"
+                                        name="openingStockBalance" value="0.00">
+                                </div>
                             </div>
-                            <div class="col">
-                                <label for="editOpeningStockBalance">Opening Stock Balance</label>
-                                <input type="number" class="form-control" id="editOpeningStockBalance"
-                                    name="openingStockBalance" value="0.00">
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Save changes</button>
-                    </form>
+                            <button type="submit" class="btn btn-primary">Save changes</button>
+                            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <!-- <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-<script>
-    function editItem(id, name, hscode, categoryId, unitId, vatStatus, reorderLevel, price, puPrice, openingStock, openingStockBalance) {
-        $('#editItemModal').modal('show');
-        $('#editItemForm').attr('action', '/items/' + id + '?_method=PUT');
-        $('#editName').val(name);
-        $('#editHscode').val(hscode);
-        $('#editCategory').val(categoryId);
-        $('#editUnit').val(unitId);
-        $('#editVatStatus').val(vatStatus);
-        $('#editReorderLevel').val(reorderLevel);
-        $('#editPrice').val(price);
-        $('#editpuPrice').val(puPrice);
-        $('#editOpeningStock').val(openingStock);
-        $('#editOpeningStockBalance').val(openingStockBalance);
-    }
-
-    $(document).ready(function () {
-        $('#editItemModal').on('hidden.bs.modal', function () {
-            $('#editItemForm').trigger('reset');
-            $('#editItemForm').attr('action', '');
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script> -->
+    <script>
+        $(document).ready(function () {
+            // Initialize Select2 for searchable dropdown
+            $('#category').select2({
+                placeholder: "Select a Group",
+                allowClear: true,
+                width: '100%', // Ensure it takes the full width of the container
+            });
         });
-    });
 
-    document.getElementById('searchInput').addEventListener('input', function () {
-        const searchTerm = this.value.toLowerCase();
-        const itemsList = document.querySelectorAll('.searchClass');
-
-        itemsList.forEach(item => {
-            const itemName = item.querySelector('td strong').textContent.toLowerCase();
-            if (itemName.includes(searchTerm)) {
-                item.style.display = '';
-            } else {
-                item.style.display = 'none';
-            }
+        $(document).ready(function () {
+            // Initialize Select2 for searchable dropdown
+            $('#unit').select2({
+                placeholder: "Select a Group",
+                allowClear: true,
+                width: '100%', // Ensure it takes the full width of the container
+            });
         });
-    });
-
-    //Handle step by step going when enter key is press
-    document.addEventListener('DOMContentLoaded', function () {
-        const itemNameInput = document.getElementById('name').focus(); // Initial focus on item search input
-    });
-
-    // Function to move focus to the next input field
-    function moveToNextInput(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault(); // Prevent form submission
-            const form = event.target.form;
-            const index = Array.prototype.indexOf.call(form, event.target);
-            form.elements[index + 1].focus();
+        $(document).ready(function () {
+            // Initialize Select2 for searchable dropdown
+            $('#vatStatus').select2({
+                placeholder: "Select a Group",
+                allowClear: true,
+                width: '100%', // Ensure it takes the full width of the container
+            });
+        });
+        function editItem(id, name, hscode, categoryId, unitId, vatStatus, reorderLevel, price, puPrice, openingStock, openingStockBalance) {
+            $('#editItemModal').modal('show');
+            $('#editItemForm').attr('action', '/items/' + id + '?_method=PUT');
+            $('#editName').val(name);
+            $('#editHscode').val(hscode);
+            $('#editCategory').val(categoryId);
+            $('#editUnit').val(unitId);
+            $('#editVatStatus').val(vatStatus);
+            $('#editReorderLevel').val(reorderLevel);
+            $('#editPrice').val(price);
+            $('#editpuPrice').val(puPrice);
+            $('#editOpeningStock').val(openingStock);
+            $('#editOpeningStockBalance').val(openingStockBalance);
         }
-    }
 
-    // Get all the input elements within the form
-    const inputs = document.querySelectorAll('form input, form select');
+        $(document).ready(function () {
+            $('#editItemModal').on('hidden.bs.modal', function () {
+                $('#editItemForm').trigger('reset');
+                $('#editItemForm').attr('action', '');
+            });
+        });
 
-    // Attach the moveToNextInput function to the keydown event for each input field
-    inputs.forEach(input => {
-        input.addEventListener('keydown', moveToNextInput);
-    });
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const searchTerm = this.value.toLowerCase();
+            const itemsList = document.querySelectorAll('.searchClass');
 
-    //calculate openingStockBalance
+            itemsList.forEach(item => {
+                const itemName = item.querySelector('td strong').textContent.toLowerCase();
+                if (itemName.includes(searchTerm)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        //Handle step by step going when enter key is press
+        document.addEventListener('DOMContentLoaded', function () {
+            const itemNameInput = document.getElementById('name').focus(); // Initial focus on item search input
+        });
+
+        // Function to move focus to the next input field
+        function moveToNextInput(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent form submission
+                const form = event.target.form;
+                const index = Array.prototype.indexOf.call(form, event.target);
+                form.elements[index + 1].focus();
+            }
+        }
+
+        // Get all the input elements within the form
+        const inputs = document.querySelectorAll('form input, form select');
+
+        // Attach the moveToNextInput function to the keydown event for each input field
+        inputs.forEach(input => {
+            input.addEventListener('keydown', moveToNextInput);
+        });
+
+        //calculate openingStockBalance
 
 
-    function calculateTotalOpeningStockBalance(input) {
-        const puPrice = parseFloat(document.getElementById('puPrice').value) || 0;
-        const openingStock = parseFloat(document.getElementById('openingStock').value) || 0;
+        function calculateTotalOpeningStockBalance(input) {
+            const puPrice = parseFloat(document.getElementById('puPrice').value) || 0;
+            const openingStock = parseFloat(document.getElementById('openingStock').value) || 0;
 
-        const totalOpeningStockBalance = puPrice * openingStock;
+            const totalOpeningStockBalance = puPrice * openingStock;
 
-        // Update the Opening Stock Balance field
-        document.getElementById('openingStockBalance').value = totalOpeningStockBalance.toFixed(2);
-    }
+            // Update the Opening Stock Balance field
+            document.getElementById('openingStockBalance').value = totalOpeningStockBalance.toFixed(2);
+        }
 
-    function calculateTotalOpeningStockBalanceInEditForm(input) {
-        const puPrice = parseFloat(document.getElementById('editpuPrice').value) || 0;
-        const openingStock = parseFloat(document.getElementById('editOpeningStock').value) || 0;
+        function calculateTotalOpeningStockBalanceInEditForm(input) {
+            const puPrice = parseFloat(document.getElementById('editpuPrice').value) || 0;
+            const openingStock = parseFloat(document.getElementById('editOpeningStock').value) || 0;
 
-        const totalOpeningStockBalance = puPrice * openingStock;
+            const totalOpeningStockBalance = puPrice * openingStock;
 
-        // Update the Opening Stock Balance field
-        document.getElementById('editOpeningStockBalance').value = totalOpeningStockBalance.toFixed(2);
-    }
-
-
-    function confirmDeletion() {
-        return confirm("Are you sure you want to delete this item?");
-    }
+            // Update the Opening Stock Balance field
+            document.getElementById('editOpeningStockBalance').value = totalOpeningStockBalance.toFixed(2);
+        }
 
 
-    // Function to print the list of accounts in table format
-    function printItems() {
-        // Create a table structure for printing
-        let printContent = `
+        function confirmDeletion() {
+            return confirm("Are you sure you want to delete this item?");
+        }
+
+
+        // Function to print the list of accounts in table format
+        function printItems() {
+            // Create a table structure for printing
+            let printContent = `
             <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr>
@@ -391,7 +431,7 @@
                 <tbody>`;
 
         <% items.forEach((item, index) => { %>
-            printContent += `
+                printContent += `
                 <tr>
                     <td><%= index + 1 %></td> <!-- Serial Number for Printing -->
                     <td><%= item.name %></td>
@@ -401,11 +441,11 @@
                 </tr>`;
         <% }); %>
 
-            printContent += `</tbody></table>`;
+                printContent += `</tbody></table>`;
 
-        // Temporarily replace body content with the table for printing
-        const originalContent = document.body.innerHTML;
-        document.body.innerHTML = `
+            // Temporarily replace body content with the table for printing
+            const originalContent = document.body.innerHTML;
+            document.body.innerHTML = `
             <html>
             <head>
                 <title>Print Accounts</title>
@@ -428,12 +468,12 @@
             </html>
         `;
 
-        // Trigger the print dialog
-        window.print();
+            // Trigger the print dialog
+            window.print();
 
-        // Restore the original content after printing
-        document.body.innerHTML = originalContent;
-        window.location.reload();  // Reload the page to restore event listeners
-    }
+            // Restore the original content after printing
+            document.body.innerHTML = originalContent;
+            window.location.reload();  // Reload the page to restore event listeners
+        }
 
-</script>
+    </script>

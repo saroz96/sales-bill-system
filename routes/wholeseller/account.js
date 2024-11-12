@@ -91,6 +91,7 @@ router.get('/companies', ensureAuthenticated, ensureCompanySelected, ensureTrade
             currentFiscalYear,
             title: 'Account',
             body: 'wholeseller >> account',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
@@ -252,6 +253,7 @@ router.get('/companies/:id', ensureAuthenticated, ensureCompanySelected, ensureT
                 currentFiscalYear,
                 title: 'Account',
                 body: 'wholeseller >> account >> view',
+                user: req.user,
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (err) {
@@ -273,7 +275,12 @@ router.get('/companies/:id/edit', ensureAuthenticated, ensureCompanySelected, en
             if (!accounts.company._id.equals(req.session.currentCompany)) {
                 return res.status(403).json({ error: 'Unauthorized' });
             }
-            res.render('wholeseller/company/editCompany', { accounts, companyGroups });
+            res.render('wholeseller/company/editCompany', {
+                accounts,
+                companyGroups,
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            });
         } catch (err) {
             console.error('Error fetching company:', err);
             req.flash('error', 'Error fetching company');

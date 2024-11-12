@@ -195,6 +195,7 @@ router.get('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType
                 fiscalYear,
                 title: 'Items',
                 body: 'wholeseller >> Items >> item',
+                user: req.user,
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
@@ -320,8 +321,9 @@ router.get('/items/average-reorder-level', ensureAuthenticated, ensureCompanySel
                 currentFiscalYear,
                 title: 'Items Reorder Level',
                 body: '',
-                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor',
-                message: 'Average monthly quantities (reorder levels) calculated successfully.'
+                message: 'Average monthly quantities (reorder levels) calculated successfully.',
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
             console.error(error);
@@ -405,6 +407,7 @@ router.get('/items/reorder', ensureAuthenticated, ensureCompanySelected, ensureT
             currentFiscalYear,
             title: 'Items Reorder Level',
             body: '',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         })
     }
@@ -597,6 +600,7 @@ router.get('/items/:id', ensureAuthenticated, ensureCompanySelected, async (req,
             currentCompanyName,
             title: 'Items',
             body: 'wholeseller >> Items >> view',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
 
@@ -804,11 +808,15 @@ router.get('/items-list', ensureAuthenticated, ensureCompanySelected, ensureTrad
                 return res.status(400).json({ error: 'No fiscal year found in session or company.' });
             }
 
-            const items = await Item.find({ company: companyId, fiscalYear: fiscalYear }).populate('category').exec();
+            const items = await Item.find({ company: companyId, fiscalYear: fiscalYear })
+                .populate('category')
+                .populate('unit')
+                .exec();
             res.render('wholeseller/item/listItems', {
                 items, company, currentCompanyName, currentFiscalYear,
                 title: 'Items List',
                 body: 'wholeseller >> Items >> all items',
+                user: req.user,
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (err) {

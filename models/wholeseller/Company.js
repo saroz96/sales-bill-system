@@ -6,7 +6,7 @@ const companySchema = new mongoose.Schema({
     country: String,
     state: String,
     city: String,
-    pan: String,
+    pan: { type: String, max: 9, min: 9 },
     phone: String,
     ward: Number,
     email: String,

@@ -1,118 +1,348 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
-<div class="container" id="mainContainer">
-    <h1 class="my-4">Stock Adjustments</h1>
-    <div class="card">
-        <div class="card-body">
-            <a href="/stockAdjustments/new" class="btn btn-primary mb-4">New Stock Adjustment</a>
-            <!-- Adjustment Type Filter and Search Form in One Row -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <form>
-                        <div class="form-group">
-                            <label for="searchInput">Search Items:</label>
-                            <input type="text" class="form-control" id="searchInput"
-                                placeholder="Search items by name...">
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <style>
+        /* Keep the header fixed at the top */
+        .dropdown-header {
+            display: grid;
+            grid-template-columns: 2fr 2fr 5fr 2fr 2fr 2fr 1fr;
+            padding: 5px;
+            border-bottom: 1px solid #ccc;
+            top: 0;
+            /* Stick to the top of the dropdown */
+            background-color: #f0f0f0;
+            /* Optional: ensure background color to avoid transparency */
+            z-index: 1;
+            /* Ensure the header stays on top of other items */
+        }
+
+        /* Ensure the dropdown container is scrollable */
+        #dropdownMenu {
+            /* Set a fixed height for the dropdown */
+            overflow-y: auto;
+            /* Enable vertical scrolling */
+            width: 100%;
+            /* Ensure the dropdown takes up full width */
+        }
+
+        /* Optional: style for the dropdown items */
+        .dropdown-item {
+            display: grid;
+            grid-template-columns: 2fr 2fr 5fr 2fr 2fr 2fr 1fr;
+            padding: 5px;
+        }
+
+        /*Excel-style table*/
+        #adjustmentList {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: Arial, sans-serif;
+        }
+
+        #adjustmentList th,
+        #adjustmentList td {
+            padding: 8px 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        #adjustmentList th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+
+        /* Hover effect for rows */
+        #adjustmentList tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Custom styles to resize the form */
+        .expanded-container {
+            max-width: 90%;
+            /* Expand the container to 90% of the viewport width */
+        }
+
+        .expanded-card {
+            width: 100%;
+            /* Ensure the card takes full width of the container */
+        }
+
+        @media (min-width: 768px) {
+            .expanded-container {
+                max-width: 80%;
+                /* Adjust width for medium and larger screens */
+            }
+        }
+
+        /* Compact table styles */
+        .compact-table {
+            font-size: 0.85rem;
+            /* Reduce font size (12px) */
+        }
+
+        .compact-table th,
+        .compact-table td {
+            padding: 0.4rem 0.6rem;
+            /* Decrease padding for compact appearance */
+        }
+
+        .compact-table input.form-control {
+            font-size: 0.85rem;
+            /* Smaller text size for input fields */
+            padding: 0.3rem 0.5rem;
+            /* Adjust input padding */
+            height: auto;
+            /* Reduce input height */
+        }
+
+        .compact-table .btn-danger {
+            font-size: 0.85rem;
+            /* Reduce button text size */
+            padding: 0.3rem 0.5rem;
+            /* Compact button padding */
+        }
+
+        .compact-table input[type="date"] {
+            font-size: 0.85rem;
+            padding: 0.3rem;
+            height: auto;
+        }
+    </style>
+    <div class="container wow-form expanded-container">
+        <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <h1 class="my-4">Stock Adjustments</h1>
+            <div class="card">
+                <div class="card-body">
+                    <!-- Adjustment Type Filter and Search Form in One Row -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <form>
+                                <div class="form-group">
+                                    <label for="searchInput">Search Items:</label>
+                                    <input type="text" class="form-control" id="searchInput"
+                                        placeholder="Search items by name..." autofocus>
+                                </div>
+                            </form>
                         </div>
-                    </form>
-                </div>
-                <div class="col-md-6">
-                    <form id="filterForm">
-                        <div class="form-group">
-                            <label for="adjustmentTypeFilter">Filter by Adjustment Type:</label>
-                            <select class="form-control" id="adjustmentTypeFilter">
-                                <option value="">All</option>
-                                <option value="xcess">Xcess</option>
-                                <option value="short">Short</option>
-                            </select>
+                        <div class="col-md-6">
+                            <form id="filterForm" class="wow-form">
+                                <div class="form-group">
+                                    <label for="adjustmentTypeFilter">Filter by Adjustment Type:</label>
+                                    <select class="form-control" id="adjustmentTypeFilter">
+                                        <option value="">All</option>
+                                        <option value="xcess">Xcess</option>
+                                        <option value="short">Short</option>
+                                    </select>
+                                </div>
+                            </form>
                         </div>
-                    </form>
+                        <div class="row">
+                            <div class="col">
+                                <a href="/stockAdjustments/new" class="btn btn-primary mb-3"><i
+                                        class="bi bi-receipt"></i></a>
+                                <button id="printAllBills" class="btn btn-secondary mb-3"><i class="bi bi-printer">
+                                        All</i></button>
+                                <button id="printFilteredBills" class="btn btn-secondary mb-3"><i class="bi bi-printer">
+                                        Filtered</i></button>
+                            </div>
+                        </div>
+
+                        <table class="table table-striped compact-table" id="adjustmentList">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description of Goods</th>
+                                    <th>Quantity</th>
+                                    <th>Unit</th>
+                                    <th>Adj. Type</th>
+                                    <th>Reason</th>
+                                    <th>User</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (stockAdjustments && stockAdjustments.length> 0) { %>
+                                    <% stockAdjustments.forEach(adjustment=> { %>
+                                        <tr class="searchClass" data-adjustment-type="<%= adjustment.adjustmentType %>">
+                                            <td>
+                                                <% if (companyDateFormat==='nepali' ) { %>
+                                                    <%= new Date(nepaliDate).toLocaleDateString() %>
+                                                        <% } else { %>
+                                                            <%= new Date(adjustment.date).toLocaleDateString() %>
+                                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <%= adjustment.item.name %>
+                                            </td>
+                                            <td class="quantity">
+                                                <%= adjustment.quantity %>
+                                            </td>
+                                            <td>
+                                                <%=adjustment.unit.name %>
+                                            </td>
+                                            <td>
+                                                <%= adjustment.adjustmentType %>
+                                            </td>
+                                            <td>
+                                                <%= adjustment.reason %>
+                                            </td>
+                                            <td>
+                                                <%= adjustment.user.name %>
+                                            </td>
+                                        </tr>
+                                        <% }) %>
+                                            <% } %>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="2" class="text-right"><strong>Total Quantity:</strong></td>
+                                    <td id="totalQuantity">0</td>
+                                    <td colspan="5"></td>
+
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <table class="table table-striped" id="adjustmentList">
+        <script>
+            document.getElementById('searchInput').addEventListener('input', filterAdjustment);
+            document.getElementById('adjustmentTypeFilter').addEventListener('change', filterAdjustment);
+
+            function filterAdjustment() {
+                const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+                const selectedAdjustmentType = document.getElementById('adjustmentTypeFilter').value.trim().toLowerCase();
+                const adjustmentList = document.getElementById('adjustmentList');
+                const rows = adjustmentList.querySelectorAll('tbody tr.searchClass');
+                let totalQuantity = 0;
+
+                rows.forEach(row => {
+                    const itemName = row.querySelector('td:nth-child(2)').textContent.trim().toLowerCase();
+                    const adjustmentType = row.querySelector('td:nth-child(5)').textContent.trim().toLowerCase();
+                    const quantity = parseFloat(row.querySelector('.quantity').textContent);
+
+                    const matchesSearch = itemName.includes(searchQuery);
+                    const matchesAdjustmentType = selectedAdjustmentType === '' || adjustmentType === selectedAdjustmentType;
+
+                    if (matchesSearch && matchesAdjustmentType) {
+                        row.style.display = '';
+                        totalQuantity += quantity;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                document.getElementById('totalQuantity').textContent = totalQuantity;
+            }
+
+            // Initial calculation of total quantity
+            filterAdjustment();
+
+            // Function to print the selected stock adjustments
+            function printStockAdjustments(adjustmentRows) {
+                const printWindow = window.open('', '_blank');
+
+                // Basic HTML and styling for the print view
+                const headerHTML = `
+            <html>
+                <head>
+                    <title>Print Stock Adjustments</title>
+                    <style>
+                        @page { size: A4 landscape; margin: 10mm; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; }
+                        th { background-color: #f2f2f2; }
+                    </style>
+                </head>
+                <body>
+                          <div id="printHeader" class="d-none text-center">
+                <div class="header" style="text-align: center;">
+                    <h2 class="card-subtitle mb-2">
+                        <%= currentCompanyName %>
+                    </h2>
+                    <h1>Stock Adjustments</h1>
+                </div>
+            </div>
+        `;
+
+                // Table header for the printed adjustments
+                const tableHeaderHTML = `
+            <table>
                 <thead>
                     <tr>
-                        <th>Item</th>
-                        <th>Quantity</th>
-                        <th>Adjustment Type</th>
-                        <th>Reason</th>
                         <th>Date</th>
+                        <th>Description of Goods</th>
+                        <th>Quantity</th>
+                        <th>Unit</th>
+                        <th>Adj. Type</th>
+                        <th>Reason</th>
                         <th>User</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <% if (stockAdjustments && stockAdjustments.length> 0) { %>
-                        <% stockAdjustments.forEach(adjustment=> { %>
-                            <tr class="searchClass" data-adjustment-type="<%= adjustment.adjustmentType %>">
-                                <td>
-                                    <%= adjustment.item.name %>
-                                </td>
-                                <td class="quantity">
-                                    <%= adjustment.quantity %>
-                                </td>
-                                <td>
-                                    <%= adjustment.adjustmentType %>
-                                </td>
-                                <td>
-                                    <%= adjustment.reason %>
-                                </td>
-                                <td>
-                                    <% if (companyDateFormat==='nepali' ) { %>
-                                        <%= new Date(nepaliDate).toLocaleDateString() %>
-                                            <% } else { %>
-                                                <%= new Date(adjustment.date).toLocaleDateString() %>
-                                                    <% } %>
-                                </td>
-                                <td>
-                                    <%= adjustment.user.name %>
-                                </td>
-                            </tr>
-                            <% }) %>
-                                <% } %>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="5" class="text-right"><strong>Total Quantity:</strong></td>
-                        <td id="totalQuantity">0</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    </div>
-</div>
+        `;
 
-<script>
-    document.getElementById('searchInput').addEventListener('input', filterAdjustment);
-    document.getElementById('adjustmentTypeFilter').addEventListener('change', filterAdjustment);
+                // Initialize variables for total quantity
+                let totalQuantity = 0;
 
-    function filterAdjustment() {
-        const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
-        const selectedAdjustmentType = document.getElementById('adjustmentTypeFilter').value.trim().toLowerCase();
-        const adjustmentList = document.getElementById('adjustmentList');
-        const rows = adjustmentList.querySelectorAll('tbody tr.searchClass');
-        let totalQuantity = 0;
+                // Construct table rows and calculate total quantity
+                let tableRowsHTML = '';
+                adjustmentRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    tableRowsHTML += '<tr>';
 
-        rows.forEach(row => {
-            const itemName = row.querySelector('td:nth-child(1)').textContent.trim().toLowerCase();
-            const adjustmentType = row.querySelector('td:nth-child(3)').textContent.trim().toLowerCase();
-            const quantity = parseFloat(row.querySelector('.quantity').textContent);
+                    for (let i = 0; i < cells.length; i++) {
+                        const cellText = cells[i]?.textContent || '';
+                        tableRowsHTML += `<td>${cellText}</td>`;
 
-            const matchesSearch = itemName.includes(searchQuery);
-            const matchesAdjustmentType = selectedAdjustmentType === '' || adjustmentType === selectedAdjustmentType;
+                        // Calculate total quantity for visible rows
+                        if (i === 2 && row.style.display !== 'none') {
+                            totalQuantity += parseFloat(cellText) || 0;
+                        }
+                    }
 
-            if (matchesSearch && matchesAdjustmentType) {
-                row.style.display = '';
-                totalQuantity += quantity;
-            } else {
-                row.style.display = 'none';
+                    tableRowsHTML += '</tr>';
+                });
+
+                // Add a totals row at the end of the table
+                const totalsRowHTML = `
+            <tr style="font-weight: bold; background-color: #f9f9f9;">
+                <td colspan="2">Total Quantity</td>
+                <td>${totalQuantity.toFixed(2)}</td>
+                <td></td> <!-- Empty cell for the User column -->
+                <td></td> <!-- Empty cell for the User column -->
+                <td></td> <!-- Empty cell for the User column -->
+                <td></td> <!-- Empty cell for the User column -->
+            </tr>
+        `;
+
+                // Construct the final HTML for printing
+                const finalHTML = `
+            ${headerHTML}
+            ${tableHeaderHTML}
+            ${tableRowsHTML}
+            ${totalsRowHTML}
+            </tbody></table>
+            </body></html>
+        `;
+
+                // Write to the print window and initiate print
+                printWindow.document.write(finalHTML);
+                printWindow.document.close();
+                printWindow.focus();
+                printWindow.print();
             }
-        });
 
-        document.getElementById('totalQuantity').textContent = totalQuantity;
-    }
+            // Click event for "Print All" button
+            document.getElementById('printAllBills').addEventListener('click', () => {
+                const allRows = document.querySelectorAll('#adjustmentList tbody tr');
+                printStockAdjustments(Array.from(allRows));
+            });
 
-    // Initial calculation of total quantity
-    filterAdjustment();
-</script>
+            // Click event for "Print Filtered" button
+            document.getElementById('printFilteredBills').addEventListener('click', () => {
+                const filteredRows = Array.from(document.querySelectorAll('#adjustmentList tbody tr')).filter(row => row.style.display !== 'none');
+                printStockAdjustments(filteredRows);
+            });
+        </script>

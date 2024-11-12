@@ -54,6 +54,7 @@ router.get('/categories', ensureAuthenticated, ensureCompanySelected, ensureTrad
             companyId,
             title: 'Item Category',
             body: 'wholeseller >> item >> category',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
@@ -87,7 +88,11 @@ router.get('/categories/:id/edit', ensureAuthenticated, ensureCompanySelected, e
     if (req.tradeType === 'Wholeseller') {
         try {
             const categories = await Category.findById(req.params.id);
-            res.render('wholeseller/category/editCategory', { categories })
+            res.render('wholeseller/category/editCategory', {
+                categories,
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            })
         } catch (err) {
             res.redirect('/categories');
         }

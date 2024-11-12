@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css" rel="stylesheet">
 <style id="printStyles">
     @media print {
         @page {
@@ -45,13 +47,13 @@
 
         .header h2 {
             /* margin: 5px 0; */
-            font-size: 20px;
+            font-size: 30px;
         }
 
         .details-container {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
+            /* margin-bottom: 10px; */
         }
 
         .details-container .left,
@@ -122,7 +124,7 @@
         #row-container {
             display: flex;
             justify-content: space-between;
-            padding-top: 50px;
+            padding-top: 60px;
             border-top: 0.5px solid black;
             text-align: center;
         }
@@ -131,7 +133,6 @@
             flex: 1;
             text-align: center;
         }
-
 
     }
 
@@ -153,7 +154,7 @@
         display: flex;
         justify-content: space-between;
         /* width: 100%; */
-        margin-bottom: 10px;
+        /* margin-bottom: 10px; */
     }
 
     .left,
@@ -171,7 +172,6 @@
     }
 
     .right {
-        font-size: 15px;
         text-align: right;
         margin-right: 20px;
     }
@@ -188,7 +188,7 @@
     #row-container {
         display: flex;
         justify-content: space-between;
-        padding-top: 50px;
+        padding-top: 80px;
         border-top: 0.5px solid black;
         text-align: center;
     }
@@ -210,9 +210,9 @@
     <div class="container mt-3">
         <div class="row">
             <div class="col d-flex justify-content-end align-items-start">
-                <a href="/bills" class="btn btn-secondary">Back to Sales Entry</a>
-                <a href="/bills/<%= bill._id %>/pdf" class="btn btn-primary ml-2">Download PDF</a>
-                <button class="btn btn-info ml-2" onclick="printBill()">Print</button>
+                <a href="/bills-list" class="btn btn-secondary"><i class="bi bi-back"></i></a>
+                <a href="/bills/<%= bill._id %>/pdf" class="btn btn-primary ml-2"><i class="bi bi-file-pdf"></i></a>
+                <button class="btn btn-info ml-2" onclick="printBill()"><i class="bi bi-printer"></i></button>
             </div>
         </div>
     </div>
@@ -221,28 +221,34 @@
         <div class="card mt-4">
             <div class="header">
                 <h1 class="card-title">
-                    <%= firstBill ? 'Tax-Invoice' : 'Invoice' %>
+                    <!-- <%= firstBill ? 'Tax-Invoice' : 'Invoice' %> -->
+                    Tax-Invoice
                 </h1>
-                <h2 class="card-subtitle mb-2">
-                    <%= currentCompanyName %>
-                </h2>
-                <b>
-                    <h4>
-                        <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
-                                    <%=currentCompany.country%> <br><br>
-                                        Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
-                                                <br><br>
-                                                VAT NO.: <span id="pan-vat-container">
-                                                </span>
-                    </h4>
-                </b>
+                <!-- <h2 class="card-subtitle mb-2"> -->
+                <!-- </h2> -->
+                <h4>
+                    <h2>
+                        <%= currentCompanyName %>
+                    </h2>
+                    <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
+                                <%=currentCompany.country%>
+                                    Tel.: <%=currentCompany.phone%>,
+                                        <br>
+                                        <%=currentCompany.email%>
+
+                                            <!-- TPIN.: <span id="pan-vat-container" style="float: rig;"> -->
+                                            <div>
+                                                TPIN: <%=currentCompany.pan%>
+                                            </div>
+                                            </span>
+                </h4>
                 <hr style="border: 0.5px solid;">
             </div>
             <div class="details-container">
                 <div class="left">
-                    <h3>
-                        Name: <%= bill.account.name %>
-                    </h3>
+                    <h4>
+                        M/S: <%= bill.account.name %>
+                    </h4>
                     <strong>Address:</strong>
                     <%= bill.account.address ? bill.account.address : 'Null' %>&nbsp;
                         <br>
@@ -253,9 +259,7 @@
                             <%= bill.account.email ? bill.account.email : 'Null' %>&nbsp;
                                 <strong>Tel.:</strong>
                                 <%= bill.account.phone ? bill.account.phone : 'Null' %>&nbsp;
-                                    <br>
-                                    <strong>Mode of Payment:</strong>
-                                    <%= bill.paymentMode %>
+
 
                 </div>
 
@@ -278,11 +282,8 @@
                                             <%= new Date(bill.date).toLocaleDateString() %>
                                                 <% } %>
                                                     <br>
-                                                    <% if (paymentMode !=='cash' ) { %>
-                                                        <strong>Balance Upto:</strong>
-                                                        <%= lastBalance %>
-                                                            <%= balanceLabel %>
-                                                                <% } %>
+                                                    <strong>Mode of Payment:</strong>
+                                                    <%= bill.paymentMode %>
 
                 </div>
             </div>
@@ -297,6 +298,8 @@
                             <th>Item Code</th>
                             <th>H.S. Code</th>
                             <th>Description of Goods</th>
+                            <th>Batch</th>
+                            <th>Exp.Date</th>
                             <th>Quantity</th>
                             <th>Unit</th>
                             <th>Price (Rs.)</th>
@@ -318,7 +321,17 @@
                                     <%= bill.items[i].item.hscode %>
                                 </td>
                                 <td>
-                                    <%= bill.items[i].item.name %>
+                                    <% if(bill.items[i].item.vatStatus==='vatExempt' ){%>
+                                        <%=bill.items[i].item.name %> *
+                                            <%}else{%>
+                                                <%= bill.items[i].item.name %>
+                                                    <%}%>
+                                </td>
+                                <td>
+                                    <%=bill.items[i].batchNumber%>
+                                </td>
+                                <td>
+                                    <%=bill.items[i].expiryDate.toLocaleDateString()%>
                                 </td>
                                 <td>
                                     <%= bill.items[i].quantity %>
@@ -335,7 +348,7 @@
                             </tr>
 
                             <% } %>
-                                <% for (let i=bill.items.length; i < 11; i++) { %>
+                                <% for (let i=bill.items.length; i < 20; i++) { %>
                                     <tr class="no-border">
                                         <td>&nbsp;</td>
                                         <td>&nbsp;</td>
@@ -345,6 +358,9 @@
                                         <td>&nbsp;</td>
                                         <td>&nbsp;</td>
                                         <td>&nbsp;</td>
+                                        <td>&nbsp;</td>
+                                        <td>&nbsp;</td>
+
                                     </tr>
                                     <% } %>
                     </tbody>
@@ -362,6 +378,12 @@
                                         %):</strong></td>
                             <td>
                                 <%= bill.discountAmount.toFixed(2) %>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="6" class="text-right"><strong>Non-Taxable:</strong>
+                            <td>
+                                <%=bill.nonVatSales.toFixed(2)%>
                             </td>
                         </tr>
                         <tr>
@@ -422,6 +444,7 @@
                     <p><strong class="user-details">Received By:</strong></p>
                 </div>
                 <div class="col">
+                    <br>
                     <p>
                         <%= bill.user.name %>
                     </p>
@@ -444,6 +467,29 @@
 
     </div>
 </div>
+
+<!-- Exit Confirmation Modal -->
+<!-- <div class="modal fade" id="exitConfirmationModal" tabindex="-1" aria-labelledby="exitConfirmationModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exitConfirmationModalLabel">Exit Confirmation</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to exit without saving?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmExit" autofocus>Yes, Exit</button>
+            </div>
+        </div>
+    </div>
+</div> -->
+
 <script>
     function handlePrint() {
         window.print();
@@ -460,16 +506,25 @@
         handlePrint();
     };
 
-
-    const panVatNo = '<%= currentCompany.pan %>';
-    const container = document.getElementById('pan-vat-container');
-
-    for (let i = 0; i < panVatNo.length; i++) {
-        const digit = document.createElement('span');
-        digit.className = 'bordered-digit';
-        digit.textContent = panVatNo[i];
-        container.appendChild(digit);
+    function printBill() {
+        var printContents = document.getElementById('printableContent').innerHTML;
+        var styles = document.getElementById('printStyles').innerHTML;
+        var originalContents = document.body.innerHTML;
+        document.body.innerHTML = '<style>' + styles + '</style>' + printContents;
+        window.print();
+        document.body.innerHTML = originalContents;
     }
+
+    // const panVatNo = '<%= currentCompany.pan %>';
+    // const container = document.getElementById('pan-vat-container');
+
+    // for (let i = 0; i < panVatNo.length; i++) {
+    //     const digit = document.createElement('span');
+    //     digit.className = 'bordered-digit';
+    //     digit.textContent = panVatNo[i];
+    //     container.appendChild(digit);
+    // }
+
     function numberToWords(num) {
         const ones = [
             '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
@@ -543,5 +598,18 @@
     });
 
 
+    // //Handle scape buttons
+    // document.addEventListener('keydown', function (event) {
+    //     if (event.key === 'Escape') {
+    //         event.preventDefault(); // Prevent default escape behavior
+    //         var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
+    //         exitModal.show();
+    //     }
+    // });
 
+    // // Handle the exit confirmation
+    // document.getElementById('confirmExit').addEventListener('click', function () {
+    //     // Redirect to the home page
+    //     window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
+    // });
 </script>

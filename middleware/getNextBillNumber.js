@@ -1,9 +1,10 @@
 const BillCounter = require('../models/wholeseller/billCounter'); // Assuming the schema is saved in models/BillCounter
 
 async function getNextBillNumber(companyId, fiscalYearId, transactionType) {
+    let billCounter;
     try {
         // Check if there is an existing bill counter for the given company, fiscal year, and transaction type
-        let billCounter = await BillCounter.findOne({
+        billCounter = await BillCounter.findOne({
             company: companyId,
             fiscalYear: fiscalYearId,
             transactionType: transactionType
@@ -29,6 +30,10 @@ async function getNextBillNumber(companyId, fiscalYearId, transactionType) {
         return billCounter.currentBillNumber;
     } catch (error) {
         console.error("Error in getting next bill number: ", error);
+        if (billCounter && billCounter.isNew) {
+            // If this is a new counter and it failed, delete the counter to prevent creating an invalid one
+            await BillCounter.deleteOne({ _id: billCounter._id });
+        }
         throw new Error("Unable to generate bill number");
     }
 }

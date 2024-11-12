@@ -60,6 +60,7 @@ router.get('/account-group', ensureAuthenticated, ensureCompanySelected, ensureT
             currentCompanyName,
             title: 'Account Group',
             body: 'wholeseller >> account group',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
@@ -92,7 +93,11 @@ router.get('/account-group/:id/edit', ensureAuthenticated, ensureCompanySelected
     if (req.tradeType === 'Wholeseller') {
         try {
             const companiesGroups = await companyGroup.findById(req.params.id);
-            res.render('wholeseller/company/editCompanyGroup', { companiesGroups })
+            res.render('wholeseller/company/editCompanyGroup', {
+                companiesGroups,
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            })
         } catch (err) {
             res.redirect('/account-group');
         }

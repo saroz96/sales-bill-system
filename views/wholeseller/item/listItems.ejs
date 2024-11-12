@@ -1,85 +1,195 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
-<style>
-    .vatable-item {
-        background-color: lightgreen;
-    }
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css"
+        rel="stylesheet">
+    <style>
+        .vatable-item {
+            background-color: lightgreen;
+        }
 
-    .non-vatable-item {
-        background-color: lightyellow;
-    }
-</style>
+        .non-vatable-item {
+            background-color: lightyellow;
+        }
 
-<div class="container" id="mainContainer">
-    <h1 class="mt-5">Items</h1>
-    <a href="/items" class="btn btn-primary mb-4">Add New Item</a>
+        /* Custom styles to resize the form */
+        .expanded-container {
+            max-width: 90%;
+            /* Expand the container to 90% of the viewport width */
+        }
 
-    <!-- Search Form -->
-    <form class="mb-4">
-        <div class="form-group">
-            <input type="text" class="form-control" id="searchInput" placeholder="Search items by name...">
-        </div>
-    </form>
+        .expanded-card {
+            width: 100%;
+            /* Ensure the card takes full width of the container */
+        }
 
-    <!-- Existing Items List -->
-    <h2 class="mt-5">Existing Items</h2>
-    <ul class="list-group mt-3" id="itemsList">
-        <% if (items && items.length> 0) { %>
-            <% items.forEach(item=> { %>
-
-                <div class="searchClass">
-                    <% let vatClass='' ; %>
-                        <% if (item.vatStatus==='vatExempt' ) { %>
-                            <% vatClass='non-vatable-item' ; %>
-                                <% } else if (item.vatStatus==='vatable' ) { %>
-                                    <% vatClass='vatable-item' ; %>
-                                        <% } %>
-
-                                            <li
-                                                class="list-group-item d-flex justify-content-between align-items-center <%= vatClass %>">
-                                                <div>
-                                                    <strong>
-                                                        <%= item.name %>
-                                                    </strong><br>
-                                                    <small>Category: <%= item.category.name %></small><br>
-                                                    <small>Sales price: <%= item.price %>&nbsp; Purchase price:
-                                                            <%=item.puPrice%>
-                                                    </small><br>
-                                                    <small>Stock: <%= item.stockEntries ? item.stockEntries.reduce((acc,
-                                                            entry)=> acc + entry.quantity, 0) : 0
-                                                            %>
-                                                    </small>
-                                                    <br> <small>VAT Status: <%= item.vatStatus %>
-                                                    </small>
-                                                </div>
-                                                <div>
-                                                    <a href="/items-ledger/<%=item._id%>"
-                                                        class="btn btn-sm btn-warning">View Item Ledger</a>
-                                                </div>
-                                            </li>
-                </div>
-                <% }); %>
-                    <% } else { %>
-                        <li class="list-group-item">No items available</li>
-                        <% } %>
-    </ul>
-</div>
-
-<script>
-    // Function to handle search input changes
-    document.getElementById('searchInput').addEventListener('input', function () {
-        const searchQuery = this.value.toLowerCase();
-        const itemsList = document.getElementById('itemsList');
-        const items = itemsList.getElementsByClassName('searchClass');
-
-        Array.from(items).forEach(function (item) {
-            const itemName = item.textContent.toLowerCase();
-            if (itemName.includes(searchQuery)) {
-                item.style.display = 'block';
-            } else {
-                item.style.display = 'none';
+        @media (min-width: 768px) {
+            .expanded-container {
+                max-width: 90%;
+                /* Adjust width for medium and larger screens */
             }
+        }
+    </style>
+
+    <div class="container wow-form expanded-container">
+        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <h1 class="mt-5 text-center" style="text-decoration: underline;">Items</h1>
+
+            <div class="row">
+                <div class="col-9">
+                    <form class="input-group">
+                        <input type="text" class="form-control" id="searchInput"
+                            placeholder="Search by invoice number, party name & users..." aria-label="Search" autofocus>
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch">Clear</button>
+                    </form>
+                </div>
+                <div class="col-3">
+                    <a href="/items" class="btn btn-primary mb-3"><i class="bi bi-receipt"></i></a>
+                    <button id="printAllBills" class="btn btn-secondary mb-3"><i class="bi bi-printer"> All</i></button>
+                    <button id="printFilteredBills" class="btn btn-secondary mb-3"><i class="bi bi-printer">
+                            Filtered</i></button>
+                </div>
+            </div>
+
+            <!-- Existing Items List -->
+            <h2 class="mt-5">Existing Items</h2>
+            <ul class="list-group mt-3" id="itemsList">
+                <% if (items && items.length> 0) { %>
+                    <% items.forEach(item=> { %>
+                        <div class="searchClass">
+                            <% let vatClass='' ; %>
+                                <% if (item.vatStatus==='vatExempt' ) { %>
+                                    <% vatClass='non-vatable-item' ; %>
+                                        <% } else if (item.vatStatus==='vatable' ) { %>
+                                            <% vatClass='vatable-item' ; %>
+                                                <% } %>
+
+                                                    <li
+                                                        class="list-group-item d-flex justify-content-between align-items-center <%= vatClass %>">
+                                                        <div>
+                                                            <strong>
+                                                                <%= item.name %>
+                                                            </strong>
+                                                            <small>Category: <%= item.category.name %></small>
+                                                            <small>Stock: <%= item.stockEntries ?
+                                                                    item.stockEntries.reduce((acc, entry)=> acc +
+                                                                    entry.quantity, 0) : 0 %></small>
+                                                            <small class="hidden">Unit: <%=item.unit.name%></small>
+                                                            <small class="hidden">
+                                                                Vat Status: <%= item.vatStatus %>
+                                                            </small>
+                                                        </div>
+                                                        <div>
+                                                            <a href="/items-ledger/<%= item._id %>"
+                                                                class="btn btn-sm btn-warning"><i
+                                                                    class="bi bi-eye"></i></a>
+                                                        </div>
+                                                    </li>
+                        </div>
+                        <% }); %>
+                            <% } else { %>
+                                <li class="list-group-item">No items available</li>
+                                <% } %>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Function to handle search input changes
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const searchQuery = this.value.toLowerCase();
+            const itemsList = document.getElementById('itemsList');
+            const items = itemsList.getElementsByClassName('searchClass');
+
+            Array.from(items).forEach(function (item) {
+                const itemName = item.textContent.toLowerCase();
+                if (itemName.includes(searchQuery)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
         });
-    });
-</script>
+
+        function printItems(itemRows) {
+            const printWindow = window.open('', '_blank');
+
+            // Basic HTML and styling for the print view
+            const headerHTML = `
+        <html>
+            <head>
+                <title>Print Items</title>
+                <style>
+                    @page { size: A4 landscape; margin: 10mm; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; }
+                    th { background-color: #f2f2f2; }
+                </style>
+            </head>
+            <body>
+                <h1>Items List</h1>
+    `;
+
+            // Table header for the printed items
+            const tableHeaderHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Category</th>
+                    <th>Stock</th>
+                    <th>Unit</th>
+                    <th>VAT Status</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+            // Construct table rows
+            let tableRowsHTML = '';
+            itemRows.forEach(row => {
+                const itemName = row.querySelector('strong')?.textContent || '';
+                const category = row.querySelector('small')?.textContent.split(':')[1]?.trim() || '';
+                const stock = row.querySelectorAll('small')[1]?.textContent.split(':')[1]?.trim() || ''; // Stock is in the second <small>
+                const unit = row.querySelectorAll('small')[2]?.textContent.split(':')[1]?.trim() || ''; // Stock is in the second <small>
+                const vatStatus = row.querySelectorAll('small')[3]?.textContent.split(':')[1]?.trim() || ''; // VAT Status is in the third <small>
+
+                tableRowsHTML += `
+            <tr>
+                <td>${itemName}</td>
+                <td>${category}</td>
+                <td>${stock}</td>
+                <td>${unit}</td>
+                <td>${vatStatus}</td>
+            </tr>
+        `;
+            });
+
+            // Closing the table and HTML content
+            const finalHTML = `
+        ${headerHTML}
+        ${tableHeaderHTML}
+        ${tableRowsHTML}
+        </tbody></table>
+        </body></html>
+    `;
+
+            // Write to the print window and initiate print
+            printWindow.document.write(finalHTML);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+        }
+
+
+        // Add event listeners for the "Print All" and "Print Filtered" buttons
+        document.getElementById('printAllBills').addEventListener('click', function () {
+            const allItemRows = document.querySelectorAll('#itemsList .searchClass');
+            printItems(allItemRows);
+        });
+
+        document.getElementById('printFilteredBills').addEventListener('click', function () {
+            const filteredItemRows = document.querySelectorAll('#itemsList .searchClass');
+            const filteredRows = Array.from(filteredItemRows).filter(row => row.style.display !== 'none');
+            printItems(filteredRows);
+        });
+    </script>

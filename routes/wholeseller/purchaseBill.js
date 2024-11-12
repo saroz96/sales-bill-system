@@ -67,10 +67,10 @@ router.get('/purchase-bills-list', ensureAuthenticated, ensureCompanySelected, e
             currentFiscalYear,
             bills,
             currentCompany,
-            user: req.user,
             currentCompanyName,
             title: 'Purchase',
             body: 'wholeseller >> purchase >> bills',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
@@ -556,6 +556,7 @@ router.get('/purchase-bills/:id/print', ensureAuthenticated, ensureCompanySelect
                 companyDateFormat,
                 title: 'Purchase Bill Print',
                 body: 'wholeseller >> purchase >> print',
+                user: req.user,
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
@@ -694,7 +695,8 @@ router.get('/purchase-bills/:id/direct-print', ensureAuthenticated, ensureCompan
                 nepaliDate,
                 englishDate: bill.englishDate,
                 companyDateFormat,
-
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
             console.error("Error fetching bill for printing:", error);
@@ -792,6 +794,7 @@ router.get('/purchase-vat-report', ensureAuthenticated, ensureCompanySelected, e
             currentCompanyName,
             title: 'Statement',
             body: 'wholeseller >> report >> statement',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } else {

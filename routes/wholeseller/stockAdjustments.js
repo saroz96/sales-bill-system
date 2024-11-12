@@ -21,8 +21,12 @@ router.get('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ensu
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
         const currentCompanyName = req.session.currentCompanyName;
+        const currentCompany = req.session.currentCompany;
 
-        const stockAdjustments = await StockAdjustment.find({ company: companyId }).populate('item').populate('user');
+        const stockAdjustments = await StockAdjustment.find({ company: companyId })
+            .populate('item')
+            .populate('unit')
+            .populate('user');
         const items = await Item.find({ company: companyId });
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
@@ -63,9 +67,11 @@ router.get('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ensu
         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
         res.render('wholeseller/stockAdjustments/index', {
             company, currentFiscalYear,
+            currentCompany,
             stockAdjustments, items, nepaliDate, companyDateFormat, currentCompanyName,
             title: 'Stock Adjustment',
             body: 'wholeseller >> stock adjustment >> list',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
@@ -115,7 +121,7 @@ router.get('/stockAdjustments/new', ensureAuthenticated, ensureCompanySelected, 
         if (!fiscalYear) {
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
-        const items = await Item.find({ company: companyId });
+        const items = await Item.find({ company: companyId, fiscalYear: fiscalYear })
 
         // Get the next bill number
         // const billCounter = await BillCounter.findOne({ company: companyId });
@@ -140,6 +146,7 @@ router.get('/stockAdjustments/new', ensureAuthenticated, ensureCompanySelected, 
             items, nextBillNumber, transactionDateNepali, companyDateFormat, nepaliDate, currentCompanyName,
             title: 'Stock Adjustment',
             body: 'wholeseller >> stock adjustment >> add',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
@@ -179,14 +186,6 @@ router.post('/stockAdjustments', ensureAuthenticated, ensureCompanySelected, ens
                 if (!itemToAdjust) {
                     return res.status(404).send('Item not found');
                 }
-                // Find the counter for the company
-                // let billCounter = await BillCounter.findOne({ company: companyId });
-                // if (!billCounter) {
-                //     billCounter = new BillCounter({ company: companyId });
-                // }
-                // // Increment the counter
-                // billCounter.count += 1;
-                // await billCounter.save();
 
                 const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'StockAdjustment')
 

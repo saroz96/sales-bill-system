@@ -122,8 +122,9 @@ router.get('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) =
         company,
         currentFiscalYear,
         currentCompanyName: req.session.currentCompanyName,
-        title: 'Add User',
-        body: 'wholeseller >> user >> add',
+        title: '',
+        body: '',
+        user: req.user,
         isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
     })
 
@@ -274,6 +275,7 @@ router.get('/admin/users/view/:id', ensureAuthenticated, ensureCompanySelected, 
             currentCompanyName: req.session.currentCompanyName,
             title: 'User',
             body: 'wholeseller >> user >> view',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } catch (err) {
@@ -339,6 +341,7 @@ router.get('/admin/users/edit/:id', ensureAuthenticated, ensureCompanySelected, 
             currentCompanyName: req.session.currentCompanyName,
             title: 'Edit User',
             body: 'wholeseller >> user >> edit',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } catch (err) {
@@ -464,6 +467,7 @@ router.get('/admin/users/list', ensureAuthenticated, async (req, res) => {
             currentCompanyName: req.session.currentCompanyName,
             title: 'User List',
             body: 'wholeseller >> user >> list',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } catch (err) {

@@ -291,6 +291,13 @@ router.post('/company', ensureAuthenticated, async (req, res) => {
             return res.status(400).json({ error: 'Trade type is required' });
         }
 
+        // Check the number of companies already created by the owner
+        const companyCount = await Company.countDocuments({ owner });
+        if (companyCount >= 3) {
+            req.flash('error', 'You have reached the maximum limit of 3 companies.');
+            return res.redirect('/company/new');
+        }
+
         // Determine the start and end dates based on dateFormat
         let startDate, endDate;
         if (dateFormat === 'nepali') {
@@ -476,7 +483,7 @@ router.get('/switch/:id/', ensureAuthenticated, async (req, res) => {
                 break;
         }
 
-        req.flash('success', `Switched to: ${company.name}, F.Y: ${latestFiscalYear.name}`);
+        req.flash('success', `Switched to: ${company.name}`);
         res.redirect(redirectPath);
     } catch (err) {
         console.error(err);

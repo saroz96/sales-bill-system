@@ -138,7 +138,7 @@ router.get('/aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensu
         const account = await Account.findById(accountId, { isActive: true });
 
         // Fetch opening balance for the current fiscal year
-        const openingBalance = account.openingBalance && account.openingBalance.fiscalYear.equals(currentFiscalYear._id)
+        const openingBalance = account.openingBalance && account.openingBalance.fiscalYear
             ? account.openingBalance
             : { amount: 0, type: 'Cr' }; // Default to zero if not found
 

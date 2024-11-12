@@ -1,181 +1,211 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
-<div class="container" id="mainContainer">
-    <h1 class="mt-5">A/c group</h1>
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
-    <!-- Add Company Form -->
-    <div class="card mt-4">
-        <div class="card-header">
-            Add New Account Group
-        </div>
-        <div class="card-body">
-            <form action="/account-group" method="post">
-                <div class="row">
-                    <div class="col">
-                        <div class="form-group">
-                            <label for="name">Group Name <i style="color: red;">*</i></label>
-                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter group name"
-                                autofocus required>
+    <style>
+        /* Styling for Select2 dropdown */
+        .select2-container .select2-selection--single {
+            height: 38px;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+    <div class="container wow-form" id="mainContainer">
+        <!-- <h1 class="mt-5">A/c group</h1> -->
+
+        <!-- Add Company Form -->
+        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
+            <h2 style="text-align: center;text-decoration: underline;">A/C Groups</h2>
+            <div class="card-header">
+                Add New Account Group
+            </div>
+            <div class="card-body">
+                <form action="/account-group" method="post" class="wow-form">
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="name">Group Name <i style="color: red;">*</i></label>
+                                <input type="text" class="form-control" id="name" name="name"
+                                    placeholder="Enter group name" autofocus required>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="type">Group Type <i style="color: red;">*</i></label>
+                                <select name="type" id="type" class="form-control" required>
+                                    <option value="" disabled selected>Select a type</option>
+                                    <option value="Current Assets">Current Assets</option>
+                                    <option value="Current Liabilities">Current Liabilities</option>
+                                    <option value="Fixed Assets">Fixed Assets</option>
+                                    <option value="Loans(Liability)">Loans(Liability)</option>
+                                    <option value="Capital Account">Capital Account</option>
+                                    <option value="Revenue Accounts">Revenue Accounts</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="col">
-                        <div class="form-group">
-                            <label for="type">Group Type <i style="color: red;">*</i></label>
-                            <select name="type" id="type" class="form-control" required>
-                                <option value="" disabled selected>Select a type</option>
-                                <option value="Current Assets">Current Assets</option>
-                                <option value="Current Liabilities">Current Liabilities</option>
-                                <option value="Fixed Assets">Fixed Assets</option>
-                                <option value="Loans(Liability)">Loans(Liability)</option>
-                                <option value="Capital Account">Capital Account</option>
-                                <option value="Revenue Accounts">Revenue Accounts</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary">Add A/c Group</button>
-            </form>
+                    <button type="submit" class="btn btn-primary">Add A/c Group</button>
+                </form>
+            </div>
         </div>
-    </div>
 
-    <!-- Existing Companies List -->
-    <h2 class="mt-5">Existing Groups</h2>
+        <!-- Existing Companies List -->
+        <!-- <h2 class="mt-5">Existing Groups</h2> -->
 
-    <!--print buttons-->
+        <!-- print buttons
     <div class="mb-3">
         <div class="btn btn-primary" onclick="printGroups()">Print Groups</div>
-    </div>
+    </div> -->
 
-    <ul class="list-group mt-3">
-        <% if (companiesGroups && companiesGroups.length> 0) { %>
-            <% companiesGroups.forEach((companiesGroup, index)=> { %>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>
-                            <%= index + 1 %>. <%= companiesGroup.name %>
-                        </strong><br> <!-- Serial Number displayed here -->
+        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
+            <h2 style="text-align: center;text-decoration: underline;">Existing Groups</h2>
+            <!--print buttons-->
+            <div class="mb-3">
+                <div class="btn btn-primary" onclick="printGroups()"><i class="bi bi-printer"></i></div>
+            </div>
+            <ul class="list-group mt-3">
+                <% if (companiesGroups && companiesGroups.length> 0) { %>
+                    <% companiesGroups.forEach((companiesGroup, index)=> { %>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>
+                                    <%= index + 1 %>. <%= companiesGroup.name %>
+                                </strong><br> <!-- Serial Number displayed here -->
+                            </div>
+                            <div>
+                                <strong>
+                                    <%=companiesGroup.type%>
+                                </strong>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-warning"
+                                    onclick="editCompanyGroup('<%= companiesGroup._id %>', '<%= companiesGroup.name %>','<%=companiesGroup.type%>')"><i
+                                        class="fas fa-edit"></i></button>
+                                <form action="/account-group/<%= companiesGroup._id %>?_method=DELETE" method="post"
+                                    class="d-inline" onsubmit="return confirmDeletion()">
+                                    <button type="submit" class="btn btn-sm btn-danger"><i
+                                            class="fas fa-trash"></i></button>
+                                </form>
+                            </div>
+                        </li>
+                        <% }); %>
+                            <% } else { %>
+                                <li class="list-group-item">No groups available</li>
+                                <% } %>
+            </ul>
+        </div>
+
+        <!-- Edit Company Modal -->
+        <div class="modal fade" id="editCompanyGroupModal" tabindex="-1" aria-labelledby="editCompanyGroupModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editCompanyGroupModalLabel">Edit Group</h5>
+                        <button type="button" class="close text-danger" data-bs-dismiss="modal"><span
+                                aria-hidden="true">&times;</span>
+                        </button>
                     </div>
-                    <div>
-                        <strong>
-                            <%=companiesGroup.type%>
-                        </strong>
-                    </div>
-                    <div>
-                        <button class="btn btn-sm btn-warning"
-                            onclick="editCompanyGroup('<%= companiesGroup._id %>', '<%= companiesGroup.name %>','<%=companiesGroup.type%>')"><i
-                                class="fas fa-edit"></i></button>
-                        <form action="/account-group/<%= companiesGroup._id %>?_method=DELETE" method="post"
-                            class="d-inline" onsubmit="return confirmDeletion()">
-                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                    <div class="modal-body">
+                        <form id="editCompanyGroupForm" method="post">
+                            <div class="form-group">
+                                <label for="editName">Group Name <i style="color: red;">*</i></label>
+                                <input type="text" class="form-control" id="editName" name="name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editType">Group Type <i style="color: red;">*</i></label>
+                                <select name="type" id="editType" class="form-control" required>
+                                    <option value="Current Assets">Current Assets</option>
+                                    <option value="Current Liabilities">Current Liabilities</option>
+                                    <option value="Fixed Assets">Fixed Assets</option>
+                                    <option value="Loans(Liability)">Loans(Liability)</option>
+                                    <option value="Capital Account">Capital Account</option>
+                                    <option value="Revenue Accounts">Revenue Accounts</option>
+                                </select>
+                            </div>
+                            <!-- <input type="hidden" id="companyId" name="companyId" value="<%= companyId %>"> -->
+                            <button type="submit" class="btn btn-primary">Save changes</button>
+                            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close
                         </form>
                     </div>
-                </li>
-                <% }); %>
-                    <% } else { %>
-                        <li class="list-group-item">No groups available</li>
-                        <% } %>
-    </ul>
-
-    <!-- Edit Company Modal -->
-    <div class="modal fade" id="editCompanyGroupModal" tabindex="-1" aria-labelledby="editCompanyGroupModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editCompanyGroupModalLabel">Edit Group</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="editCompanyGroupForm" method="post">
-                        <div class="form-group">
-                            <label for="editName">Group Name <i style="color: red;">*</i></label>
-                            <input type="text" class="form-control" id="editName" name="name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="editType">Group Type <i style="color: red;">*</i></label>
-                            <select name="type" id="editType" class="form-control" required>
-                                <option value="Current Assets">Current Assets</option>
-                                <option value="Current Liabilities">Current Liabilities</option>
-                                <option value="Fixed Assets">Fixed Assets</option>
-                                <option value="Loans(Liability)">Loans(Liability)</option>
-                                <option value="Capital Account">Capital Account</option>
-                                <option value="Revenue Accounts">Revenue Accounts</option>
-                            </select>
-                        </div>
-                        <!-- <input type="hidden" id="companyId" name="companyId" value="<%= companyId %>"> -->
-                        <button type="submit" class="btn btn-primary">Save changes</button>
-                    </form>
                 </div>
             </div>
         </div>
+
+        <a href="/" class="btn btn-link mt-4">Back</a>
     </div>
 
-    <a href="/" class="btn btn-link mt-4">Back</a>
-</div>
-
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-<script>
-    function editCompanyGroup(id, name, type) {
-        $('#editCompanyGroupModal').modal('show');
-        $('#editCompanyGroupForm').attr('action', '/account-group/' + id + '?_method=PUT');
-        $('#editName').val(name);
-        $('#editType').val(type);
-    }
-
-    $(document).ready(function () {
-        $('#editCompanyGroupModal').on('hidden.bs.modal', function () {
-            $('#editCompanyGroupForm').trigger('reset');
-            $('#editCompanyGroupForm').attr('action', '');
+    <!-- <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script> -->
+    <script>
+        $(document).ready(function () {
+            // Initialize Select2 for searchable dropdown
+            $('#type').select2({
+                placeholder: "Select a Group",
+                allowClear: true,
+                width: '100%', // Ensure it takes the full width of the container
+            });
         });
-    });
+
+        function editCompanyGroup(id, name, type) {
+            $('#editCompanyGroupModal').modal('show');
+            $('#editCompanyGroupForm').attr('action', '/account-group/' + id + '?_method=PUT');
+            $('#editName').val(name);
+            $('#editType').val(type);
+        }
+
+        $(document).ready(function () {
+            $('#editCompanyGroupModal').on('hidden.bs.modal', function () {
+                $('#editCompanyGroupForm').trigger('reset');
+                $('#editCompanyGroupForm').attr('action', '');
+            });
+        });
 
 
-    function confirmDeletion() {
-        return confirm("Are you sure you want to delete this account group?");
-    }
+        function confirmDeletion() {
+            return confirm("Are you sure you want to delete this account group?");
+        }
 
 
-    document.addEventListener('DOMContentLoaded', function () {
-        // Function to move focus to the next form element or submit if it's a button
-        function moveToNextInput(event) {
-            if (event.key === 'Enter') {
-                const form = event.target.form;
-                const elements = Array.from(form.elements); // Get all elements in the form as an array
-                const index = elements.indexOf(event.target);
+        document.addEventListener('DOMContentLoaded', function () {
+            // Function to move focus to the next form element or submit if it's a button
+            function moveToNextInput(event) {
+                if (event.key === 'Enter') {
+                    const form = event.target.form;
+                    const elements = Array.from(form.elements); // Get all elements in the form as an array
+                    const index = elements.indexOf(event.target);
 
-                // If the current element is a button, allow form submission
-                if (event.target.tagName === 'BUTTON') {
-                    return; // Let the form submit naturally
-                }
+                    // If the current element is a button, allow form submission
+                    if (event.target.tagName === 'BUTTON') {
+                        return; // Let the form submit naturally
+                    }
 
-                event.preventDefault(); // Prevent form submission if not a button
+                    event.preventDefault(); // Prevent form submission if not a button
 
-                // Move to the next focusable element if it exists
-                if (index > -1 && index < elements.length - 1) {
-                    const nextElement = elements[index + 1];
-                    if (nextElement) {
-                        nextElement.focus();
+                    // Move to the next focusable element if it exists
+                    if (index > -1 && index < elements.length - 1) {
+                        const nextElement = elements[index + 1];
+                        if (nextElement) {
+                            nextElement.focus();
+                        }
                     }
                 }
             }
-        }
 
-        // Get all input, select, textarea, and button elements within the form
-        const inputs = document.querySelectorAll('form input, form select, form textarea, form button');
+            // Get all input, select, textarea, and button elements within the form
+            const inputs = document.querySelectorAll('form input, form select, form textarea, form button');
 
-        // Attach the moveToNextInput function to the keydown event for each input field
-        inputs.forEach(input => {
-            input.addEventListener('keydown', moveToNextInput);
+            // Attach the moveToNextInput function to the keydown event for each input field
+            inputs.forEach(input => {
+                input.addEventListener('keydown', moveToNextInput);
+            });
         });
-    });
-    // Function to print the list of accounts in table format
-    function printGroups() {
-        // Create a table structure for printing
-        let printContent = `
+        // Function to print the list of accounts in table format
+        function printGroups() {
+            // Create a table structure for printing
+            let printContent = `
             <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr>
@@ -187,7 +217,7 @@
                 <tbody>`;
 
         <% companiesGroups.forEach((companiesGroup, index) => { %>
-            printContent += `
+                printContent += `
                 <tr>
                     <td><%= index + 1 %></td> <!-- Serial Number for Printing -->
                     <td><%= companiesGroup.name %></td>
@@ -195,11 +225,11 @@
                 </tr>`;
         <% }); %>
 
-            printContent += `</tbody></table>`;
+                printContent += `</tbody></table>`;
 
-        // Temporarily replace body content with the table for printing
-        const originalContent = document.body.innerHTML;
-        document.body.innerHTML = `
+            // Temporarily replace body content with the table for printing
+            const originalContent = document.body.innerHTML;
+            document.body.innerHTML = `
             <html>
             <head>
                 <title>Print Groups</title>
@@ -222,11 +252,11 @@
             </html>
         `;
 
-        // Trigger the print dialog
-        window.print();
+            // Trigger the print dialog
+            window.print();
 
-        // Restore the original content after printing
-        document.body.innerHTML = originalContent;
-        window.location.reload();  // Reload the page to restore event listeners
-    }
-</script>
+            // Restore the original content after printing
+            document.body.innerHTML = originalContent;
+            window.location.reload();  // Reload the page to restore event listeners
+        }
+    </script>

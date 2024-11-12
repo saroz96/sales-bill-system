@@ -17,7 +17,6 @@ const SalesReturn = require('../../models/wholeseller/SalesReturn');
 const purchaseReturn = require('../../models/wholeseller/PurchaseReturns');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
 
-
 router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
@@ -270,8 +269,9 @@ router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensu
                 currentCompanyName,
                 title: 'Items List',
                 body: 'wholeseller >> Items >> all items',
-                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor',
                 openingStock: openingStock,
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
             console.error(error);

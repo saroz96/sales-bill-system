@@ -1,5 +1,12 @@
 const mongoose = require('mongoose');
 
+// Helper function to calculate default expiry date (2 years from now)
+const getDefaultExpiryDate = () => {
+    const currentDate = new Date();
+    currentDate.setFullYear(currentDate.getFullYear() + 2);
+    return currentDate.toISOString().split("T")[0]; // Returns in YYYY-MM-DD format
+};
+
 const stockEntrySchema = new mongoose.Schema({
     date: {
         type: Date,
@@ -10,9 +17,11 @@ const stockEntrySchema = new mongoose.Schema({
     },
     batchNumber: {
         type: String,
+        default: 'XXX'
     },
     expiryDate: {
         type: String,
+        default: getDefaultExpiryDate
     },
     price: { type: Number },
     puPrice: { type: Number },
