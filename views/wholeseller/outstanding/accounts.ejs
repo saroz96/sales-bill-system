@@ -1,138 +1,167 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 
-<div class="container mt-4" id="mainContainer">
-    <h1 class="mb-4">Accounts</h1>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css"
+        rel="stylesheet">
 
-    <!-- Search Input for Live Search -->
-    <div class="form-group">
-        <input type="text" id="searchInput" class="form-control" placeholder="Search Accounts...">
-    </div>
+    <style>
+        /* Custom styles to resize the form */
+        .expanded-container {
+            max-width: 90%;
+            /* Expand the container to 90% of the viewport width */
+        }
 
-    <!-- Button to merge selected accounts -->
-    <div class="form-group mt-3">
-        <button id="mergeAccountsBtn" class="btn btn-danger" disabled>Merge Selected Accounts</button>
-    </div>
+        .expanded-card {
+            width: 100%;
+            /* Ensure the card takes full width of the container */
+        }
 
-    <table class="table table-bordered table-striped mt-3">
-        <thead>
-            <tr>
-                <th>Select</th>
-                <th>Account Name</th>
-                <th>Address</th>
-                <th>Phone</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody id="accountsTable">
-            <% if (accounts.length> 0) { %>
-                <% accounts.forEach(account=> { %>
+        @media (min-width: 768px) {
+            .expanded-container {
+                max-width: 90%;
+                /* Adjust width for medium and larger screens */
+            }
+        }
+    </style>
+
+    <div class="container mt-4 expanded-container">
+        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <h1 class="mb-4">Accounts</h1>
+
+            <!-- Search Input for Live Search -->
+            <div class="form-group">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search Accounts...">
+            </div>
+
+            <!-- Button to merge selected accounts -->
+            <div class="form-group mt-3">
+                <button id="mergeAccountsBtn" class="btn btn-danger" disabled>Merge Selected Accounts</button>
+            </div>
+
+            <table class="table table-bordered table-striped mt-3 ">
+                <thead>
                     <tr>
-                        <td>
-                            <input type="checkbox" class="accountCheckbox" value="<%= account._id %>">
-                        </td>
-                        <td>
-                            <%= account.name %>
-                        </td>
-                        <td>
-                            <%= account.address || 'N/A' %>
-                        </td>
-                        <td>
-                            <%= account.phone || 'N/A' %>
-                        </td>
-                        <td>
-                            <a href="/aging/<%= account._id %>" class="btn btn-primary">View Ageing Report</a>
-                            <a href="/day-count-aging/<%= account._id %>" class="btn btn-primary">Days Count Ageing</a>
-                        </td>
+                        <th>Select</th>
+                        <th>Account Name</th>
+                        <th>Address</th>
+                        <th>Phone</th>
+                        <th>Action</th>
                     </tr>
-                    <% }) %>
-                        <% } else { %>
+                </thead>
+                <tbody id="accountsTable">
+                    <% if (accounts.length> 0) { %>
+                        <% accounts.forEach((account, index)=> { %>
                             <tr>
-                                <td colspan="5" class="text-center">No accounts found.</td>
+                                <td>
+                                    <%=index + 1 %>
+                                </td>
+                                <td>
+                                    <input type="checkbox" class="accountCheckbox" value="<%= account._id %>">
+                                </td>
+                                <td>
+                                    <%= account.name %>
+                                </td>
+                                <td>
+                                    <%= account.address || 'N/A' %>
+                                </td>
+                                <td>
+                                    <%= account.phone || 'N/A' %>
+                                </td>
+                                <td>
+                                    <a href="/aging/<%= account._id %>" class="btn btn-primary">View Ageing Report</a>
+                                    <a href="/day-count-aging/<%= account._id %>" class="btn btn-primary">Days Count
+                                        Ageing</a>
+                                </td>
                             </tr>
-                            <% } %>
-        </tbody>
-    </table>
-</div>
+                            <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="5" class="text-center">No accounts found.</td>
+                                    </tr>
+                                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<!-- JavaScript for Live Search and Merge functionality -->
-<script>
-    document.getElementById('searchInput').addEventListener('keyup', function () {
-        let filter = this.value.toLowerCase();
-        let rows = document.querySelectorAll('#accountsTable tr');
 
-        rows.forEach(row => {
-            let accountName = row.cells[1].textContent.toLowerCase();
-            let address = row.cells[2].textContent.toLowerCase();
-            let phone = row.cells[3].textContent.toLowerCase();
+    <!-- JavaScript for Live Search and Merge functionality -->
+    <script>
+        document.getElementById('searchInput').addEventListener('keyup', function () {
+            let filter = this.value.toLowerCase();
+            let rows = document.querySelectorAll('#accountsTable tr');
 
-            // Check if the search query matches any of the columns (name, address, phone)
-            if (accountName.includes(filter) || address.includes(filter) || phone.includes(filter)) {
-                row.style.display = '';  // Show row
+            rows.forEach(row => {
+                let accountName = row.cells[1].textContent.toLowerCase();
+                let address = row.cells[2].textContent.toLowerCase();
+                let phone = row.cells[3].textContent.toLowerCase();
+
+                // Check if the search query matches any of the columns (name, address, phone)
+                if (accountName.includes(filter) || address.includes(filter) || phone.includes(filter)) {
+                    row.style.display = '';  // Show row
+                } else {
+                    row.style.display = 'none';  // Hide row
+                }
+            });
+        });
+
+        // Enable merge button only if multiple accounts are selected
+        const mergeBtn = document.getElementById('mergeAccountsBtn');
+        const checkboxes = document.querySelectorAll('.accountCheckbox');
+
+        // Function to update the merge button state
+        function updateMergeButtonState() {
+            const checkedBoxes = document.querySelectorAll('.accountCheckbox:checked');
+            mergeBtn.disabled = checkedBoxes.length < 2;  // Enable button only if two or more are selected
+        }
+
+        // Attach change event listener to each checkbox
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateMergeButtonState);
+        });
+
+        // Validate ObjectId format
+        function isValidObjectId(id) {
+            return /^[0-9a-fA-F]{24}$/.test(id);
+        }
+
+        // Handle the merging of accounts
+        mergeBtn.addEventListener('click', function () {
+            let selectedAccounts = Array.from(document.querySelectorAll('.accountCheckbox:checked'))
+                .map(cb => cb.value)
+                .filter(isValidObjectId);  // Only keep valid ObjectIds
+
+            if (selectedAccounts.length >= 2) {
+                // Send selected accounts for merging
+                fetch('/aging/merged', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ accountIds: selectedAccounts })
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
+                            throw new Error("Failed to merge accounts");
+                        }
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            // Redirect to the new page with aging report for selected accounts
+                            window.location.href = `/aging/mergedReport?accountIds=${selectedAccounts.join(',')}`;
+                        } else {
+                            alert('Error merging accounts. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error merging accounts. Please try again.');
+                    });
             } else {
-                row.style.display = 'none';  // Hide row
+                alert('Please select at least two valid accounts to merge.');
             }
         });
-    });
 
-    // Enable merge button only if multiple accounts are selected
-    const mergeBtn = document.getElementById('mergeAccountsBtn');
-    const checkboxes = document.querySelectorAll('.accountCheckbox');
-
-    // Function to update the merge button state
-    function updateMergeButtonState() {
-        const checkedBoxes = document.querySelectorAll('.accountCheckbox:checked');
-        mergeBtn.disabled = checkedBoxes.length < 2;  // Enable button only if two or more are selected
-    }
-
-    // Attach change event listener to each checkbox
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateMergeButtonState);
-    });
-
-    // Validate ObjectId format
-    function isValidObjectId(id) {
-        return /^[0-9a-fA-F]{24}$/.test(id);
-    }
-
-    // Handle the merging of accounts
-    mergeBtn.addEventListener('click', function () {
-        let selectedAccounts = Array.from(document.querySelectorAll('.accountCheckbox:checked'))
-            .map(cb => cb.value)
-            .filter(isValidObjectId);  // Only keep valid ObjectIds
-
-        if (selectedAccounts.length >= 2) {
-            // Send selected accounts for merging
-            fetch('/aging/merged', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ accountIds: selectedAccounts })
-            })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        throw new Error("Failed to merge accounts");
-                    }
-                })
-                .then(data => {
-                    if (data.success) {
-                        // Redirect to the new page with aging report for selected accounts
-                        window.location.href = `/aging/mergedReport?accountIds=${selectedAccounts.join(',')}`;
-                    } else {
-                        alert('Error merging accounts. Please try again.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error merging accounts. Please try again.');
-                });
-        } else {
-            alert('Please select at least two valid accounts to merge.');
-        }
-    });
-
-</script>
+    </script>

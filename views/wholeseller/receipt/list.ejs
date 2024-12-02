@@ -1,328 +1,350 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css"
+        rel="stylesheet">
 
-<style>
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: auto;
-        /* Let columns size automatically based on content */
-    }
-
-    th,
-    td {
-        padding: 8px;
-        text-align: left;
-        border: 1px solid black;
-        white-space: nowrap;
-    }
-
-    th {
-        background-color: #f2f2f2;
-    }
-
-    @media print {
-        @page {
-            size: A4 landscape;
-            margin: 10mm;
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
+            /* Let columns size automatically based on content */
         }
 
-        body {
-            font-size: 12px;
-            margin: 10mm;
-        }
-
-        #printHeader {
-            display: block;
-            /* Show header when printing */
-        }
-
-        /* Ensure no text wrapping when printing */
         th,
         td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid black;
             white-space: nowrap;
         }
 
-        /* Hide unnecessary elements during printing */
-        #filterForm,
-        #searchInput,
-        #billsList td:last-child {
-            display: none;
+        th {
+            background-color: #f2f2f2;
         }
 
-        /* Adjust the container width to fit landscape */
-        #mainContainer {
+        @media print {
+            /* @page {
+                size: A4 landscape;
+                margin: 10mm;
+            } */
+
+            body {
+                font-size: 12px;
+                margin: 10mm;
+            }
+
+            #printHeader {
+                display: block;
+                /* Show header when printing */
+            }
+
+            /* Ensure no text wrapping when printing */
+            th,
+            td {
+                white-space: nowrap;
+            }
+
+            /* Hide unnecessary elements during printing */
+            #filterForm,
+            #searchInput,
+            #billsList td:last-child {
+                display: none;
+            }
+
+            /* Adjust the container width to fit landscape */
+            #mainContainer {
+                width: 100%;
+            }
+        }
+
+        @media screen {
+            #printHeader {
+                display: none;
+                /* Hide header when on screen */
+            }
+        }
+
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .voucher-table {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .voucher-table thead {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .voucher-table tbody tr:hover {
+            background-color: #f1f1f1;
+            cursor: pointer;
+        }
+
+        .badge-debit {
+            background-color: #dc3545;
+        }
+
+        .badge-credit {
+            background-color: #28a745;
+        }
+
+        .search-input {
+            margin-bottom: 20px;
+        }
+
+        .table-wrapper {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+        }
+
+        /* Custom styles to resize the form */
+        .expanded-container {
+            max-width: 90%;
+            /* Expand the container to 90% of the viewport width */
+        }
+
+        .expanded-card {
             width: 100%;
+            /* Ensure the card takes full width of the container */
         }
-    }
 
-    @media screen {
-        #printHeader {
-            display: none;
-            /* Hide header when on screen */
+        @media (min-width: 768px) {
+            .expanded-container {
+                max-width: 90%;
+                /* Adjust width for medium and larger screens */
+            }
         }
-    }
+    </style>
 
-    body {
-        background-color: #f8f9fa;
-    }
+    <div class="container wow-form expanded-container" id="mainContainer">
+        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <!-- Print Header -->
+            <div id="printHeader" class="d-none text-center">
+                <div class="header" style="text-align: center;">
+                    <h2 class="card-subtitle mb-2">
+                        <%= currentCompanyName %>
+                    </h2>
+                    <b>
+                        <h4>
+                            <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
+                                        <%=currentCompany.country%> <br>
+                                            Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
+                                                    <br>
+                                                    VAT NO.: <span id="pan-vat-container"></span>
+                        </h4>
+                    </b>
+                    <hr style="border: 0.5px solid;">
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <h2 class="text-center mb-4">Receipt Vouchers</h2>
 
-    .voucher-table {
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .voucher-table thead {
-        background-color: #007bff;
-        color: #fff;
-    }
-
-    .voucher-table tbody tr:hover {
-        background-color: #f1f1f1;
-        cursor: pointer;
-    }
-
-    .badge-debit {
-        background-color: #dc3545;
-    }
-
-    .badge-credit {
-        background-color: #28a745;
-    }
-
-    .search-input {
-        margin-bottom: 20px;
-    }
-
-    .table-wrapper {
-        margin-top: 40px;
-        padding: 20px;
-        background-color: #ffffff;
-        border-radius: 8px;
-    }
-</style>
-
-<div class="container" id="mainContainer">
-
-    <!-- Print Header -->
-    <div id="printHeader" class="d-none text-center">
-        <div class="header" style="text-align: center;">
-            <h2 class="card-subtitle mb-2">
-                <%= currentCompanyName %>
-            </h2>
-            <b>
-                <h4>
-                    <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
-                                <%=currentCompany.country%> <br><br>
-                                    Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
-                                            <br><br>
-                                            VAT NO.: <span id="pan-vat-container"></span>
-                </h4>
-            </b>
-            <hr style="border: 0.5px solid;">
-        </div>
-    </div>
-
-    <div class="table-wrapper">
-        <h2 class="text-center mb-4">Receipt Vouchers</h2>
-
-        <!-- Search Input -->
-        <div class="search-input">
-            <input type="text" id="search" class="form-control" placeholder="Search by description or account name...">
-        </div>
-        <!-- Print Button -->
-        <button id="printAllBills" class="btn btn-secondary mb-3">Print All Receipt</button>
-        <button id="printFilteredBills" class="btn btn-secondary mb-3">Print Filtered Receipt</button>
-        <!-- Journal Voucher Table -->
-        <table class="table table-bordered voucher-table" id="billsList">
-            <thead>
-                <tr>
-                    <th>Vch. No.</th>
-                    <th>Date</th>
-                    <th>Account</th>
-                    <th>Credit</th>
-                    <th>Receipt Account</th>
-                    <th>User</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="voucher-table-body">
-                <% if (receipts.length> 0) { %>
-                    <% receipts.forEach(receipt=> { %>
+                <!-- Search Input -->
+                <div class="search-input">
+                    <input type="text" id="search" class="form-control"
+                        placeholder="Search by description or account name...">
+                </div>
+                <!-- Print Button -->
+                <a href="/receipts" class="btn btn-primary mb-3"><i class="bi bi-receipt"></i></a>
+                <button id="printAllBills" class="btn btn-secondary mb-3"><i class="bi bi-printer"> All</i></button>
+                <button id="printFilteredBills" class="btn btn-secondary mb-3"><i class="bi bi-printer">
+                        Filtered</i></button>
+                <!-- Journal Voucher Table -->
+                <table class="table table-bordered voucher-table" id="billsList">
+                    <thead>
                         <tr>
-                            <td>
-                                <%= receipt.billNumber %>
-                            </td>
-                            <td>
-                                <%= new Date(receipt.date).toLocaleDateString() %>
-                            </td>
-                            <td>
-                                <% if (receipt.isActive) { %>
-                                    <%= receipt.account ? receipt.account.name : 'N/A' %>
-                                        <% } else { %>
-                                            <span class="text-danger">Canceled</span>
-                                            <% } %>
-                            </td>
-                            <td class="credit-amount">
-                                <% if (receipt.isActive) { %>
-                                    <%= receipt.credit.toFixed(2) %>
-                                        <% } else { %>
-                                            <span class="text-danger">0.00</span>
-                                            <% } %>
-                            </td>
-                            <td>
-                                <% if (receipt.isActive) { %>
-                                    <%= receipt.receiptAccount ? receipt.receiptAccount.name : 'N/A' %>
-                                        <% } else { %>
-                                            <span class="text-danger">Canceled</span>
-                                            <% } %>
-                            </td>
-                            <td>
-                                <%= receipt.user ? receipt.user.name : 'N/A' %>
-                            </td>
-                            <td>
-                                <a href="/receipts/<%= receipt._id %>/print"><button class="btn-sm btn-info"><i
-                                            class="fas fa-eye"></i></button></a>
-                                <a href="/receipts/<%= receipt._id %>"><button class="btn btn-sm btn-warning"><i
-                                            class="fas fa-edit"></i></button></a>
-                            </td>
-
+                            <th>Vch. No.</th>
+                            <th>Date</th>
+                            <th>Account</th>
+                            <th>Credit</th>
+                            <th>Receipt Account</th>
+                            <th>User</th>
+                            <th>Actions</th>
                         </tr>
-                        <% }) %>
-                            <% } else { %>
+                    </thead>
+                    <tbody id="voucher-table-body">
+                        <% if (receipts.length> 0) { %>
+                            <% receipts.forEach(receipt=> { %>
                                 <tr>
-                                    <td colspan="8" class="text-center">No receipts found</td>
+                                    <td>
+                                        <%= receipt.billNumber %>
+                                    </td>
+                                    <td>
+                                        <%= new Date(receipt.date).toLocaleDateString() %>
+                                    </td>
+                                    <td>
+                                        <% if (receipt.isActive) { %>
+                                            <%= receipt.account ? receipt.account.name : 'N/A' %>
+                                                <% } else { %>
+                                                    <span class="text-danger">Canceled</span>
+                                                    <% } %>
+                                    </td>
+                                    <td class="credit-amount">
+                                        <% if (receipt.isActive) { %>
+                                            <%= receipt.credit.toFixed(2) %>
+                                                <% } else { %>
+                                                    <span class="text-danger">0.00</span>
+                                                    <% } %>
+                                    </td>
+                                    <td>
+                                        <% if (receipt.isActive) { %>
+                                            <%= receipt.receiptAccount ? receipt.receiptAccount.name : 'N/A' %>
+                                                <% } else { %>
+                                                    <span class="text-danger">Canceled</span>
+                                                    <% } %>
+                                    </td>
+                                    <td>
+                                        <%= receipt.user ? receipt.user.name : 'N/A' %>
+                                    </td>
+                                    <td>
+                                        <a href="/receipts/<%= receipt._id %>/print"><button class="btn-sm btn-info"><i
+                                                    class="fas fa-eye"></i></button></a>
+                                        <a href="/receipts/<%= receipt._id %>"><button class="btn btn-sm btn-warning"><i
+                                                    class="fas fa-edit"></i></button></a>
+                                    </td>
+
                                 </tr>
-                                <% } %>
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="3"><strong>Total</strong></td>
-                    <td id="total-credit">0.00</td>
-                    <td colspan="3"></td>
-                </tr>
-            </tfoot>
-        </table>
+                                <% }) %>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="8" class="text-center">No receipts found</td>
+                                        </tr>
+                                        <% } %>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3"><strong>Total</strong></td>
+                            <td id="total-credit">0.00</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
 
 
+            </div>
+        </div>
     </div>
-</div>
 
-<script>
-    // Initialize Bootstrap tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-
-    // Search functionality (basic filtering)
-    const searchInput = document.getElementById('search');
-    const tableBody = document.getElementById('voucher-table-body');
-    searchInput.addEventListener('keyup', function () {
-        const searchValue = searchInput.value.toLowerCase();
-        const rows = tableBody.getElementsByTagName('tr');
-
-        Array.from(rows).forEach(function (row) {
-            // Search in relevant columns: Account Name (column 2), Debit (column 3), Credit (column 4), Payment Account (column 5)
-            const billNumber = row.cells[0].textContent.toLowerCase();
-            const account = row.cells[2].textContent.toLowerCase();
-            const debit = row.cells[3].textContent.toLowerCase();
-            const credit = row.cells[4].textContent.toLowerCase();
-            const receiptAccount = row.cells[5].textContent.toLowerCase();
-            const users = row.cells[6].textContent.toLowerCase();
-
-            if (
-                billNumber.includes(searchValue) ||
-                account.includes(searchValue) ||
-                debit.includes(searchValue) ||
-                credit.includes(searchValue) ||
-                receiptAccount.includes(searchValue) ||
-                users.includes(searchValue)
-            ) {
-                row.style.display = '';  // Show row
-            } else {
-                row.style.display = 'none';  // Hide row
-            }
+    <script>
+        // Initialize Bootstrap tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
-        // Recalculate the totals after filtering
+        // Search functionality (basic filtering)
+        const searchInput = document.getElementById('search');
+        const tableBody = document.getElementById('voucher-table-body');
+        searchInput.addEventListener('keyup', function () {
+            const searchValue = searchInput.value.toLowerCase();
+            const rows = tableBody.getElementsByTagName('tr');
+
+            Array.from(rows).forEach(function (row) {
+                // Search in relevant columns: Account Name (column 2), Debit (column 3), Credit (column 4), Payment Account (column 5)
+                const billNumber = row.cells[0].textContent.toLowerCase();
+                const account = row.cells[2].textContent.toLowerCase();
+                const debit = row.cells[3].textContent.toLowerCase();
+                const credit = row.cells[4].textContent.toLowerCase();
+                const receiptAccount = row.cells[5].textContent.toLowerCase();
+                const users = row.cells[6].textContent.toLowerCase();
+
+                if (
+                    billNumber.includes(searchValue) ||
+                    account.includes(searchValue) ||
+                    debit.includes(searchValue) ||
+                    credit.includes(searchValue) ||
+                    receiptAccount.includes(searchValue) ||
+                    users.includes(searchValue)
+                ) {
+                    row.style.display = '';  // Show row
+                } else {
+                    row.style.display = 'none';  // Hide row
+                }
+            });
+
+            // Recalculate the totals after filtering
+            calculateTotals();
+        });
+
+        // Function to calculate total debit based on visible rows
+        function calculateTotals() {
+            const creditCells = document.querySelectorAll('.credit-amount');
+            let totalCredit = 0;
+
+            // Sum only the visible debit values
+            creditCells.forEach(cell => {
+                if (cell.closest('tr').style.display !== 'none') {  // Only sum visible rows
+                    const creditValue = parseFloat(cell.textContent) || 0;
+                    totalCredit += creditValue;
+                }
+            });
+
+            // Update the totals in the table footer
+            document.getElementById('total-credit').textContent = totalCredit.toFixed(2);
+        }
+
+        // Call the calculateTotals function initially
         calculateTotals();
-    });
 
-    // Function to calculate total debit based on visible rows
-    function calculateTotals() {
-        const creditCells = document.querySelectorAll('.credit-amount');
-        let totalCredit = 0;
-
-        // Sum only the visible debit values
-        creditCells.forEach(cell => {
-            if (cell.closest('tr').style.display !== 'none') {  // Only sum visible rows
-                const creditValue = parseFloat(cell.textContent) || 0;
-                totalCredit += creditValue;
-            }
+        // Print all bills
+        document.getElementById('printAllBills').addEventListener('click', function () {
+            printBills(document.querySelectorAll('#billsList tbody tr'));
         });
 
-        // Update the totals in the table footer
-        document.getElementById('total-credit').textContent = totalCredit.toFixed(2);
-    }
-
-    // Call the calculateTotals function initially
-    calculateTotals();
-
-    // Print all bills
-    document.getElementById('printAllBills').addEventListener('click', function () {
-        printBills(document.querySelectorAll('#billsList tbody tr'));
-    });
-
-    // Print filtered bills
-    document.getElementById('printFilteredBills').addEventListener('click', function () {
-        printBills(document.querySelectorAll('#billsList tbody tr:not([style*="display: none"])'));
-    });
-
-    // Function to print the selected bills (with totals)
-    function printBills(billRows) {
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write('<html><head><title>Print Receipt Vouchers</title>');
-        printWindow.document.write('<style>@page { size: A4 landscape; margin: 10mm; } table { width: 100%; border-collapse: collapse; } th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; } th { background-color: #f2f2f2; }</style>');
-        printWindow.document.write('</head><body>');
-        printWindow.document.write(document.getElementById('printHeader').innerHTML); // Include the header
-        printWindow.document.write('<h1>Receipt Vouchers</h1>');
-        printWindow.document.write('<table><thead><tr><th>Bill no.</th><th>Date</th><th>Account</th><th>Credit</th><th>Receipt Account</th><th>User</th></tr></thead><tbody>');
-
-        let totalCredit = 0;
-
-        billRows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            printWindow.document.write('<tr>');
-
-            // Only write cells up to the last cell that corresponds to the printed table
-            for (let i = 0; i < cells.length - 1; i++) { // Exclude the last cell (Actions)
-                printWindow.document.write('<td>' + cells[i].textContent + '</td>');
-            }
-
-            // Add up debit and credit for totals
-            totalCredit += parseFloat(cells[3].textContent) || 0;
-
-            printWindow.document.write('</tr>');
+        // Print filtered bills
+        document.getElementById('printFilteredBills').addEventListener('click', function () {
+            printBills(document.querySelectorAll('#billsList tbody tr:not([style*="display: none"])'));
         });
 
-        // Add the total row in the print view
-        printWindow.document.write('</tbody><tfoot><tr><td colspan="3"><strong>Total</strong></td>');
-        printWindow.document.write('<td>' + totalCredit.toFixed(2) + '</td><td colspan="3"></td></tr></tfoot></table>');
+        // Function to print the selected bills (with totals)
+        function printBills(billRows) {
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write('<html><head><title>Print Receipt Vouchers</title>');
+            printWindow.document.write('<style> table { width: 100%; border-collapse: collapse; } th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; } th { background-color: #f2f2f2; }</style>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(document.getElementById('printHeader').innerHTML); // Include the header
+            printWindow.document.write('<h1 style="text-align: center;">Receipt Vouchers</h1>');
+            printWindow.document.write('<table><thead><tr><th>Bill no.</th><th>Date</th><th>Account</th><th>Credit</th><th>Receipt Account</th><th>User</th></tr></thead><tbody>');
 
-        printWindow.document.write('</body></html>');
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-    }
+            let totalCredit = 0;
 
-    const panVatNo = '<%= currentCompany.pan %>';
-    const container = document.getElementById('pan-vat-container');
+            billRows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                printWindow.document.write('<tr>');
 
-    for (let i = 0; i < panVatNo.length; i++) {
-        const digit = document.createElement('span');
-        digit.className = 'bordered-digit';
-        digit.textContent = panVatNo[i];
-        container.appendChild(digit);
-    }
-</script>
+                // Only write cells up to the last cell that corresponds to the printed table
+                for (let i = 0; i < cells.length - 1; i++) { // Exclude the last cell (Actions)
+                    printWindow.document.write('<td>' + cells[i].textContent + '</td>');
+                }
+
+                // Add up debit and credit for totals
+                totalCredit += parseFloat(cells[3].textContent) || 0;
+
+                printWindow.document.write('</tr>');
+            });
+
+            // Add the total row in the print view
+            printWindow.document.write('</tbody><tfoot><tr><td colspan="3"><strong>Total</strong></td>');
+            printWindow.document.write('<td>' + totalCredit.toFixed(2) + '</td><td colspan="3"></td></tr></tfoot></table>');
+
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+        }
+
+        const panVatNo = '<%= currentCompany.pan %>';
+        const container = document.getElementById('pan-vat-container');
+
+        for (let i = 0; i < panVatNo.length; i++) {
+            const digit = document.createElement('span');
+            digit.className = 'bordered-digit';
+            digit.textContent = panVatNo[i];
+            container.appendChild(digit);
+        }
+    </script>

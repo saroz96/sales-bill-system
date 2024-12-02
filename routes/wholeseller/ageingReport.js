@@ -79,6 +79,7 @@ router.get('/aging/accounts', async (req, res) => {
             currentCompanyName: req.session.currentCompanyName,
             title: 'Accounts',
             body: 'wholeseller >> account >> accounts',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } catch (error) {
@@ -350,6 +351,7 @@ router.get('/aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensu
             currentCompanyName: req.session.currentCompanyName,
             title: 'Outstanding Analysis',
             body: 'wholeseller >> account >> aging',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } catch (error) {
@@ -591,6 +593,7 @@ router.get('/day-count-aging/:accountId', ensureAuthenticated, ensureCompanySele
             currentCompanyName: req.session.currentCompanyName,
             title: 'Outstanding Analysis',
             body: 'wholeseller >> account >> aging',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } catch (error) {
@@ -749,6 +752,7 @@ router.get('/aging/mergedReport', ensureAuthenticated, async (req, res) => {
             currentCompanyName: req.session.currentCompanyName,
             title: 'Outstanding Analysis',
             body: 'wholeseller >> account >> aging',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
 

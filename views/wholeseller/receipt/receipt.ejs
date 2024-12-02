@@ -128,15 +128,41 @@
                         <div class="bank-details col-md-4 d-none">
                             <div>
                                 <label for="InstType">Inst. Type</label>
-                                <select name="InstType" id="InstType" class="form-control">
+                                <select name="InstType" id="InstType" class="form-control form-select">
                                     <option value="" disabled selected>Select an InstType</option>
                                     <option value="N/A">N/A</option>
                                     <option value="RTGS">RTGS</option>
                                     <option value="Fonepay">Fonepay</option>
                                     <option value="Cheque">Cheque</option>
                                     <option value="Connect-Ips">Connect-Ips</option>
-                                    <option value="Esewa">Esewa</option>
-                                    <option value="Khalti">Khalti</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="bankAcc">Bank</label>
+                                <select name="bankAcc" id="bankAcc" class="form-select">
+                                    <option value="" disabled selected>Select a bank</option>
+                                    <option value="Agriculture Development Bank">Agriculture Development Bank</option>
+                                    <option value="Nepal Bank">Nepal Bank</option>
+                                    <option value="Rastriya Banijya Bank">Rastriya Banijya Bank</option>
+                                    <option value="Citizens Bank International">Citizens Bank International</option>
+                                    <option value="Nabil Bank">Nabil Bank</option>
+                                    <option value="Himalayan Bank">"Himalayan Bank"
+                                    </option>
+                                    <option value="Laxmi Sunrise Bank">Laxmi Sunrise Bank</option>
+                                    <option value="Nepal Investment Mega Bank">Nepal Investment Mega Bank</option>
+                                    <option value="Kumari Bank">Kumari Bank</option>
+                                    <option value="Global IME Bank Limited">Global IME Bank Limited</option>
+                                    <option value="NIC Asia Bank">NIC Asia Bank</option>
+                                    <option value="Machhapuchchhre Bank">Machhapuchchhre Bank</option>
+                                    <option value="Nepal SBI Bank">Nepal SBI Bank</option>
+                                    <option value="Everest Bank">Everest Bank</option>
+                                    <option value="NMB Bank Nepal">NMB Bank Nepal</option>
+                                    <option value="Prabhu Bank">Prabhu Bank</option>
+                                    <option value="Prime Commercial Bank">Prime Commercial Bank</option>
+                                    <option value="Sanima Bank">Sanima Bank</option>
+                                    <option value="Siddhartha Bank">Siddhartha Bank</option>
+                                    <option value="Standard Chartered Bank">Standard Chartered Bank</option>
+
                                 </select>
                             </div>
                             <div>
@@ -232,6 +258,14 @@
             width: '100%', // Ensure it takes the full width of the container
         });
     });
+    $(document).ready(function () {
+        // Initialize Select2 for searchable dropdowns
+        $('.form-select').select2({
+            placeholder: "Select a bank",
+            allowClear: true,
+            width: '100%', // Ensure it takes the full width of the container
+        });
+    });
 
     function submitBillForm(print) {
         shouldPrint = print;
@@ -280,4 +314,6 @@
             bankDetailsContainer.classList.remove('d-none'); // Show bank details
         }
     });
+
+
 </script>

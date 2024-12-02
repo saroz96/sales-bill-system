@@ -37,6 +37,10 @@ const companySchema = new mongoose.Schema({
     fiscalYearStartDate: {
         type: String
     },
+    vatEnabled: {
+        type: Boolean,
+        default: false // Default is VAT disabled
+    },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Company', companySchema);

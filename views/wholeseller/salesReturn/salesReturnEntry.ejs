@@ -261,9 +261,11 @@
                                         <select name="isVatExempt" id="isVatExempt" class="form-control"
                                             onchange="toggleVatInputs()"
                                             onchange="filterItems(document.getElementById('itemSearch'))">
-                                            <option value="all">All</option>
-                                            <option value="false">13%</option>
-                                            <option value="true">Exempt</option>
+                                            <% if (vatEnabled) {%>
+                                                <option value="all">All</option>
+                                                <option value="false">13%</option>
+                                                <%}%>
+                                                    <option value="true">Exempt</option>
                                         </select>
                                     </div>
                     </div>

@@ -195,7 +195,7 @@
             </div>
         </div>
 
-        <!-- Purchase Price Modal -->
+        <!-- Purchase Price Modal
         <div class="modal fade" id="purchasePriceModal" tabindex="-1" aria-labelledby="purchasePriceModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered" role="document">
@@ -214,7 +214,41 @@
                     </div>
                 </div>
             </div>
+        </div> -->
+
+        <!-- Modal for Batch Details -->
+        <div class="modal fade" id="batchDetailsModal" tabindex="-1" aria-labelledby="batchDetailsModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="batchDetailsModalLabel">Batch Details</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Batch Number</th>
+                                    <th>Purchase Price</th>
+                                    <th>Sales Price</th>
+                                    <th>Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batchDetailsTableBody">
+                                <!-- Batch details will be dynamically inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
         </div>
+
 
     </div>
     <script>

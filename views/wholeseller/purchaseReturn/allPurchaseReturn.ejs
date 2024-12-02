@@ -23,10 +23,10 @@
         }
 
         @media print {
-            @page {
+            /* @page {
                 size: A4 landscape;
                 margin: 10mm;
-            }
+            } */
 
             body {
                 font-size: 12px;
@@ -94,9 +94,9 @@
                     <b>
                         <h4>
                             <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
-                                        <%=currentCompany.country%> <br><br>
+                                        <%=currentCompany.country%> <br>
                                             Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
-                                                    <br><br>
+                                                    <br>
                                                     VAT NO.: <span id="pan-vat-container"></span>
                         </h4>
                     </b>
@@ -297,10 +297,10 @@
             function printBills(billRows) {
                 const printWindow = window.open('', '_blank');
                 printWindow.document.write('<html><head><title>Print Bills</title>');
-                printWindow.document.write('<style>@page { size: A4 landscape; margin: 10mm; } table { width: 100%; border-collapse: collapse; } th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; } th { background-color: #f2f2f2; }</style>');
+                printWindow.document.write('<style> table { width: 100%; border-collapse: collapse; } th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; } th { background-color: #f2f2f2; }</style>');
                 printWindow.document.write('</head><body>');
                 printWindow.document.write(document.getElementById('printHeader').innerHTML); // Include the header
-                printWindow.document.write('<h1>Purchase Return</h1>');
+                printWindow.document.write('<h1 style="text-align: center;">List of Purchase Return Vouchers</h1>');
                 printWindow.document.write('<table><thead><tr><th>Bill no.</th><th>Date</th><th>Party Name</th><th>Pay.Mode</th><th>Sub Total</th><th>Discount</th><th>Taxable</th><th>Vat</th><th>Off(-/+)</th><th>Total</th><th>User</th></tr></thead><tbody>');
 
                 // Initialize variables for totals
@@ -378,4 +378,15 @@
                 digit.textContent = panVatNo[i];
                 container.appendChild(digit);
             }
+
+            document.getElementById('clearSearch').addEventListener('click', () => {
+                const inputField = document.getElementById('searchInput');
+
+                // Check if the input field has a value
+                if (inputField.value !== '') {
+                    inputField.value = ''; // Clear the input field
+                } else {
+                    alert('Input field is already empty.');
+                }
+            });
         </script>

@@ -283,7 +283,8 @@ router.post('/company', ensureAuthenticated, async (req, res) => {
             startDateEnglish,
             endDateEnglish,
             startDateNepali,
-            endDateNepali
+            endDateNepali,
+            vatEnabled
         } = req.body;
         const owner = req.user._id;
 
@@ -350,7 +351,8 @@ router.post('/company', ensureAuthenticated, async (req, res) => {
             dateFormat,
             fiscalYearStartDate: startDate,
             owner,
-            createdAt // Set the calculated createdAt date
+            createdAt, // Set the calculated createdAt date
+            vatEnabled: vatEnabled === 'true'
         });
 
         const company = await newCompany.save();
@@ -561,7 +563,8 @@ router.put('/company/edit/:id', ensureAuthenticated, async (req, res) => {
             startDateEnglish,
             endDateEnglish,
             startDateNepali,
-            endDateNepali
+            endDateNepali,
+            vatEnabled
         } = req.body;
 
         // Determine the start and end dates based on dateFormat
@@ -596,6 +599,7 @@ router.put('/company/edit/:id', ensureAuthenticated, async (req, res) => {
                 tradeType,
                 dateFormat,
                 fiscalYearStartDate: startDate,
+                vatEnabled: vatEnabled === 'on'
             },
             { new: true }
         );

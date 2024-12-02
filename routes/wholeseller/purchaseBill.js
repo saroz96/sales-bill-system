@@ -86,7 +86,7 @@ router.get('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensure
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
         const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
         // Fetch the company and populate the fiscalYear
-        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
 
@@ -143,7 +143,7 @@ router.get('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensure
         }
         res.render('wholeseller/purchase/purchaseEntry', {
             company, accounts: accounts, items: items, purchasebills: purchasebills, nextPurchaseBillNumber: nextBillNumber,
-            nepaliDate: nepaliDate, transactionDateNepali, companyDateFormat, currentFiscalYear,
+            nepaliDate: nepaliDate, transactionDateNepali, companyDateFormat, currentFiscalYear, vatEnabled: company.vatEnabled,
             user: req.user, currentCompanyName: req.session.currentCompanyName,
             title: 'Purchase Entry',
             body: 'wholeseller >> purchase >> add',
@@ -303,17 +303,21 @@ router.post('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensur
                 // Ensure quantity is treated as a number
                 const quantityNumber = Number(quantity);
 
-                product.stockEntries.push({
+                const stockEntry = {
+                    date: nepaliDate ? nepaliDate : new Date(billDate),
+                    quantity: quantityNumber,
                     batchNumber: batchNumber,
                     expiryDate: expiryDate,
-                    quantity: quantityNumber,
                     price: price,
                     puPrice: puPrice,
-                    marginPercentage,
                     mrp: mrp,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                });
+                    marginPercentage: marginPercentage,
+                };
 
+
+                // Debug: log stock entry to ensure values are correct
+                console.log('Stock Entry:', stockEntry);
+                product.stockEntries.push(stockEntry); // Add entry to stockEntries array
                 // Ensure stock is incremented correctly as a number
                 product.stock = (product.stock || 0) + quantityNumber;
                 await product.save();
@@ -325,7 +329,12 @@ router.post('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensur
                 const product = await Item.findById(item.item);
 
                 // Calculate the total amount for this item
-                const itemTotal = item.quantity * item.puPrice;
+                // const itemTotal = item.quantity * item.puPrice;
+                // Debug: Ensure the correct values are passed
+                console.log('Item Data:', {
+                    mrp: item.mrp,
+                    marginPercentage: item.marginPercentage
+                });
 
                 // Create the transaction for this item
                 const transaction = new Transaction({
@@ -355,7 +364,7 @@ router.post('/purchase-bills', ensureAuthenticated, ensureCompanySelected, ensur
                 console.log('Transaction', transaction);
 
                 // Increment stock quantity using FIFO
-                await addStock(product, item.batchNumber, item.expiryDate, item.quantity, item.price, item.puPrice, item.mrp, item.marginPercentage);
+                await addStock(product, item.batchNumber, item.expiryDate, item.quantity, item.price, item.puPrice, item.marginPercentage, item.mrp);
 
                 return {
                     item: product._id,

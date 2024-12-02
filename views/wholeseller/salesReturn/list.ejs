@@ -86,20 +86,23 @@
     <div class="container wow-form expanded-container">
         <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
             <div id="printHeader" class="d-none text-center">
-                <div class="header" style="text-align: center;">
-                    <h2 class="card-subtitle mb-2">
-                        <%= currentCompanyName %>
-                    </h2>
-                    <b>
-                        <h4>
-                            <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
-                                        <%=currentCompany.country%> <br><br>
-                                            Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
-                                                    <br><br>
-                                                    VAT NO.: <span id="pan-vat-container"></span>
-                        </h4>
-                    </b>
-                    <hr style="border: 0.5px solid;">
+                <!-- Print Header -->
+                <div id="printHeader" class="d-none text-center">
+                    <div class="header" style="text-align: center;">
+                        <h2 class="card-subtitle mb-2">
+                            <%= currentCompanyName %>
+                        </h2>
+                        <b>
+                            <h4>
+                                <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
+                                            <%=currentCompany.country%> <br>
+                                                Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
+                                                        <br>
+                                                        VAT NO.: <span id="pan-vat-container"></span>
+                            </h4>
+                        </b>
+                        <hr style="border: 0.5px solid;">
+                    </div>
                 </div>
             </div>
             <br>
@@ -214,28 +217,6 @@
         </div>
     </div>
 
-    <!-- Exit Confirmation Modal -->
-    <div class="modal fade" id="exitConfirmationModal" tabindex="-1" aria-labelledby="exitConfirmationModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exitConfirmationModalLabel">Exit Confirmation</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    Are you sure you want to exit without saving?
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="confirmExit" autofocus>Yes, Exit</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
         // Function to handle search input changes
         document.getElementById('searchInput').addEventListener('input', function () {
@@ -304,21 +285,6 @@
         // Initial call to filterBills to apply any initial filters (if needed)
         filterBills();
 
-        //Handle scape buttons
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') {
-                event.preventDefault(); // Prevent default escape behavior
-                var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
-                exitModal.show();
-            }
-        });
-
-        // Handle the exit confirmation
-        document.getElementById('confirmExit').addEventListener('click', function () {
-            // Redirect to the home page
-            window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
-        });
-
         // Print all bills
         document.getElementById('printAllBills').addEventListener('click', function () {
             printBills(document.querySelectorAll('#billsList tbody tr.searchClass'));
@@ -333,11 +299,18 @@
         function printBills(billRows) {
             const printWindow = window.open('', '_blank');
             printWindow.document.write('<html><head><title>Print Bills</title>');
-            printWindow.document.write('<style>@page { size: A4 landscape; margin: 10mm; } table { width: 100%; border-collapse: collapse; } th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; } th { background-color: #f2f2f2; }</style>');
+            printWindow.document.write('<style>table { width: 100%; border-collapse: collapse; } th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; } th { background-color: #f2f2f2; }</style>');
             printWindow.document.write('</head><body>');
             printWindow.document.write(document.getElementById('printHeader').innerHTML); // Include the header
-            printWindow.document.write('<h1>Sales Return</h1>');
+            printWindow.document.write('<h1 style="text-align: center;">List of Sales Return Vouchers</h1>');
             printWindow.document.write('<table><thead><tr><th>Bill no.</th><th>Date</th><th>Party Name</th><th>Pay.Mode</th><th>Sub Total</th><th>Discount</th><th>Taxable</th><th>Vat</th><th>Off(-/+)</th><th>Total</th><th>User</th></tr></thead><tbody>');
+
+            let totalSubTotal = 0;
+            let totalDiscount = 0;
+            let totalTaxable = 0;
+            let totalVat = 0;
+            let totalRoundOff = 0;
+            let totalAmount = 0;
 
             billRows.forEach(row => {
                 const cells = row.querySelectorAll('td');
@@ -348,60 +321,38 @@
                     printWindow.document.write('<td>' + cells[i].textContent + '</td>');
                 }
 
+                // Calculate totals for visible rows
+                if (row.style.display !== 'none') { // Only consider visible rows
+                    totalSubTotal += parseFloat(row.cells[4].textContent) || 0; // Sub Total
+                    totalDiscount += parseFloat(row.cells[5].textContent.split(' - Rs.')[1]) || 0; // Discount
+                    totalTaxable += parseFloat(row.cells[6].textContent) || 0; // Taxable
+                    totalVat += parseFloat(row.cells[7].textContent.split(' - Rs.')[1]) || 0; // Vat
+                    totalRoundOff += parseFloat(row.cells[8].textContent) || 0; // Round Off
+                    totalAmount += parseFloat(row.cells[9].textContent) || 0; // Total
+                }
+
                 printWindow.document.write('</tr>');
             });
 
+            // Add the totals row at the end of the table
+            printWindow.document.write('<tr style="font-weight: bold; background-color: #f9f9f9;">');
+            printWindow.document.write('<td colspan="4" style="text-align: right;">Totals:</td>'); // Merge first 4 cells
+            printWindow.document.write('<td>' + totalSubTotal.toFixed(2) + '</td>');
+            printWindow.document.write('<td>' + totalDiscount.toFixed(2) + '</td>');
+            printWindow.document.write('<td>' + totalTaxable.toFixed(2) + '</td>');
+            printWindow.document.write('<td>' + totalVat.toFixed(2) + '</td>');
+            printWindow.document.write('<td>' + totalRoundOff.toFixed(2) + '</td>');
+            printWindow.document.write('<td>' + totalAmount.toFixed(2) + '</td>');
+            printWindow.document.write('<td></td>'); // Empty cell for the "User" column
+            printWindow.document.write('</tr>');
+
             printWindow.document.write('</tbody></table>');
-
-            // Calculate totals for visible rows to display in the printout
-            let totalSubTotal = 0;
-            let totalDiscount = 0;
-            let totalTaxable = 0;
-            let totalVat = 0;
-            let totalRoundOff = 0;
-            let totalAmount = 0;
-
-            billRows.forEach(row => {
-                if (row.style.display !== 'none') { // Only consider visible rows
-                    totalSubTotal += parseFloat(row.cells[4].textContent); // Sub Total
-                    totalDiscount += parseFloat(row.cells[5].textContent.split(' - Rs.')[1]); // Discount
-                    totalTaxable += parseFloat(row.cells[6].textContent); // Taxable
-                    totalVat += parseFloat(row.cells[7].textContent.split(' - Rs.')[1]); // Vat
-                    totalRoundOff += parseFloat(row.cells[8].textContent); // Round Off
-                    totalAmount += parseFloat(row.cells[9].textContent); // Total
-                }
-            });
-
-            // Write totals at the bottom of the printout
-            printWindow.document.write('<h3>Totals:</h3>');
-            printWindow.document.write('<table>');
-
-            // First row: Sub Total and Discount
-            printWindow.document.write('<tr>');
-            printWindow.document.write('<td><strong>Sub Total:</strong> ' + totalSubTotal.toFixed(2) + '</td>');
-            printWindow.document.write('<td><strong>Discount:</strong> ' + totalDiscount.toFixed(2) + '</td>');
-            printWindow.document.write('</tr>');
-
-            // Second row: Taxable and Vat
-            printWindow.document.write('<tr>');
-            printWindow.document.write('<td><strong>Taxable:</strong> ' + totalTaxable.toFixed(2) + '</td>');
-            printWindow.document.write('<td><strong>Vat:</strong> ' + totalVat.toFixed(2) + '</td>');
-            printWindow.document.write('</tr>');
-
-            // Third row: Round Off and Total Amount
-            printWindow.document.write('<tr>');
-            printWindow.document.write('<td><strong>Round Off:</strong> ' + totalRoundOff.toFixed(2) + '</td>');
-            printWindow.document.write('<td><strong>Total Amount:</strong> ' + totalAmount.toFixed(2) + '</td>');
-            printWindow.document.write('</tr>');
-
-            printWindow.document.write('</table>');
-
-
             printWindow.document.write('</body></html>');
             printWindow.document.close();
             printWindow.focus();
             printWindow.print();
         }
+
 
         const panVatNo = '<%= currentCompany.pan %>';
         const container = document.getElementById('pan-vat-container');
@@ -412,4 +363,16 @@
             digit.textContent = panVatNo[i];
             container.appendChild(digit);
         }
+
+        document.getElementById('clearSearch').addEventListener('click', () => {
+            const inputField = document.getElementById('searchInput');
+
+            // Check if the input field has a value
+            if (inputField.value !== '') {
+                inputField.value = ''; // Clear the input field
+            } else {
+                alert('Input field is already empty.');
+            }
+        });
+
     </script>

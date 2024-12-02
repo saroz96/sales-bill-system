@@ -265,9 +265,11 @@
                                         <select name="isVatExempt" id="isVatExempt" class="form-control"
                                             onchange="toggleVatInputs()"
                                             onchange="filterItems(document.getElementById('itemSearch'))">
-                                            <option value="all">All</option>
-                                            <option value="false">13%</option>
-                                            <option value="true">Exempt</option>
+                                            <% if (vatEnabled) {%>
+                                                <option value="all">All</option>
+                                                <option value="false">13%</option>
+                                                <%}%>
+                                                    <option value="true">Exempt</option>
                                         </select>
                                     </div>
                     </div>
@@ -1044,8 +1046,8 @@
                     <td>${entry.quantity}</td>
                     <td>${entry.price}</td>
                     <td>${entry.puPrice}</td>
-                    <td>${entry.mrp}</td>
                     <td>${entry.marginPercentage}</td>
+                    <td>${entry.mrp}</td>
                 </tr>
             `;
                     }
@@ -1210,8 +1212,25 @@
 
         function toggleVatInputs() {
             const isVatExempt = document.getElementById('isVatExempt').value === 'true';
-            const vatInputs = document.getElementById('vatInputs');
-            vatInputs.style.display = isVatExempt ? 'none' : 'block';
+
+            // VAT-related fields
+            const vatInputs = document.getElementById('vatInputs'); // Group for VAT-related inputs
+            const taxableAmountRow = document.getElementById('taxableAmountRow');
+            const vatPercentageRow = document.getElementById('vatPercentageRow');
+            const vatAmountRow = document.getElementById('vatAmountRow');
+
+            // Toggle display based on VAT exemption
+            if (isVatExempt) {
+                taxableAmountRow.style.display = 'none';
+                vatPercentageRow.style.display = 'none';
+                vatAmountRow.style.display = 'none';
+            } else {
+                taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
+                vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
+                vatAmountRow.style.display = 'table-row'; // Show VAT amount row
+            }
+
+            // Recalculate total when toggling VAT
             calculateTotal();
         }
 

@@ -58,7 +58,7 @@ router.get('/receipts-list', ensureAuthenticated, ensureCompanySelected, ensureT
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
 
-        const receipts = await Receipt.find()
+        const receipts = await Receipt.find({ company: companyId, fiscalYear: fiscalYear })
             .populate('account', 'name') // Assuming 'name' field exists in Account schema
             .populate('user', 'name') // Assuming 'username' field exists in User schema
             .populate('receiptAccount', 'name') // Assuming 'name' field exists in Account schema for paymentAccount
@@ -68,6 +68,7 @@ router.get('/receipts-list', ensureAuthenticated, ensureCompanySelected, ensureT
             receipts, currentCompanyName, currentCompany,
             title: 'View Receipt',
             body: 'wholeseller >> receipt >> view receipts',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
@@ -187,9 +188,9 @@ router.get('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTradeT
             companyDateFormat,
             currentCompanyName: req.session.currentCompanyName,
             date: new Date().toISOString().split('T')[0], // Today's date in ISO format
-            user: req.user,
             title: 'Add Receipt',
             body: 'wholeseller >> receipt >> add receipt',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } catch (error) {
@@ -258,7 +259,7 @@ router.get('/receipts/finds', ensureAuthenticated, ensureCompanySelected, ensure
 router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
-            const { billDate, nepaliDate, receiptAccount, account, credit, InstType, InstNo, description } = req.body;
+            const { billDate, nepaliDate, receiptAccount, account, credit, InstType, bankAcc, InstNo, description } = req.body;
             const companyId = req.session.currentCompany;
             const currentFiscalYear = req.session.currentFiscalYear.id
             const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -312,9 +313,10 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 debit: 0,
                 receiptAccount,
                 description,
+                bankAcc,
                 user: userId,
-                companyGroups: companyId,
                 fiscalYear: currentFiscalYear,
+                company: companyId
 
             });
             console.log('Receipt Bill:', receipt);
@@ -370,7 +372,7 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
             // res.redirect('/receipts');
             if (req.query.print === 'true') {
                 // Redirect to the print route
-                res.redirect(`/receipts/${receipt._id}/direct-editPrint`);
+                res.redirect(`/receipts/${receipt._id}/direct-print`);
             } else {
                 // Redirect to the bills list or another appropriate page
                 req.flash('success', 'Receipt saved successfully!');
@@ -612,9 +614,9 @@ router.get('/receipts/edit/billNumber', ensureAuthenticated, ensureCompanySelect
                 companyDateFormat,
                 currentCompanyName: req.session.currentCompanyName,
                 date: new Date().toISOString().split('T')[0], // Today's date in ISO format
-                user: req.user,
                 title: '',
                 body: '',
+                user: req.user,
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {

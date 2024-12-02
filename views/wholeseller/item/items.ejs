@@ -81,8 +81,10 @@
                             <select class="form-control" id="vatStatus" name="vatStatus"
                                 onkeydown="handleItemVatStatusInputKeydown(event)" required>
                                 <option value="" disabled selected>Select Vat Status</option>
-                                <option value="vatable">Vatable</option>
-                                <option value="vatExempt">VAT Exempt</option>
+                                <% if (vatEnabled) {%>
+                                    <option value="vatable">Vatable</option>
+                                    <%}%>
+                                        <option value="vatExempt">VAT Exempt</option>
                             </select>
                         </div>
                         <div class="col">
@@ -254,8 +256,10 @@
                                 <div class="col">
                                     <label for="editVatStatus">VAT Status <i style="color: red;">*</i></label>
                                     <select class="form-control" id="editVatStatus" name="vatStatus" required>
-                                        <option value="vatable">Vatable</option>
-                                        <option value="vatExempt">VAT Exempt</option>
+                                        <% if (vatEnabled) {%>
+                                            <option value="vatable">Vatable</option>
+                                            <%}%>
+                                                <option value="vatExempt">VAT Exempt</option>
                                     </select>
                                 </div>
                                 <div class="col">

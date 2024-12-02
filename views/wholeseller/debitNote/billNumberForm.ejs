@@ -1,60 +1,98 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
-<div class="container mt-5">
-    <h1 class="text-center mb-4">Enter Voucher Number</h1>
-    <form action="/debit-note/edit/billNumber" method="get" class="needs-validation" novalidate>
-        <div class="form-group">
-            <label for="billNumber">Voucher Number:</label>
-            <input type="text" name="billNumber" id="billNumber" class="form-control" required
-                placeholder="Enter your voucher number" aria-describedby="billHelp" autocomplete="off" autofocus>
-            <small id="billHelp" class="form-text text-muted">
-                Please enter a valid voucher number to find the debit note.
-            </small>
-            <div class="invalid-feedback">
-                Please enter a voucher number.
-            </div>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Find Voucher</button>
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css"
+        rel="stylesheet">
 
-    </form>
-</div>
-
-<script>
-    // Form validation script
-    (function () {
-        'use strict';
-        window.addEventListener('load', function () {
-            const forms = document.getElementsByClassName('needs-validation');
-            for (let i = 0; i < forms.length; i++) {
-                forms[i].addEventListener('submit', function (event) {
-                    if (forms[i].checkValidity() === false) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
-                    forms[i].classList.add('was-validated');
-                }, false);
+    <style>
+        @media screen {
+            #printHeader {
+                display: none;
             }
-        }, false);
-    })();
+        }
 
-    // Optional: Automatically focus on the voucher number input
-    document.getElementById('billNumber').focus();
-</script>
+        /* Custom styles to center the form */
+        .centered-container {
+            display: flex;
+            justify-content: center;
+            /* align-items: center; */
+            /* height: 100vh; */
+        }
 
-<style>
-    /* Additional styling for enhanced UX */
-    .btn-primary {
-        transition: background-color 0.3s ease;
-    }
+        .expanded-card {
+            width: 100%;
+            max-width: 500px;
+        }
 
-    .btn-primary:hover {
-        background-color: #0056b3;
-        /* Darker shade for hover effect */
-    }
+        /* Additional styling for enhanced UX */
+        .btn-primary {
+            transition: background-color 0.3s ease;
+        }
 
-    .form-group {
-        margin-bottom: 1.5rem;
-        /* More space between fields */
-    }
-</style>
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+    </style>
+    <div class="container mt-5 wow-form centered-container">
+        <div class="card shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <h1 class="text-center mb-4">Enter Voucher Number</h1>
+            <form action="/debit-note/edit/billNumber" method="get" class="needs-validation" novalidate>
+                <div class="form-group">
+                    <label for="billNumber">Voucher Number:</label>
+                    <input type="text" name="billNumber" id="billNumber" class="form-control" required
+                        placeholder="Enter your voucher number" aria-describedby="billHelp" autocomplete="off"
+                        autofocus>
+                    <small id="billHelp" class="form-text text-muted">
+                        Please enter a valid voucher number to find the debit note.
+                    </small>
+                    <div class="invalid-feedback">
+                        Please enter a voucher number.
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Find Voucher</button>
+
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Form validation script
+        (function () {
+            'use strict';
+            window.addEventListener('load', function () {
+                const forms = document.getElementsByClassName('needs-validation');
+                for (let i = 0; i < forms.length; i++) {
+                    forms[i].addEventListener('submit', function (event) {
+                        if (forms[i].checkValidity() === false) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        forms[i].classList.add('was-validated');
+                    }, false);
+                }
+            }, false);
+        })();
+
+        // Optional: Automatically focus on the voucher number input
+        document.getElementById('billNumber').focus();
+    </script>
+
+    <style>
+        /* Additional styling for enhanced UX */
+        .btn-primary {
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            /* Darker shade for hover effect */
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            /* More space between fields */
+        }
+    </style>

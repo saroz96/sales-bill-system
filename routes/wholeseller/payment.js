@@ -640,6 +640,8 @@ router.get('/payments/edit/billNumber', ensureAuthenticated, ensureCompanySelect
         }
     }
 });
+
+
 // PUT - Update an existing payment voucher by ID
 router.put('/payments/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {

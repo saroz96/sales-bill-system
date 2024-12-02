@@ -110,6 +110,24 @@
     </style>
     <div class="container wow-form expanded-container">
         <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <!-- Print Header -->
+            <div id="printHeader" class="d-none text-center">
+                <div class="header" style="text-align: center;">
+                    <h2 class="card-subtitle mb-2">
+                        <%= currentCompanyName %>
+                    </h2>
+                    <b>
+                        <h4>
+                            <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
+                                        <%=currentCompany.country%> <br>
+                                            Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
+                                                    <br>
+                                                    VAT NO.: <span id="pan-vat-container"></span>
+                        </h4>
+                    </b>
+                    <hr style="border: 0.5px solid;">
+                </div>
+            </div>
             <h1 class="my-4">Stock Adjustments</h1>
             <div class="card">
                 <div class="card-body">
@@ -120,7 +138,7 @@
                                 <div class="form-group">
                                     <label for="searchInput">Search Items:</label>
                                     <input type="text" class="form-control" id="searchInput"
-                                        placeholder="Search items by name..." autofocus>
+                                        placeholder="Search items by name, reason & user..." autofocus>
                                 </div>
                             </form>
                         </div>
@@ -151,12 +169,15 @@
                             <thead>
                                 <tr>
                                     <th>Date</th>
+                                    <th>Vch. No.</th>
                                     <th>Description of Goods</th>
                                     <th>Quantity</th>
                                     <th>Unit</th>
+                                    <th>C.P</th>
                                     <th>Adj. Type</th>
                                     <th>Reason</th>
                                     <th>User</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -164,20 +185,27 @@
                                     <% stockAdjustments.forEach(adjustment=> { %>
                                         <tr class="searchClass" data-adjustment-type="<%= adjustment.adjustmentType %>">
                                             <td>
-                                                <% if (companyDateFormat==='nepali' ) { %>
-                                                    <%= new Date(nepaliDate).toLocaleDateString() %>
-                                                        <% } else { %>
-                                                            <%= new Date(adjustment.date).toLocaleDateString() %>
-                                                                <% } %>
+                                                <%= new Date(adjustment.date).toLocaleDateString() %>
                                             </td>
                                             <td>
-                                                <%= adjustment.item.name %>
+                                                <%= adjustment.billNumber %>
+                                            </td>
+                                            <td>
+                                                <% if(adjustment.vatStatus==='vatExempt' ){%>
+                                                    <%= adjustment.itemName %> *
+                                                        <%}else{%>
+                                                            <%= adjustment.itemName %>
+                                                                <%}%>
+
                                             </td>
                                             <td class="quantity">
-                                                <%= adjustment.quantity %>
+                                                <%= adjustment.quantity.toFixed(2) %>
                                             </td>
                                             <td>
-                                                <%=adjustment.unit.name %>
+                                                <%= adjustment.unitName %>
+                                            </td>
+                                            <td>
+                                                <%= adjustment.puPrice %>
                                             </td>
                                             <td>
                                                 <%= adjustment.adjustmentType %>
@@ -186,21 +214,35 @@
                                                 <%= adjustment.reason %>
                                             </td>
                                             <td>
-                                                <%= adjustment.user.name %>
+                                                <%= adjustment.userName %>
+                                            </td>
+                                            <td>
+                                                <a href="/stockAdjustments/<%= adjustment.adjustmentId %>/print"><button
+                                                        class="btn-sm btn-info"><i class="fas fa-eye"></i></button></a>
+                                                <a href="/stockAdjustments/edit/<%= adjustment.adjustmentId %>"><button
+                                                        class="btn btn-sm btn-warning"><i
+                                                            class="fas fa-edit"></i></button></a>
                                             </td>
                                         </tr>
-                                        <% }) %>
-                                            <% } %>
+                                        <% }); %>
+                                            <% } else { %>
+                                                <tr>
+                                                    <td colspan="9" class="text-center">No stock adjustments found</td>
+                                                </tr>
+                                                <% } %>
+
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="2" class="text-right"><strong>Total Quantity:</strong></td>
-                                    <td id="totalQuantity">0</td>
-                                    <td colspan="5"></td>
+                                    <td colspan="3" class="text-right"><strong>Total Quantity:</strong></td>
+                                    <td id="totalQuantity">0.00</td>
+                                    <td colspan="6"></td>
 
                                 </tr>
+
                             </tfoot>
                         </table>
+                        <p>Items with (*) is vat free.</p>
                     </div>
                 </div>
             </div>
@@ -218,11 +260,13 @@
                 let totalQuantity = 0;
 
                 rows.forEach(row => {
-                    const itemName = row.querySelector('td:nth-child(2)').textContent.trim().toLowerCase();
-                    const adjustmentType = row.querySelector('td:nth-child(5)').textContent.trim().toLowerCase();
+                    const itemName = row.querySelector('td:nth-child(3)').textContent.trim().toLowerCase();
+                    const adjustmentType = row.querySelector('td:nth-child(7)').textContent.trim().toLowerCase();
+                    const adjustmentReason = row.querySelector('td:nth-child(8)').textContent.trim().toLocaleLowerCase();
+                    const userName = row.querySelector('td:nth-child(9)').textContent.trim().toLocaleLowerCase();
                     const quantity = parseFloat(row.querySelector('.quantity').textContent);
 
-                    const matchesSearch = itemName.includes(searchQuery);
+                    const matchesSearch = itemName.includes(searchQuery) || adjustmentReason.includes(searchQuery) || userName.includes(searchQuery);
                     const matchesAdjustmentType = selectedAdjustmentType === '' || adjustmentType === selectedAdjustmentType;
 
                     if (matchesSearch && matchesAdjustmentType) {
@@ -233,7 +277,7 @@
                     }
                 });
 
-                document.getElementById('totalQuantity').textContent = totalQuantity;
+                document.getElementById('totalQuantity').textContent = totalQuantity.toFixed(2);
             }
 
             // Initial calculation of total quantity
@@ -272,9 +316,11 @@
                 <thead>
                     <tr>
                         <th>Date</th>
+                        <th>Vch. No.</th>
                         <th>Description of Goods</th>
                         <th>Quantity</th>
                         <th>Unit</th>
+                        <th>C.P</th>
                         <th>Adj. Type</th>
                         <th>Reason</th>
                         <th>User</th>
@@ -292,12 +338,12 @@
                     const cells = row.querySelectorAll('td');
                     tableRowsHTML += '<tr>';
 
-                    for (let i = 0; i < cells.length; i++) {
+                    for (let i = 0; i < cells.length - 1; i++) {
                         const cellText = cells[i]?.textContent || '';
                         tableRowsHTML += `<td>${cellText}</td>`;
 
                         // Calculate total quantity for visible rows
-                        if (i === 2 && row.style.display !== 'none') {
+                        if (i === 3 && row.style.display !== 'none') {
                             totalQuantity += parseFloat(cellText) || 0;
                         }
                     }
@@ -308,13 +354,12 @@
                 // Add a totals row at the end of the table
                 const totalsRowHTML = `
             <tr style="font-weight: bold; background-color: #f9f9f9;">
-                <td colspan="2">Total Quantity</td>
+                <td colspan="3">Total Quantity</td>
                 <td>${totalQuantity.toFixed(2)}</td>
-                <td></td> <!-- Empty cell for the User column -->
-                <td></td> <!-- Empty cell for the User column -->
-                <td></td> <!-- Empty cell for the User column -->
-                <td></td> <!-- Empty cell for the User column -->
+                <td colspan="5"></td> <!-- Empty cell for the User column -->
             </tr>
+                                    <p>Items with (*) is vat free.</p>
+
         `;
 
                 // Construct the final HTML for printing

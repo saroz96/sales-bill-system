@@ -24,10 +24,10 @@
         }
 
         @media print {
-            @page {
+            /* @page {
                 size: A4 landscape;
                 margin: 10mm;
-            }
+            } */
 
             body {
                 font-size: 12px;
@@ -88,20 +88,23 @@
         <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
             <!-- Print Header -->
             <div id="printHeader" class="d-none text-center">
-                <div class="header" style="text-align: center;">
-                    <h2 class="card-subtitle mb-2">
-                        <%= currentCompanyName %>
-                    </h2>
-                    <b>
-                        <h4>
-                            <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
-                                        <%=currentCompany.country%> <br><br>
-                                            Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
-                                                    <br><br>
-                                                    VAT NO.: <span id="pan-vat-container"></span>
-                        </h4>
-                    </b>
-                    <hr style="border: 0.5px solid;">
+                <!-- Print Header -->
+                <div id="printHeader" class="d-none text-center">
+                    <div class="header" style="text-align: center;">
+                        <h2 class="card-subtitle mb-2">
+                            <%= currentCompanyName %>
+                        </h2>
+                        <b>
+                            <h4>
+                                <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
+                                            <%=currentCompany.country%> <br>
+                                                Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
+                                                        <br>
+                                                        VAT NO.: <span id="pan-vat-container"></span>
+                            </h4>
+                        </b>
+                        <hr style="border: 0.5px solid;">
+                    </div>
                 </div>
             </div>
             <br>
@@ -320,7 +323,6 @@
             <head>
                 <title>Print Bills</title>
                 <style>
-                    @page { size: A4 landscape; margin: 10mm; }
                     table { width: 100%; border-collapse: collapse; }
                     th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; }
                     th { background-color: #f2f2f2; }
@@ -328,7 +330,7 @@
             </head>
             <body>
                 ${document.getElementById('printHeader').innerHTML}
-                <h1>Purchase Bills</h1>
+                <h1 style="text-align: center;">List of Purchase Vouchers</h1>
     `;
 
             // Table header for the printed bills
@@ -439,4 +441,15 @@
             digit.textContent = panVatNo[i];
             container.appendChild(digit);
         }
+
+        document.getElementById('clearSearch').addEventListener('click', () => {
+            const inputField = document.getElementById('searchInput');
+
+            // Check if the input field has a value
+            if (inputField.value !== '') {
+                inputField.value = ''; // Clear the input field
+            } else {
+                alert('Input field is already empty.');
+            }
+        });
     </script>

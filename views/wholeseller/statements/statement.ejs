@@ -1,49 +1,17 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
-<style>
-    /* Styles for the statement content */
-    .statement-container {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-        padding: 20px;
-        background-color: #fff;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-    }
-
-    th,
-    td {
-        border: 1px solid black;
-        padding: 8px;
-        text-align: left;
-    }
-
-    th {
-        background-color: #f2f2f2;
-    }
-
-    @media print {
-
-        /* Print-specific styles */
-        body * {
-            visibility: hidden;
-        }
-
-        .statement-container,
-        .statement-container * {
-            visibility: visible;
-        }
-
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+    <style>
+        /* Styles for the statement content */
         .statement-container {
-            position: absolute;
-            left: 0;
-            top: 0;
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #fff;
+        }
+
+        table {
             width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
         }
 
         th,
@@ -51,290 +19,286 @@
             border: 1px solid black;
             padding: 8px;
             text-align: left;
-            white-space: nowrap;
-            /* Prevent text from wrapping */
-            overflow: hidden;
-            /* Hide overflowed text */
-            text-overflow: ellipsis;
-            /* Add ellipsis (...) to indicate overflowed text */
         }
 
-        .no-print {
-            display: none;
+        th {
+            background-color: #f2f2f2;
         }
 
+        @media print {
 
-    }
+            /* Print-specific styles */
+            body * {
+                visibility: hidden;
+            }
 
-    /* Styling for Select2 dropdown */
-    .select2-container .select2-selection--single {
-        height: 40px;
-        padding: 5px;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-        display: flex;
-        align-items: center;
-    }
+            .statement-container,
+            .statement-container * {
+                visibility: visible;
+            }
 
-    .select2-container--default .select2-selection--single .select2-selection__arrow {
-        height: 100%;
-        right: 10px;
-    }
+            .statement-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
 
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-        color: #495057;
-        font-size: 16px;
-    }
+            th,
+            td {
+                border: 1px solid black;
+                padding: 8px;
+                text-align: left;
+                white-space: nowrap;
+                /* Prevent text from wrapping */
+                overflow: hidden;
+                /* Hide overflowed text */
+                text-overflow: ellipsis;
+                /* Add ellipsis (...) to indicate overflowed text */
+            }
 
-    /* Focus state for the Select2 dropdown */
-    .select2-container--default .select2-selection--single:focus {
-        outline: none;
-        border-color: #80bdff;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    }
-</style>
+            .no-print {
+                display: none;
+            }
 
-<div class="container" id="mainContainer">
-    <h1 class="mt-5">Financial Statement</h1>
-    <div class="card mt-4">
-        <div class="card-body">
-            <form action="/statement" method="get" class="mb-4">
-                <div class="row">
-                    <div class="col-5">
-                        <div class="form-group">
-                            <label for="account">Select Company</label>
-                            <select name="account" id="account" class="form-control" autofocus required>
-                                <option value="" disabled selected>Select a company</option>
-                                <% accounts.forEach(account=> { %>
-                                    <option value="<%= account._id %>" <%=account._id==selectedCompany ? 'selected' : ''
-                                        %>><%= account.name %>
-                                    </option>
-                                    <% }) %>
-                            </select>
-                        </div>
-                    </div>
-                    <% if (companyDateFormat==='english' ) { %>
-                        <div class="col">
+
+        }
+
+        /* Styling for Select2 dropdown */
+        .select2-container .select2-selection--single {
+            height: 40px;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 100%;
+            right: 10px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #495057;
+            font-size: 16px;
+        }
+
+        /* Focus state for the Select2 dropdown */
+        .select2-container--default .select2-selection--single:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        /* Custom styles to resize the form */
+        .expanded-container {
+            max-width: 90%;
+            /* Expand the container to 90% of the viewport width */
+        }
+
+        .expanded-card {
+            width: 100%;
+            /* Ensure the card takes full width of the container */
+        }
+    </style>
+
+    <div class="container expanded-container">
+        <div class="card shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <h1 class="mt-5 text-center" style="text-decoration: underline;">Financial Statement</h1>
+            <div class="card-body">
+                <form action="/statement" method="get" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-5">
                             <div class="form-group">
-                                <label for="fromDate">From</label>
-                                <input type="date" name="fromDate" id="fromDate" class="form-control"
-                                    value="<%= fromDate ? fromDate : new Date().toISOString().substr(0, 10) %>">
+                                <label for="account">Select Company</label>
+                                <select name="account" id="account" class="form-control" required>
+                                    <option value="" disabled selected>Select a company</option>
+                                    <% accounts.forEach(account=> { %>
+                                        <option value="<%= account._id %>" <%=account._id==selectedCompany ? 'selected'
+                                            : '' %>><%= account.name %>
+                                        </option>
+                                        <% }) %>
+                                </select>
                             </div>
                         </div>
-                        <div class="col">
-                            <div class="form-group">
-                                <label for="toDate">To</label>
-                                <input type="date" name="toDate" id="toDate" class="form-control"
-                                    value="<%= new Date().toISOString().substr(0, 10) %>">
-                            </div>
-                        </div>
-                        <% } else if (companyDateFormat==='nepali' ) { %>
-                            <div class="col">
+
+                        <% if (companyDateFormat==='english' ) { %>
+                            <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="fromDate">From</label>
-                                    <input type="text" name="fromDate" id="fromDate" class="form-control"
-                                        value="<%= fromDate ? fromDate : nepaliDate %>">
+                                    <input type="date" name="fromDate" id="fromDate" class="form-control"
+                                        value="<%= fromDate ? fromDate : new Date().toISOString().substr(0, 10) %>">
                                 </div>
                             </div>
-                            <div class="col">
+                            <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="toDate">To</label>
-                                    <input type="text" name="toDate" id="toDate" class="form-control"
-                                        value="<%= nepaliDate %>">
+                                    <input type="date" name="toDate" id="toDate" class="form-control"
+                                        value="<%= new Date().toISOString().substr(0, 10) %>">
                                 </div>
                             </div>
-                            <% } %>
-                                <div class="col">
+                            <% } else if (companyDateFormat==='nepali' ) { %>
+                                <div class="col-md-2">
                                     <div class="form-group">
-                                        <label for="paymentMode">Payment Mode</label>
-                                        <select name="paymentMode" id="paymentMode" class="form-control">
-                                            <option value="exclude-cash" <%=paymentMode==='exclude-cash' ? 'selected'
-                                                : '' %>>All (Exclude Cash)</option>
-                                            <option value="all" <%=paymentMode==='all' ? 'selected' : '' %>>All (Include
-                                                Cash)</option>
-                                            <option value="cash" <%=paymentMode==='cash' ? 'selected' : '' %>>Cash
-                                            </option>
-                                            <option value="credit" <%=paymentMode==='credit' ? 'selected' : '' %>>Credit
-                                            </option>
-                                        </select>
+                                        <label for="fromDate">From</label>
+                                        <input type="text" name="fromDate" id="fromDate" class="form-control"
+                                            value="<%= fromDate ? fromDate : nepaliDate %>">
                                     </div>
                                 </div>
-                </div>
-                <button type="submit" class="btn btn-primary">View Statement</button>
-                <% if (selectedCompany) { %>
-                    <a href="/statement/pdf?account=<%= selectedCompany %>&fromDate=<%= fromDate %>&toDate=<%= toDate %>&paymentMode=<%= paymentMode %>"
-                        class="btn btn-secondary no-print">Export PDF</a>
-                    <button type="button" class="btn btn-info no-print" onclick="printStatement()">Print
-                        Statement</button>
-                    <% } %>
-            </form>
-            <% if (statement.length> 0) { %>
-                <div class="statement-container">
-                    <% if (account && account.openingBalanceDate) { %>
-                        <div class="form-group">
-                            <h3 style="text-align: center;">
-                                <%= currentCompanyName %>
-                            </h3>
-                            <p><strong>A/c :</strong>
-                                <%= account.name %>
-                            </p>
-                            <div class="form-group row">
-                                <div class="col">
-                                    <p><strong>From:</strong>
-                                        <%= fromDate %>
-                                    </p>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="toDate">To</label>
+                                        <input type="text" name="toDate" id="toDate" class="form-control"
+                                            value="<%= nepaliDate %>">
+                                    </div>
                                 </div>
-                                <div class="col">
-                                    <p><strong>To:</strong>
-                                        <%= toDate %>
-                                    </p>
-                                </div>
-                                <div class="col">
-                                    <p><strong>Payment Mode:</strong>
-                                        <%= paymentMode.charAt(0).toUpperCase() + paymentMode.slice(1) %>
-                                    </p>
-                                </div>
+                                <% } %>
+
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label for="paymentMode">Payment Mode</label>
+                                            <select name="paymentMode" id="paymentMode" class="form-control">
+                                                <option value="exclude-cash" <%=paymentMode==='exclude-cash'
+                                                    ? 'selected' : '' %>>All (Exclude Cash)</option>
+                                                <option value="all" <%=paymentMode==='all' ? 'selected' : '' %>>All
+                                                    (Include
+                                                    Cash)</option>
+                                                <option value="cash" <%=paymentMode==='cash' ? 'selected' : '' %>>Cash
+                                                </option>
+                                                <option value="credit" <%=paymentMode==='credit' ? 'selected' : '' %>
+                                                    >Credit
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+                    </div>
+                    <br>
+                    <button type="submit" class="btn btn-primary">View Statement</button>
+                    <% if (selectedCompany) { %>
+                        <a href="/statement/pdf?account=<%= selectedCompany %>&fromDate=<%= fromDate %>&toDate=<%= toDate %>&paymentMode=<%= paymentMode %>"
+                            class="btn btn-secondary no-print">Export PDF</a>
+                        <button type="button" class="btn btn-info no-print" onclick="printStatement()">Print
+                            Statement</button>
+                        <% } %>
+                </form>
+
+                <% if (statement.length> 0) { %>
+                    <div class="statement-container">
+                        <h3 class="text-center">
+                            <%= currentCompanyName %>
+                        </h3>
+                        <div class="row">
+                            <div class="col-md-4"><strong>From:</strong>
+                                <%= fromDate %>
+                            </div>
+                            <div class="col-md-4"><strong>To:</strong>
+                                <%= toDate %>
+                            </div>
+                            <div class="col-md-4"><strong>Payment Mode:</strong>
+                                <%= paymentMode.charAt(0).toUpperCase() + paymentMode.slice(1) %>
                             </div>
                         </div>
-                        <% } else { %>
-                            <p><strong>Opening Balance Date:</strong> N/A</p>
-                            <% } %>
 
-                                <table class="table table-bordered table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Vch.Type</th>
-                                            <th>Vch. No.</th>
-                                            <th>Pay. Mode</th>
-                                            <th>Account</th>
-                                            <th>Debit (Rs.)</th>
-                                            <th>Credit (Rs.)</th>
-                                            <th>Balance (Rs.)</th>
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Vch. Type</th>
+                                    <th>Vch. No.</th>
+                                    <th>Pay. Mode</th>
+                                    <th>Account</th>
+                                    <th>Debit (Rs.)</th>
+                                    <th>Credit (Rs.)</th>
+                                    <th>Balance (Rs.)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% let totalDebit=0; let totalCredit=0; %>
+                                    <% statement.forEach(entry=> { totalDebit += entry.debit || 0; totalCredit +=
+                                        entry.credit || 0; %>
+                                        <tr ondblclick="window.location.href='/bills/<%= entry.billId %>/print'"
+                                            style="cursor: pointer;">
+                                            <td>
+                                                <%= new Date(entry.date).toLocaleDateString() %>
+                                            </td>
+                                            <td>
+                                                <%= entry.type %>
+                                            </td>
+                                            <td>
+                                                <%= entry.billNumber %>
+                                            </td>
+                                            <td>
+                                                <%= entry.paymentMode %>
+                                            </td>
+                                            <td>
+                                                <%= entry.accountType?.name || entry.purchaseSalesType ||
+                                                    entry.journalAccountType || entry.purchaseSalesReturnType ||
+                                                    entry.drCrNoteAccountType || 'Opening Balance' %>
+                                            </td>
+                                            <td>
+                                                <%= entry.debit ? entry.debit.toFixed(2) : '-' %>
+                                            </td>
+                                            <td>
+                                                <%= entry.credit ? entry.credit.toFixed(2) : '-' %>
+                                            </td>
+                                            <td>
+                                                <%= entry.balance %>
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        <% let totalDebit=0; let totalCredit=0; if (statement.length> 0) {
-                                            statement.forEach(entry => {
-                                            totalDebit += entry.debit || 0;
-                                            totalCredit += entry.credit || 0;
-                                            %>
-                                            <tr ondblclick="window.location.href='/bills/<%= entry.billId %>/print'"
-                                                style="cursor: pointer;">
-                                                <td>
-                                                    <%= new Date(entry.date).toLocaleDateString() %>
-                                                </td>
-                                                <td>
-                                                    <%= entry.type %>
-                                                </td>
-                                                <td>
-                                                    <%= entry.billNumber %>
-                                                </td>
-                                                <td>
-                                                    <%= entry.paymentMode %>
-                                                </td>
-                                                <td>
-                                                    <% if (entry.accountType && entry.accountType.name) { %>
-                                                        <%= entry.accountType.name %>
-                                                            <% } else if (entry.purchaseSalesType) { %>
-                                                                <%= entry.purchaseSalesType %>
-                                                                    <% } else if(entry.journalAccountType) { %>
-                                                                        <%=entry.journalAccountType%>
-                                                                            <%}else if(entry.purchaseSalesReturnType){%>
-                                                                                <%=entry.purchaseSalesReturnType%>
-                                                                                    <%}else
-                                                                                        if(entry.drCrNoteAccountType){%>
-                                                                                        <%= entry.drCrNoteAccountType%>
-                                                                                            <%}else{%>
-                                                                                                Opening Balance
-                                                                                                <% } %>
-                                                                                                    <%= entry.partyBillNumber
-                                                                                                        %>
-                                                </td>
-
-                                                <td>
-                                                    <%= entry.debit ? entry.debit.toFixed(2) : '-' %>
-                                                </td>
-                                                <td>
-                                                    <%= entry.credit ? entry.credit.toFixed(2) : '-' %>
-                                                </td>
-                                                <td>
-                                                    <%= entry.balance %>
-                                                </td>
+                                        <% }) %>
+                                            <tr class="table-secondary">
+                                                <td colspan="5" class="text-end"><strong>Total:</strong></td>
+                                                <td><strong>
+                                                        <%= totalDebit.toFixed(2) %>
+                                                    </strong></td>
+                                                <td><strong>
+                                                        <%= totalCredit.toFixed(2) %>
+                                                    </strong></td>
+                                                <td><strong>
+                                                        <%= statement[statement.length - 1].balance %>
+                                                    </strong></td>
                                             </tr>
-                                            <% }) %>
-                                                <tr>
-                                                    <td colspan="5" style="text-align: right;"><strong>Total:</strong>
-                                                    </td>
-                                                    <td><strong>
-                                                            <%= totalDebit.toFixed(2) %>
-                                                        </strong></td>
-                                                    <td><strong>
-                                                            <%= totalCredit.toFixed(2) %>
-                                                        </strong></td>
-
-                                                    <td><strong>
-                                                            <%= statement[statement.length - 1].balance %>
-                                                        </strong></td>
-                                                </tr>
-                                                <tr>
-                                                    <td colspan="7" style="text-align: right;"><strong>Last
-                                                            Balance:</strong></td>
-                                                    <td><strong>
-                                                            <%= statement[statement.length - 1].balance %>
-                                                        </strong></td>
-                                                </tr>
-                                                <% } else { %>
-                                                    <tr>
-                                                        <td colspan="8">No transactions found for the selected date
-                                                            range.</td>
-                                                    </tr>
-                                                    <% } %>
-                                    </tbody>
-                                </table>
-                </div>
-
-                <% } else if (!selectedCompany) { %>
-                    <div class="alert alert-info" role="alert">Please select a company.</div>
+                            </tbody>
+                        </table>
+                    </div>
                     <% } else { %>
-                        <div class="alert alert-info" role="alert">No transactions found for the selected company and
-                            date range.</div>
+                        <div class="alert alert-info">No transactions found for the selected date range.</div>
                         <% } %>
+            </div>
         </div>
     </div>
-    <a href="/" class="btn btn-link mt-4 no-print">Back</a>
-</div>
 
-<script>
-    function printStatement() {
-        window.print();
-    }
-
-    $(document).ready(function () {
-        // Initialize Select2 for searchable dropdown
-        $('#account').select2({
-            placeholder: "Select an accounts",
-            allowClear: true,
-            width: '100%', // Ensure it takes the full width of the container
-        });
-    });
-
-    document.addEventListener("DOMContentLoaded", function () {
-        const companyDateFormat = "<%= companyDateFormat %>";
-        if (companyDateFormat === "nepali") {
-            const fromDateInput = document.getElementById('fromDate');
-            const toDateInput = document.getElementById('toDate');
-
-            // Convert English dates to Nepali dates on load
-            if (fromDateInput.value) {
-                const nepaliFromDate = new NepaliDate(new Date(fromDateInput.value)).format('YYYY-MM-DD');
-                fromDateInput.value = nepaliFromDate;
-            }
-
-            if (toDateInput.value) {
-                const nepaliToDate = new NepaliDate(new Date(toDateInput.value)).format('YYYY-MM-DD');
-                toDateInput.value = nepaliToDate;
-            }
+    <script>
+        function printStatement() {
+            window.print();
         }
-    });
-</script>
+
+        $(document).ready(function () {
+            // Initialize Select2 for searchable dropdown
+            $('#account').select2({
+                placeholder: "Select an accounts",
+                allowClear: true,
+                width: '100%', // Ensure it takes the full width of the container
+            });
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const companyDateFormat = "<%= companyDateFormat %>";
+            if (companyDateFormat === "nepali") {
+                const fromDateInput = document.getElementById('fromDate');
+                const toDateInput = document.getElementById('toDate');
+
+                // Convert English dates to Nepali dates on load
+                if (fromDateInput.value) {
+                    const nepaliFromDate = new NepaliDate(new Date(fromDateInput.value)).format('YYYY-MM-DD');
+                    fromDateInput.value = nepaliFromDate;
+                }
+
+                if (toDateInput.value) {
+                    const nepaliToDate = new NepaliDate(new Date(toDateInput.value)).format('YYYY-MM-DD');
+                    toDateInput.value = nepaliToDate;
+                }
+            }
+        });
+    </script>

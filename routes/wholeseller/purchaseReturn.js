@@ -90,7 +90,7 @@ router.get('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensur
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
         const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
-        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
         // Check if fiscal year is already in the session or available in the company
@@ -147,6 +147,7 @@ router.get('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensur
             company, accounts: accounts, items: items, bills: bills, nextBillNumber: nextBillNumber,
             nepaliDate: nepaliDate, transactionDateNepali, companyDateFormat, purchaseInvoice,
             user: req.user, currentCompanyName: req.session.currentCompanyName, currentFiscalYear,
+            vatEnabled: company.vatEnabled,
             title: 'Purchase Return',
             body: 'wholeseller >> purchase return >> add',
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'

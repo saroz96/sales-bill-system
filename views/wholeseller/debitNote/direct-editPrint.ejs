@@ -2,12 +2,10 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css" rel="stylesheet">
 
 <div class="mt-4" style="float: right; margin-right: 100px;">
-    <a href="/payments-list" class="btn btn-secondary"><i class="bi bi-back"></i></a>
+    <a href="/debit-note/list" class="btn btn-secondary"><i class="bi bi-back"></i></a>
     <button class="btn btn-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button>
-    <a href="/payments" class="btn btn-primary"><i class="bi bi-receipt"></i></a>
+    <a href="/debit-note/new" class="btn btn-primary"><i class="bi bi-receipt"></i></a>
 </div>
-
-<br>
 
 <div class="container">
     <div class="card shadow-lg p-4 animate__animated animate__fadeInUp">
@@ -31,17 +29,16 @@
             </div>
 
             <div class="voucher-header">
-                <h1 class="text-center" style="text-decoration: underline; letter-spacing: 3px;">Payment Voucher</h1>
+                <h1 class="text-center" style="text-decoration: underline; letter-spacing: 3px;">Debit Note</h1>
                 <div class="invoice-details text-right">
                     <p><strong>Vch. No:</strong>
-                        <%= payment.billNumber %>
+                        <%= debitNotes.billNumber %>
                     </p>
                     <p><strong>Date:</strong>
-                        <%= payment.date.toLocaleDateString() %>
+                        <%= debitNotes.date.toLocaleDateString() %>
                     </p>
                 </div>
             </div>
-
             <table class="voucher-table">
                 <thead>
                     <tr>
@@ -52,67 +49,83 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>
-                            <% if (payment.isActive) { %>
-                                <%= payment.account.name %>
-                                    <% } else { %>
-                                        <span class="text-danger">Canceled</span>
-                                        <% } %>
-                        </td>
-                        <td>
-                            <% if (payment.isActive) { %>
-                                <%= payment.debit.toFixed(2) %>
-                                    <% } else { %>
-                                        <span class="text-danger">0.00</span>
-                                        <% } %>
-                        </td>
-                        <td>0.00</td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>
-                            <% if (payment.isActive) { %>
-                                <%= payment.paymentAccount.name %>
-                                    <% } else { %>
-                                        <span class="text-danger">Canceled</span>
-                                        <% } %>
-                        </td>
-                        <td>0.00</td>
-                        <td>
-                            <% if (payment.isActive) { %>
-                                <%= payment.debit.toFixed(2) %>
-                                    <% } else { %>
-                                        <span class="text-danger">0.00</span>
-                                        <% } %>
-                        </td>
-                    </tr>
+                    <% if (debitTransactions.length> 0) { %>
+                        <% debitTransactions.forEach(function(debitTransaction, index) { %>
+                            <tr>
+                                <td>
+                                    <%= index + 1 %>
+                                </td>
+                                <td>
+                                    <% if (debitNotes.isActive) { %>
+                                        <%= debitTransaction.account ? debitTransaction.account.name : 'N/A' %>
+                                            <% } else { %>
+                                                <span class="text-danger">Canceled</span>
+                                                <% } %>
+                                </td>
+                                <td>
+                                    <% if (debitNotes.isActive) { %>
+                                        <%= debitTransaction.debit %>
+                                            <% } else { %>
+                                                <span class="text-danger">0.00</span>
+                                                <% } %>
+                                </td>
+                                <td>0.00</td>
+                            </tr>
+                            <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="2" class="text-center">No Debit Transactions Found</td>
+                                    </tr>
+                                    <% } %>
+                                        <tr>
+                                            <% if (creditTransactions.length> 0) { %>
+                                                <% creditTransactions.forEach(function(creditTransaction, index) { %>
+                                                    <td>
+                                                        <%= index + 1 + debitTransactions.length %>
+                                                    </td>
+                                                    <td>
+                                                        <% if (debitNotes.isActive) { %>
+                                                            <%= creditTransaction.account ?
+                                                                creditTransaction.account.name : 'N/A' %>
+                                                                <% } else { %>
+                                                                    <span class="text-danger">Canceled</span>
+                                                                    <% } %>
+                                                    </td>
+                                                    <td>0.00</td>
+                                                    <td>
+                                                        <% if (debitNotes.isActive) { %>
+                                                            <%= creditTransaction.credit %>
+                                                                <% } else { %>
+                                                                    <span class="text-danger">0.00</span>
+                                                                    <% } %>
+                                                    </td>
+                                        </tr>
+                                        <% }) %>
+                                            <% } else { %>
+                                                <tr>
+                                                    <td colspan="2" class="text-center">No Credit Transactions Found
+                                                    </td>
+                                                </tr>
+                                                <% } %>
                 </tbody>
                 <tfoot>
                     <tr>
                         <th colspan="2">Total</th>
                         <th>
-                            <%= payment.debit.toFixed(2) %>
+                            <%= debitTransactions.reduce((sum, transaction)=> sum + (transaction.debit || 0),
+                                0).toFixed(2) %>
                         </th>
                         <th>
-                            <%= payment.debit.toFixed(2) %>
+                            <%= creditTransactions.reduce((sum, transaction)=> sum + (transaction.credit || 0),
+                                0).toFixed(2) %>
                         </th>
                     </tr>
                 </tfoot>
+
             </table>
-            <p>
-                Note: <%=payment.description%>
+            <p>Note: <%=debitNotes.description%>
             </p>
-            <div class="row">
-                <div class="col-6">
-                    <label for="modeOfPayment">Mode of Payment: <%= payment.InstType%>
-                    </label>
-                </div>
-                <div class="col-6">
-                    <label for="InstNo">Inst No: <%=payment.InstNo%></label>
-                </div>
-            </div>
+
             <br>
             <div class="signature-section" style="text-decoration: overline;">
                 <div class="signature">
@@ -219,6 +232,7 @@
     }
 </style>
 
+<!-- JavaScript for Handling PAN/VAT Display -->
 <script>
     function handlePrint() {
         // Trigger the print dialog
@@ -227,7 +241,7 @@
         // Set a timeout to redirect after the print dialog is closed
         setTimeout(function () {
             // Redirect after printing or canceling the print dialog
-            window.location.href = '/payments/<%=payment._id%>'; // Redirect to the payments page
+            window.location.href = '/debit-note/<%=debitNotes._id%>'; // Redirect to the payments page
         }, 1000); // Adjust the time as necessary based on user experience
     }
 
@@ -244,5 +258,10 @@
         digit.className = 'bordered-digit';
         digit.textContent = panVatNo[i];
         container.appendChild(digit);
+    }
+
+    // Optional: Show loading spinner while fetching data
+    function showLoadingSpinner() {
+        document.getElementById('loadingSpinner').style.display = 'block';
     }
 </script>

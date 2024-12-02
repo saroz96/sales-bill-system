@@ -202,6 +202,7 @@
             height: auto;
         }
     </style>
+
     <div class="container wow-form expanded-container">
         <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
             <div class="card-header">
@@ -239,6 +240,7 @@
                                         <label for="adjustmentType">Type:</label>
                                         <select id="adjustmentType" name="adjustmentType" class="form-control"
                                             onchange="toggleReasonDropdowns()">
+                                            <option value="" disabled selected>Select adjustment type</option>
                                             <option value="short">Short</option>
                                             <option value="xcess">Xcess</option>
                                         </select>
@@ -258,9 +260,12 @@
                                         <select name="isVatExempt" id="isVatExempt" class="form-control"
                                             onchange="toggleVatInputs()"
                                             onchange="filterItems(document.getElementById('itemSearch'))">
-                                            <option value="all">All</option>
-                                            <option value="false">13%</option>
-                                            <option value="true">Exempt</option>
+                                            <option value="" disabled selected>Select vat</option>
+                                            <% if (vatEnabled) {%>
+                                                <option value="all">All</option>
+                                                <option value="false">13%</option>
+                                                <%}%>
+                                                    <option value="true">Exempt</option>
                                         </select>
                                     </div>
                     </div>
@@ -271,7 +276,7 @@
                                 <div class="col">
                                     <label for="itemSearch">Search Item</label>
                                     <input type="text" id="itemSearch" class="form-control"
-                                        placeholder="Search for an item" oninput="filterItems(this)" autocomplete="off"
+                                        placeholder="Search for an item" autocomplete="off"
                                         onkeydown="handleItemSearchKeydown(event)">
                                     <div id="dropdownMenu" class="dropdown-menu"></div>
                                 </div>
@@ -306,7 +311,7 @@
                         <input type="text" class="form-control" id="note" name="note" placeholder="add note"
                             onkeydown="handleAddNoteKeydown(event)">
                     </div>
-                    <!-- Bill Details Table -->
+
                     <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
@@ -315,7 +320,6 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Sub Total Row -->
                                 <tr>
                                     <td><label for="subTotal">Sub Total:</label></td>
                                     <td colspan="2" class="text-right">
@@ -323,7 +327,6 @@
                                     </td>
                                 </tr>
 
-                                <!-- Discount Row -->
                                 <tr>
                                     <td><label for="discountPercentage">Discount %:</label></td>
                                     <td>
@@ -338,7 +341,6 @@
                                     </td>
                                 </tr>
 
-                                <!-- VAT Rows (Initially visible) -->
                                 <tr id="taxableAmountRow">
                                     <td><label for="taxableAmount">Taxable Amount:</label></td>
                                     <td colspan="2" class="text-right">
@@ -358,8 +360,7 @@
                                     </td>
                                 </tr>
 
-                                <!-- Round Off & Total Row -->
-                                <tr>
+                                <tr class="hidden">
                                     <td><label for="roundOffAmount">Round Off:</label></td>
                                     <td colspan="2">
                                         <input type="number" class="form-control" step="any" id="roundOffAmount"
@@ -367,7 +368,6 @@
                                     </td>
                                 </tr>
 
-                                <!-- Total Amount & In Words Row -->
                                 <tr>
                                     <td><label for="totalAmount">Total Amount:</label></td>
                                     <td>
@@ -396,48 +396,6 @@
             </div>
         </div>
     </div>
-
-    <!-- <div id="printModal" class="modal fade" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Print Bill</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <p>Do you want to print this bill?</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="submitBillForm(true)">Save & Print</button>
-                </div>
-            </div>
-        </div>
-    </div> -->
-
-    <!-- Exit Confirmation Modal -->
-    <!-- <div class="modal fade" id="exitConfirmationModal" tabindex="-1" aria-labelledby="exitConfirmationModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exitConfirmationModalLabel">Exit Confirmation</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to exit without saving?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmExit" autofocus>Yes, Exit</button>
-            </div>
-        </div>
-    </div>
-</div> -->
 
     <!-- Batch and Expiry Modal -->
     <div class="modal fade" id="batchModal" tabindex="-1" aria-labelledby="batchModalLabel" aria-hidden="true">
@@ -502,7 +460,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/nepali-datepicker/js/nepali.datepicker.v4.0.min.js"></script>
     <script>
         let itemIndex = 0;
         let currentFocus = 0;
@@ -510,16 +467,24 @@
 
         $(document).ready(function () {
             // Initialize Select2 for searchable dropdown
-            $('#account').select2({
-                placeholder: "Select a party name",
+            $('#adjustmentType').select2({
+                placeholder: "Select adjustment type",
                 allowClear: true,
                 width: '100%', // Ensure it takes the full width of the container
             });
         });
 
+        $(document).ready(function () {
+            // Initialize Select2 for searchable dropdown
+            $('#isVatExempt').select2({
+                placeholder: "Select vat",
+                allowClear: true,
+                width: '100%', // Ensure it takes the full width of the container
+            });
+        });
         async function fetchItems(query, vatStatus, existingItemIds) {
             try {
-                const response = await fetch(`/items/search?q=${query}&isVatExempt=${vatStatus}&exclude=${existingItemIds.join(',')}`);
+                const response = await fetch(`/items/search?q=${query}&isVatExempt=${vatStatus}`);
                 const data = await response.json();
 
                 console.log('Fetched items:', data);
@@ -635,7 +600,7 @@
             <div><strong>Name</strong></div>
             <div><strong>Stock</strong></div>
             <div><strong>Unit</strong></div>
-            <div><strong>P.Rate</strong></div>
+            <div><strong>C.Rate</strong></div>
         `;
                 headerRow.style.backgroundColor = '#f0f0f0';
                 headerRow.style.fontWeight = 'bold';
@@ -653,7 +618,10 @@
                         dropdownItem.classList.add('non-vatable-item');
                     }
 
+                    // Calculate total stock and fetch price from stock entries
                     const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+                    const latestStockEntry = item.stockEntries[item.stockEntries.length - 1];
+                    const puPrice = latestStockEntry ? latestStockEntry.puPrice : 0;
 
                     dropdownItem.innerHTML = `
                 <div>${item.uniqueNumber || 'N/A'}</div>
@@ -661,7 +629,7 @@
                 <div>${item.name}</div>
                 <div>${totalStock}</div>
                 <div>${item.unit ? item.unit.name : ''}</div>
-                <div>Rs.${item.puPrice.toFixed()}</div>
+                <div>Rs.${puPrice.toFixed(2)}</div>
             `;
 
                     dropdownItem.addEventListener('click', () => {
@@ -683,8 +651,9 @@
                     isFirstLoad = false; // Set the flag to false after the first time
                 }
             }
-
         }
+
+
 
 
         // Add event listener for focus to show all items
@@ -868,6 +837,13 @@
                 return; // Do not add an item if the search field is blank
             }
 
+            // Sort stock entries by date (FIFO: First In First Out)
+            const sortedStockEntries = item.stockEntries.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // Get the first stock entry (FIFO)
+            const firstStockEntry = sortedStockEntries[0] || {}; // Defaults to an empty object if no stock entry exists
+
+
             // Show the batch modal only if adjustmentType is 'short'
             if (adjustmentType === 'short') {
                 showBatchModal(item, (batchInfo) => {
@@ -879,7 +855,7 @@
                 inputField.value = '';
             } else {
                 // For 'xcess', directly allow input without showing batch modal
-                selectedBatch = { batchNumber: '', expiryDate: '', puPrice: '' };
+                selectedBatch = { batchNumber: '', expiryDate: '', puPrice: firstStockEntry.puPrice || 0 };
                 createItemRow(item, selectedBatch, tbody, dropdownMenu, adjustmentType);
 
                 // Clear the item search field after adding the item
@@ -967,8 +943,9 @@
                     <th>Quantity</th>
                     <th>S.P</th>
                     <th>C.P</th>
-                    <th>Mrp</th>
                     <th>%</th>
+                    <th>Mrp</th>
+
                 </tr>
             </thead>
             <tbody>
@@ -983,8 +960,9 @@
                     <td>${entry.quantity}</td>
                     <td>${entry.price}</td>
                     <td>${entry.puPrice}</td>
-                    <td>${entry.mrp}</td>
                     <td>${entry.marginPercentage}</td>
+                    <td>${entry.mrp}</td>
+
                 </tr>
             `;
                     }
@@ -1107,19 +1085,18 @@
 
             return subTotal;
         }
-
         function calculateTotal() {
             const rows = document.querySelectorAll('#items tr.item');
-            let subTotal = calculateSubTotal();
-            let vatAmount = 0;
+            let subTotal = 0;
             let totalTaxableAmount = 0;
             let totalNonTaxableAmount = 0;
 
-            // Separate amounts for vatable and non-vatable items
+            // Calculate Subtotal and separate taxable/non-taxable amounts
             rows.forEach(row => {
                 const amount = parseFloat(row.querySelector('.item-amount').textContent) || 0;
                 const vatStatus = row.querySelector('input[name$="[vatStatus]"]').value;
 
+                subTotal += amount;
                 if (vatStatus === 'vatable') {
                     totalTaxableAmount += amount;
                 } else {
@@ -1127,35 +1104,31 @@
                 }
             });
 
+            // Get discount values
             const discountPercentage = parseFloat(document.getElementById('discountPercentage').value) || 0;
             const discountAmount = parseFloat(document.getElementById('discountAmount').value) || 0;
 
-            // Calculate total amount before discount
-            const totalAmountBeforeDiscount = totalTaxableAmount + totalNonTaxableAmount;
+            const totalDiscount = discountAmount + (subTotal * discountPercentage / 100);
 
-            // Apply discount proportionally to vatable and non-vatable items
-            // const totalDiscount = (totalAmountBeforeDiscount * discountPercentage / 100) + discountAmount;
-            const discountForTaxable = (totalTaxableAmount * discountPercentage / 100);
-            const discountForNonTaxable = (totalNonTaxableAmount * discountPercentage / 100)
+            // Calculate final taxable amounts after discount
+            const finalTaxableAmount = totalTaxableAmount - (totalTaxableAmount * discountPercentage / 100);
+            const finalNonTaxableAmount = totalNonTaxableAmount - (totalNonTaxableAmount * discountPercentage / 100);
 
-            const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
-            const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
+            // Calculate VAT (13% on taxable items)
+            const vatPercentage = parseFloat(document.getElementById('vatPercentage').value) || 13;
+            const vatAmount = finalTaxableAmount * (vatPercentage / 100);
 
-            // Calculate VAT only for vatable items
-            const vatSelection = document.getElementById('isVatExempt').value;
-            if (vatSelection === 'false' || vatSelection === 'all') {
-                vatAmount = finalTaxableAmount * 0.13; // VAT is 13%
-            } else {
-                vatAmount = 0;
-            }
+            // Calculate Round Off and Total
             const roundOffAmount = parseFloat(document.getElementById('roundOffAmount').value) || 0;
             const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount + roundOffAmount;
 
+            // Update DOM elements with calculated values
             document.getElementById('subTotal').textContent = subTotal.toFixed(2);
             document.getElementById('taxableAmount').textContent = finalTaxableAmount.toFixed(2);
             document.getElementById('vatAmount').textContent = vatAmount.toFixed(2);
             document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
 
+            // Convert total amount to words
             const amountInWords = numberToWords(totalAmount) + ' Only.';
             document.getElementById('amountInWords').textContent = amountInWords;
         }
@@ -1168,17 +1141,17 @@
             const vatInputs = document.getElementById('vatInputs'); // Group for VAT-related inputs
             const taxableAmountRow = document.getElementById('taxableAmountRow');
             const vatPercentageRow = document.getElementById('vatPercentageRow');
-            const vatAmountRow = document.getElementById('vatAmountRow');
+            // const vatAmountRow = document.getElementById('vatAmountRow');
 
             // Toggle display based on VAT exemption
             if (isVatExempt) {
                 taxableAmountRow.style.display = 'none';
                 vatPercentageRow.style.display = 'none';
-                vatAmountRow.style.display = 'none';
+                // vatAmountRow.style.display = 'none';
             } else {
                 taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
                 vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
-                vatAmountRow.style.display = 'table-row'; // Show VAT amount row
+                // vatAmountRow.style.display = 'table-row'; // Show VAT amount row
             }
 
             // Recalculate total when toggling VAT
@@ -1510,7 +1483,7 @@
                         const shortReasonInput = document.getElementById(`shortReason-${itemIndex}`);
                         if (shortReasonInput) {
                             shortReasonInput.focus();
-                            shortReasonInput.select();
+                            // shortReasonInput.select();
                         }
                     }
                 }
@@ -1562,9 +1535,9 @@
             }
         }
 
-        function selectValue(input) {
-            input.select(); // Select the value of the input field when it is focused
-        }
+        // function selectValue(input) {
+        //     input.select(); // Select the value of the input field when it is focused
+        // }
 
         function focusOnLastRow(fieldClass) {
             const rows = document.querySelectorAll('.item');

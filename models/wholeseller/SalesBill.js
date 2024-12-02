@@ -20,7 +20,6 @@ const SalesBillSchema = new Schema({
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     billNumber: { type: Number, required: true },
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
-    unit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
     settings: { type: mongoose.Schema.Types.ObjectId, ref: 'Settings' },
     fiscalYear: {
         type: Schema.Types.ObjectId,
@@ -29,6 +28,7 @@ const SalesBillSchema = new Schema({
     },
     items: [{
         item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
+        unit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
         quantity: { type: Number, required: true },  // Required in item schema
         price: { type: Number, required: true },     // Required in item schema
         batchNumber: { type: String },
@@ -48,6 +48,7 @@ const SalesBillSchema = new Schema({
     vatAmount: { type: Number, default: 0 },
     totalAmount: { type: Number, default: 0 },
     isVatExempt: { type: Boolean, default: false },
+    isVatAll: { type: String },
     roundOffAmount: { type: Number, default: 0 },
     paymentMode: { type: String },
     date: { type: Date, default: Date.now },

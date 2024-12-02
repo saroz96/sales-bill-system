@@ -270,10 +270,12 @@
                                         <select name="isVatExempt" id="isVatExempt" class="form-control"
                                             onchange="toggleVatInputs()"
                                             onchange="filterItems(document.getElementById('itemSearch'))">
-                                            <option value="" disabled selected>Select</option>
-                                            <option value="all">All</option>
-                                            <option value="false">13%</option>
-                                            <option value="true">Exempt</option>
+                                            <option value="" disabled selected>Select vat</option>
+                                            <% if (vatEnabled) {%>
+                                                <option value="all">All</option>
+                                                <option value="false">13%</option>
+                                                <%}%>
+                                                    <option value="true">Exempt</option>
                                         </select>
                                     </div>
                     </div>
@@ -501,6 +503,15 @@
                 width: '100%', // Ensure it takes the full width of the container
             });
 
+            $(document).ready(function () {
+                // Initialize Select2 for searchable dropdown
+                $('#isVatExempt').select2({
+                    placeholder: "Select vat",
+                    allowClear: true,
+                    width: '100%', // Ensure it takes the full width of the container
+                });
+            });
+
             // Listen for the change event on the account dropdown
             $('#account').on('change', function () {
                 const selectedOption = $(this).find('option:selected');
@@ -676,7 +687,10 @@
                         dropdownItem.classList.add('non-vatable-item');
                     }
 
+                    // Calculate total stock and fetch price from stock entries
                     const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+                    const latestStockEntry = item.stockEntries[item.stockEntries.length - 1];
+                    const price = latestStockEntry ? latestStockEntry.price : 0;
 
                     dropdownItem.innerHTML = `
                 <div>${item.uniqueNumber || 'N/A'}</div>
@@ -684,7 +698,7 @@
                 <div>${item.name}</div>
                 <div>${totalStock}</div>
                 <div>${item.unit ? item.unit.name : ''}</div>
-                <div>Rs.${item.price.toFixed()}</div>
+                <div>Rs.${price.toFixed(2)}</div>
             `;
 
                     dropdownItem.addEventListener('click', () => {
@@ -706,10 +720,7 @@
                     isFirstLoad = false; // Set the flag to false after the first time
                 }
             }
-
         }
-
-
 
         // Add event listener for focus to show all items
         document.getElementById('itemSearch').addEventListener('focus', function () {
@@ -906,6 +917,9 @@
             // Calculate the serial number based on the number of rows already in the table
             const serialNumber = tbody.rows.length + 1;
 
+            // Use price from the first stock entry
+            const batchPrice = firstStockEntry.price || 0;
+
             tr.innerHTML = `
         <td>${serialNumber}</td>
         <td>${item.uniqueNumber}</td>
@@ -917,7 +931,9 @@
             <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
             ${item.hscode}
         </td>
-        <td><input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
+        <td>
+            <input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+        </td>
         <td>
             ${item.unit ? item.unit.name : ''}
             <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
@@ -926,7 +942,9 @@
             <input type="text" name="items[${itemIndex}][batchNumber]" value="${firstStockEntry.batchNumber || ''}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})">
             <input type="date" name="items[${itemIndex}][expiryDate]" value="${firstStockEntry.expiryDate || ''}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})">
         </td>
-        <td><input type="number" name="items[${itemIndex}][price]" value="${item.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
+        <td>
+            <input type="number" name="items[${itemIndex}][price]" value="${batchPrice}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+        </td>
         <td class="item-amount">0.00</td>
         <td>
              <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">

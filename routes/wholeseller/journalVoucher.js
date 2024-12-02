@@ -88,9 +88,9 @@ router.get('/journal/new', ensureAuthenticated, ensureCompanySelected, ensureTra
                 companyDateFormat,
                 nextBillNumber,
                 currentCompanyName: req.session.currentCompanyName,
+                title: '',
+                body: '',
                 user: req.user,
-                title: 'Add Journal',
-                body: 'wholeseller >> journal >> add journal',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
     }
@@ -273,6 +273,7 @@ router.get('/journal/list', ensureAuthenticated, ensureCompanySelected, ensureTr
             currentCompany,
             title: 'View Journal',
             body: 'wholeseller >> journal >> view journal',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }

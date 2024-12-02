@@ -28,7 +28,6 @@ const AppError = require('../../middleware/AppError');
 // Fetch all sales bills
 router.get('/bills-list', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
-
         const companyId = req.session.currentCompany;
         const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
         const currentCompanyName = req.session.currentCompanyName;
@@ -73,8 +72,8 @@ router.get('/bills-list', ensureAuthenticated, ensureCompanySelected, ensureTrad
             bills,
             currentCompany,
             currentCompanyName,
-            title: 'Sales Bill',
-            body: 'wholeseller >> sales >> bills',
+            title: '',
+            body: '',
             user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
@@ -98,7 +97,7 @@ router.get('/api/items/search', ensureAuthenticated, ensureCompanySelected, ensu
 router.get('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
-        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
         const items = await Item.find({ company: companyId })
             .populate('category')
             .populate('unit')
@@ -181,6 +180,7 @@ router.get('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType
             initialCurrentFiscalYear,
             currentFiscalYear,
             currentCompany,
+            vatEnabled: company.vatEnabled,
             currentCompanyName: req.session.currentCompanyName,
             title: 'Sales',
             body: 'wholeseller >> sales >> add',
@@ -230,6 +230,7 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
             }
 
             const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
+            const isVatAll = isVatExempt === 'all';
             const discount = parseFloat(discountPercentage) || 0;
 
             let subTotal = 0;
@@ -298,7 +299,7 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
             const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
 
             // Calculate VAT only for vatable items
-            if (!isVatExemptBool || isVatExempt === 'all') {
+            if (!isVatExemptBool || isVatAll || isVatExempt === 'all') {
                 vatAmount = (finalTaxableAmount * vatPercentage) / 100;
             } else {
                 vatAmount = 0;
@@ -336,6 +337,7 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
                 purchaseSalesType: 'Sales',
                 items: [], // We'll update this later
                 isVatExempt: isVatExemptBool,
+                isVatAll,
                 vatPercentage: isVatExemptBool ? 0 : vatPercentage,
                 subTotal,
                 discountPercentage: discount,
@@ -531,280 +533,280 @@ router.get('/billsTrackBatch', ensureAuthenticated, ensureCompanySelected, ensur
 });
 
 // POST route to handle sales bill creation
-router.post('/billsTrackBatch', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
-    if (req.tradeType === 'Wholeseller') {
-        try {
-            const {
-                account,
-                items,
-                vatPercentage,
-                transactionDateRoman,
-                transactionDateNepali,
-                billDate,
-                nepaliDate,
-                isVatExempt,
-                discountPercentage,
-                paymentMode,
-                roundOffAmount: manualRoundOffAmount,
-            } = req.body;
-            const companyId = req.session.currentCompany;
-            const currentFiscalYear = req.session.currentFiscalYear.id
-            const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
-            const userId = req.user._id;
+// router.post('/billsTrackBatch', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
+//     if (req.tradeType === 'Wholeseller') {
+//         try {
+//             const {
+//                 account,
+//                 items,
+//                 vatPercentage,
+//                 transactionDateRoman,
+//                 transactionDateNepali,
+//                 billDate,
+//                 nepaliDate,
+//                 isVatExempt,
+//                 discountPercentage,
+//                 paymentMode,
+//                 roundOffAmount: manualRoundOffAmount,
+//             } = req.body;
+//             const companyId = req.session.currentCompany;
+//             const currentFiscalYear = req.session.currentFiscalYear.id
+//             const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+//             const userId = req.user._id;
 
-            console.log('Request Body:', req.body);
+//             console.log('Request Body:', req.body);
 
-            const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
-            const discount = parseFloat(discountPercentage) || 0;
+//             const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
+//             const discount = parseFloat(discountPercentage) || 0;
 
-            let subTotal = 0;
-            let vatAmount = 0;
-            let totalTaxableAmount = 0;
-            let totalNonTaxableAmount = 0;
-            let hasVatableItems = false;
-            let hasNonVatableItems = false;
+//             let subTotal = 0;
+//             let vatAmount = 0;
+//             let totalTaxableAmount = 0;
+//             let totalNonTaxableAmount = 0;
+//             let hasVatableItems = false;
+//             let hasNonVatableItems = false;
 
-            if (!companyId) {
-                return res.status(400).json({ error: 'Company ID is required' });
-            }
+//             if (!companyId) {
+//                 return res.status(400).json({ error: 'Company ID is required' });
+//             }
 
-            const accounts = await Account.findOne({ _id: account, company: companyId });
-            if (!accounts) {
-                return res.status(400).json({ error: 'Invalid account for this company' });
-            }
+//             const accounts = await Account.findOne({ _id: account, company: companyId });
+//             if (!accounts) {
+//                 return res.status(400).json({ error: 'Invalid account for this company' });
+//             }
 
-            // Validate each item before processing
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
-                const product = await Item.findById(item.item);
+//             // Validate each item before processing
+//             for (let i = 0; i < items.length; i++) {
+//                 const item = items[i];
+//                 const product = await Item.findById(item.item);
 
-                if (!product) {
-                    req.flash('error', `Item with id ${item.item} not found`);
-                    return res.redirect('/billsTrackBatch');
-                }
+//                 if (!product) {
+//                     req.flash('error', `Item with id ${item.item} not found`);
+//                     return res.redirect('/billsTrackBatch');
+//                 }
 
-                const itemTotal = parseFloat(item.price) * parseFloat(item.quantity, 10);
-                subTotal += itemTotal;
+//                 const itemTotal = parseFloat(item.price) * parseFloat(item.quantity, 10);
+//                 subTotal += itemTotal;
 
-                if (product.vatStatus === 'vatable') {
-                    hasVatableItems = true;
-                    totalTaxableAmount += itemTotal;
-                } else {
-                    hasNonVatableItems = true;
-                    totalNonTaxableAmount += itemTotal;
-                }
+//                 if (product.vatStatus === 'vatable') {
+//                     hasVatableItems = true;
+//                     totalTaxableAmount += itemTotal;
+//                 } else {
+//                     hasNonVatableItems = true;
+//                     totalNonTaxableAmount += itemTotal;
+//                 }
 
-                // Check stock quantity using FIFO
-                const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
-                if (availableStock < item.quantity) {
-                    req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
-                    return res.redirect('/billsTrackBatch');
-                }
-            }
+//                 // Check stock quantity using FIFO
+//                 const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+//                 if (availableStock < item.quantity) {
+//                     req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
+//                     return res.redirect('/billsTrackBatch');
+//                 }
+//             }
 
-            // Check validation conditions after processing all items
-            if (isVatExempt !== 'all') {
-                if (isVatExemptBool && hasVatableItems) {
-                    req.flash('error', 'Cannot save VAT exempt bill with vatable items');
-                    return res.redirect('/billsTrackBatch');
-                }
+//             // Check validation conditions after processing all items
+//             if (isVatExempt !== 'all') {
+//                 if (isVatExemptBool && hasVatableItems) {
+//                     req.flash('error', 'Cannot save VAT exempt bill with vatable items');
+//                     return res.redirect('/billsTrackBatch');
+//                 }
 
-                if (!isVatExemptBool && hasNonVatableItems) {
-                    req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
-                    return res.redirect('/billsTrackBatch');
-                }
-            }
-            // // Find the counter for the company
-            // let billCounter = await BillCounter.findOne({ company: companyId });
-            // if (!billCounter) {
-            //     billCounter = new BillCounter({ company: companyId });
-            // }
-            // // Increment the counter
-            // billCounter.count += 1;
-            // await billCounter.save();
+//                 if (!isVatExemptBool && hasNonVatableItems) {
+//                     req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
+//                     return res.redirect('/billsTrackBatch');
+//                 }
+//             }
+//             // // Find the counter for the company
+//             // let billCounter = await BillCounter.findOne({ company: companyId });
+//             // if (!billCounter) {
+//             //     billCounter = new BillCounter({ company: companyId });
+//             // }
+//             // // Increment the counter
+//             // billCounter.count += 1;
+//             // await billCounter.save();
 
-            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Sales')
+//             const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Sales')
 
-            // Apply discount proportionally to vatable and non-vatable items
-            const discountForTaxable = (totalTaxableAmount * discount) / 100;
-            const discountForNonTaxable = (totalNonTaxableAmount * discount) / 100;
+//             // Apply discount proportionally to vatable and non-vatable items
+//             const discountForTaxable = (totalTaxableAmount * discount) / 100;
+//             const discountForNonTaxable = (totalNonTaxableAmount * discount) / 100;
 
-            const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
-            const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
+//             const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
+//             const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
 
-            // Calculate VAT only for vatable items
-            if (!isVatExemptBool || isVatExempt === 'all') {
-                vatAmount = (finalTaxableAmount * vatPercentage) / 100;
-            } else {
-                vatAmount = 0;
-            }
+//             // Calculate VAT only for vatable items
+//             if (!isVatExemptBool || isVatExempt === 'all') {
+//                 vatAmount = (finalTaxableAmount * vatPercentage) / 100;
+//             } else {
+//                 vatAmount = 0;
+//             }
 
-            let totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
-            let finalAmount = totalAmount;
+//             let totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
+//             let finalAmount = totalAmount;
 
-            // Check if round off is enabled in settings
-            let roundOffForSales = await Settings.findOne({
-                companyId, userId, fiscalYear: currentFiscalYear
-            }); // Assuming you have a single settings document
+//             // Check if round off is enabled in settings
+//             let roundOffForSales = await Settings.findOne({
+//                 companyId, userId, fiscalYear: currentFiscalYear
+//             }); // Assuming you have a single settings document
 
-            // Handle case where settings is null
-            if (!roundOffForSales) {
-                console.log('No settings found, using default settings or handling as required');
-                roundOffForSales = { roundOffSales: false }; // Provide default settings or handle as needed
-            }
-            let roundOffAmount = 0;
-            if (roundOffForSales.roundOffSales) {
-                finalAmount = Math.round(finalAmount.toFixed(2)); // Round off final amount
-                roundOffAmount = finalAmount - totalAmount;
-            } else if (manualRoundOffAmount && !roundOffForSales.roundOffSales) {
-                roundOffAmount = parseFloat(manualRoundOffAmount);
-                finalAmount = totalAmount + roundOffAmount;
-            }
+//             // Handle case where settings is null
+//             if (!roundOffForSales) {
+//                 console.log('No settings found, using default settings or handling as required');
+//                 roundOffForSales = { roundOffSales: false }; // Provide default settings or handle as needed
+//             }
+//             let roundOffAmount = 0;
+//             if (roundOffForSales.roundOffSales) {
+//                 finalAmount = Math.round(finalAmount.toFixed(2)); // Round off final amount
+//                 roundOffAmount = finalAmount - totalAmount;
+//             } else if (manualRoundOffAmount && !roundOffForSales.roundOffSales) {
+//                 roundOffAmount = parseFloat(manualRoundOffAmount);
+//                 finalAmount = totalAmount + roundOffAmount;
+//             }
 
-            // Create new bill
-            const newBill = new SalesBill({
-                // billNumber: billCounter.count,
-                billNumber: billNumber,
-                account,
-                purchaseSalesType: 'Sales',
-                items: [], // We'll update this later
-                isVatExempt: isVatExemptBool,
-                vatPercentage: isVatExemptBool ? 0 : vatPercentage,
-                subTotal,
-                discountPercentage: discount,
-                discountAmount: discountForTaxable + discountForNonTaxable,
-                nonVatSales: finalNonTaxableAmount,
-                taxableAmount: finalTaxableAmount,
-                vatAmount,
-                totalAmount: finalAmount,
-                roundOffAmount: roundOffAmount,
-                paymentMode,
-                // date: new Date(billDate),
-                date: nepaliDate ? nepaliDate : new Date(billDate),
-                transactionDate: transactionDateNepali ? transactionDateNepali : new Date(transactionDateRoman),
-                // transactionDate: dateFormat === 'english' ? new Date(billDate) : undefined,
-                // nepaliDate: dateFormat === 'nepali' ? NepaliDate : undefined,
-                company: companyId,
-                user: userId,
-                fiscalYear: currentFiscalYear
-            });
+//             // Create new bill
+//             const newBill = new SalesBill({
+//                 // billNumber: billCounter.count,
+//                 billNumber: billNumber,
+//                 account,
+//                 purchaseSalesType: 'Sales',
+//                 items: [], // We'll update this later
+//                 isVatExempt: isVatExemptBool,
+//                 vatPercentage: isVatExemptBool ? 0 : vatPercentage,
+//                 subTotal,
+//                 discountPercentage: discount,
+//                 discountAmount: discountForTaxable + discountForNonTaxable,
+//                 nonVatSales: finalNonTaxableAmount,
+//                 taxableAmount: finalTaxableAmount,
+//                 vatAmount,
+//                 totalAmount: finalAmount,
+//                 roundOffAmount: roundOffAmount,
+//                 paymentMode,
+//                 // date: new Date(billDate),
+//                 date: nepaliDate ? nepaliDate : new Date(billDate),
+//                 transactionDate: transactionDateNepali ? transactionDateNepali : new Date(transactionDateRoman),
+//                 // transactionDate: dateFormat === 'english' ? new Date(billDate) : undefined,
+//                 // nepaliDate: dateFormat === 'nepali' ? NepaliDate : undefined,
+//                 company: companyId,
+//                 user: userId,
+//                 fiscalYear: currentFiscalYear
+//             });
 
-            // Create transactions
-            let previousBalance = 0;
-            const accountTransaction = await Transaction.findOne({ account: account }).sort({ transactionDate: -1 });
-            if (accountTransaction) {
-                previousBalance = accountTransaction.balance;
-            }
+//             // Create transactions
+//             let previousBalance = 0;
+//             const accountTransaction = await Transaction.findOne({ account: account }).sort({ transactionDate: -1 });
+//             if (accountTransaction) {
+//                 previousBalance = accountTransaction.balance;
+//             }
 
-            // FIFO stock reduction function
-            async function reduceStock(product, quantity) {
-                let remainingQuantity = quantity;
-                while (remainingQuantity > 0 && product.stockEntries.length > 0) {
-                    const oldestEntry = product.stockEntries[0];
+//             // FIFO stock reduction function
+//             async function reduceStock(product, quantity) {
+//                 let remainingQuantity = quantity;
+//                 while (remainingQuantity > 0 && product.stockEntries.length > 0) {
+//                     const oldestEntry = product.stockEntries[0];
 
-                    if (oldestEntry.quantity <= remainingQuantity) {
-                        remainingQuantity -= oldestEntry.quantity;
-                        product.stockEntries.shift(); // Remove the entry
-                    } else {
-                        oldestEntry.quantity -= remainingQuantity;
-                        remainingQuantity = 0;
-                    }
-                }
-            }
+//                     if (oldestEntry.quantity <= remainingQuantity) {
+//                         remainingQuantity -= oldestEntry.quantity;
+//                         product.stockEntries.shift(); // Remove the entry
+//                     } else {
+//                         oldestEntry.quantity -= remainingQuantity;
+//                         remainingQuantity = 0;
+//                     }
+//                 }
+//             }
 
-            // Create transactions
-            const billItems = await Promise.all(items.map(async item => {
-                const product = await Item.findById(item.item);
+//             // Create transactions
+//             const billItems = await Promise.all(items.map(async item => {
+//                 const product = await Item.findById(item.item);
 
-                // Create the transaction for this item
-                const transaction = new Transaction({
-                    item: product._id,
-                    account: account,
-                    // billNumber: billCounter.count,
-                    billNumber: billNumber,
-                    quantity: item.quantity,
-                    price: item.price,
-                    unit: item.unit,  // Include the unit field                    type: 'Sale',
-                    billId: newBill._id,  // Set billId to the new bill's ID
-                    purchaseSalesType: 'Sales',
-                    type: 'Sale',
-                    debit: finalAmount,  // Set debit to the item's total amount
-                    credit: 0,        // Credit is 0 for sales transactions
-                    paymentMode: paymentMode,
-                    balance: previousBalance - finalAmount, // Update the balance based on item total
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
+//                 // Create the transaction for this item
+//                 const transaction = new Transaction({
+//                     item: product._id,
+//                     account: account,
+//                     // billNumber: billCounter.count,
+//                     billNumber: billNumber,
+//                     quantity: item.quantity,
+//                     price: item.price,
+//                     unit: item.unit,  // Include the unit field                    type: 'Sale',
+//                     billId: newBill._id,  // Set billId to the new bill's ID
+//                     purchaseSalesType: 'Sales',
+//                     type: 'Sale',
+//                     debit: finalAmount,  // Set debit to the item's total amount
+//                     credit: 0,        // Credit is 0 for sales transactions
+//                     paymentMode: paymentMode,
+//                     balance: previousBalance - finalAmount, // Update the balance based on item total
+//                     date: nepaliDate ? nepaliDate : new Date(billDate),
+//                     company: companyId,
+//                     user: userId,
+//                     fiscalYear: currentFiscalYear
+//                 });
 
-                await transaction.save();
-                console.log('Transaction', transaction);
+//                 await transaction.save();
+//                 console.log('Transaction', transaction);
 
-                // Decrement stock quantity using FIFO
-                await reduceStock(product, item.quantity);
-                product.stock -= item.quantity;
-                await product.save();
+//                 // Decrement stock quantity using FIFO
+//                 await reduceStock(product, item.quantity);
+//                 product.stock -= item.quantity;
+//                 await product.save();
 
-                return {
-                    item: product._id,
-                    quantity: item.quantity,
-                    price: item.price,
-                    unit: item.unit,  // Include the unit field in the bill items
-                    batchNumber: item.batchNumber,  // Add batch number
-                    expiryDate: item.expiryDate,  // Add expiry date
-                    vatStatus: product.vatStatus,
-                    fiscalYear: fiscalYearId
-                };
-            }));
+//                 return {
+//                     item: product._id,
+//                     quantity: item.quantity,
+//                     price: item.price,
+//                     unit: item.unit,  // Include the unit field in the bill items
+//                     batchNumber: item.batchNumber,  // Add batch number
+//                     expiryDate: item.expiryDate,  // Add expiry date
+//                     vatStatus: product.vatStatus,
+//                     fiscalYear: fiscalYearId
+//                 };
+//             }));
 
-            // Update bill with items
-            newBill.items = billItems;
-            console.log('New Bill', newBill);
-            console.log('billItems', billItems);
-            await newBill.save();
+//             // Update bill with items
+//             newBill.items = billItems;
+//             console.log('New Bill', newBill);
+//             console.log('billItems', billItems);
+//             await newBill.save();
 
-            // If payment mode is cash, also create a transaction for the "Cash in Hand" account
-            if (paymentMode === 'cash') {
-                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
-                if (cashAccount) {
-                    const cashTransaction = new Transaction({
-                        account: cashAccount._id,
-                        // billNumber: billCounter.count,
-                        billNumber: billNumber,
-                        type: 'Sale',
-                        billId: newBill._id,  // Set billId to the new bill's ID
-                        purchaseSalesType: 'Sales',
-                        debit: finalAmount,  // Debit is 0 for cash-in-hand as we're receiving cash
-                        credit: 0,  // Credit is the total amount since we're receiving cash
-                        paymentMode: paymentMode,
-                        balance: previousBalance + finalAmount, // Update the balance
-                        date: nepaliDate ? nepaliDate : new Date(billDate),
+//             // If payment mode is cash, also create a transaction for the "Cash in Hand" account
+//             if (paymentMode === 'cash') {
+//                 const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
+//                 if (cashAccount) {
+//                     const cashTransaction = new Transaction({
+//                         account: cashAccount._id,
+//                         // billNumber: billCounter.count,
+//                         billNumber: billNumber,
+//                         type: 'Sale',
+//                         billId: newBill._id,  // Set billId to the new bill's ID
+//                         purchaseSalesType: 'Sales',
+//                         debit: finalAmount,  // Debit is 0 for cash-in-hand as we're receiving cash
+//                         credit: 0,  // Credit is the total amount since we're receiving cash
+//                         paymentMode: paymentMode,
+//                         balance: previousBalance + finalAmount, // Update the balance
+//                         date: nepaliDate ? nepaliDate : new Date(billDate),
 
-                        company: companyId,
-                        user: userId,
-                        fiscalYear: currentFiscalYear
+//                         company: companyId,
+//                         user: userId,
+//                         fiscalYear: currentFiscalYear
 
-                    });
-                    await cashTransaction.save();
-                }
-            }
+//                     });
+//                     await cashTransaction.save();
+//                 }
+//             }
 
-            if (req.query.print === 'true') {
-                // Redirect to the print route
-                res.redirect(`/bills/${newBill._id}/direct-print`);
-            } else {
-                // Redirect to the bills list or another appropriate page
-                req.flash('success', 'Bill saved successfully!');
-                res.redirect('/billsTrackBatch');
-            }
-        } catch (error) {
-            console.error("Error creating bill:", error);
-            req.flash('error', 'Error creating bill');
-            res.redirect('/billsTrackBatch');
-        }
-    }
-});
+//             if (req.query.print === 'true') {
+//                 // Redirect to the print route
+//                 res.redirect(`/bills/${newBill._id}/direct-print`);
+//             } else {
+//                 // Redirect to the bills list or another appropriate page
+//                 req.flash('success', 'Bill saved successfully!');
+//                 res.redirect('/billsTrackBatch');
+//             }
+//         } catch (error) {
+//             console.error("Error creating bill:", error);
+//             req.flash('error', 'Error creating bill');
+//             res.redirect('/billsTrackBatch');
+//         }
+//     }
+// });
 
 
 router.get('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, AppError, async (req, res) => {
@@ -823,7 +825,7 @@ router.get('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, e
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
         const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
-        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
         const currentCompany = await Company.findById(new ObjectId(companyId));
 
@@ -885,6 +887,7 @@ router.get('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, e
             transactionDateNepali,
             companyDateFormat,
             currentCompany,
+            vatEnabled: company.vatEnabled,
             user: req.user,
             currentCompanyName: req.session.currentCompanyName,
             title: 'Sales',
@@ -920,6 +923,7 @@ router.post('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, 
             console.log('Request Body:', req.body);
 
             const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
+            const isVatAll = isVatExempt === 'all';
             const discount = parseFloat(discountPercentage) || 0;
 
             let subTotal = 0;
@@ -979,15 +983,6 @@ router.post('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, 
                     return res.redirect('/billsTrackBatchOpen');
                 }
             }
-            // // Find the counter for the company
-            // let billCounter = await BillCounter.findOne({ company: companyId });
-            // if (!billCounter) {
-            //     billCounter = new BillCounter({ company: companyId });
-            // }
-            // // Increment the counter
-            // billCounter.count += 1;
-            // await billCounter.save();
-
             const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Sales')
 
             // Apply discount proportionally to vatable and non-vatable items
@@ -998,7 +993,7 @@ router.post('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, 
             const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
 
             // Calculate VAT only for vatable items
-            if (!isVatExemptBool || isVatExempt === 'all') {
+            if (!isVatExemptBool || isVatAll || isVatExempt === 'all') {
                 vatAmount = (finalTaxableAmount * vatPercentage) / 100;
             } else {
                 vatAmount = 0;
@@ -1028,12 +1023,12 @@ router.post('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, 
 
             // Create new bill
             const newBill = new SalesBill({
-                // billNumber: billCounter.count,
                 billNumber: billNumber,
                 account,
                 purchaseSalesType: 'Sales',
                 items: [], // We'll update this later
                 isVatExempt: isVatExemptBool,
+                isVatAll,
                 vatPercentage: isVatExemptBool ? 0 : vatPercentage,
                 subTotal,
                 discountPercentage: discount,
@@ -1044,11 +1039,8 @@ router.post('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, 
                 totalAmount: finalAmount,
                 roundOffAmount: roundOffAmount,
                 paymentMode,
-                // date: new Date(billDate),
                 date: nepaliDate ? nepaliDate : new Date(billDate),
                 transactionDate: transactionDateNepali ? transactionDateNepali : new Date(transactionDateRoman),
-                // transactionDate: dateFormat === 'english' ? new Date(billDate) : undefined,
-                // nepaliDate: dateFormat === 'nepali' ? NepaliDate : undefined,
                 company: companyId,
                 user: userId,
                 fiscalYear: currentFiscalYear
@@ -1201,7 +1193,7 @@ router.get('/bills/edit/:id', ensureAuthenticated, ensureCompanySelected, ensure
         try {
             const billId = req.params.id;
             const companyId = req.session.currentCompany;
-            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
             const currentCompanyName = req.session.currentCompanyName;
             const currentCompany = await Company.findById(new ObjectId(companyId));
             const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
@@ -1261,10 +1253,8 @@ router.get('/bills/edit/:id', ensureAuthenticated, ensureCompanySelected, ensure
 
             // Find the bill by ID and populate relevant data
             const bill = await SalesBill.findById({ _id: billId, company: companyId, fiscalYear: fiscalYear })
-                .populate({
-                    path: 'items.item',
-                    populate: { path: 'unit', select: 'name' } // Populate unit name within each item
-                })
+                .populate({ path: 'items.item' })
+                .populate('items.unit')
                 .populate('account')
                 .exec();
             if (!bill || bill.company.toString() !== companyId) {
@@ -1273,21 +1263,21 @@ router.get('/bills/edit/:id', ensureAuthenticated, ensureCompanySelected, ensure
             }
             console.log('Bill Account:', bill.account);
 
-            // Prepare the items array for the template
-            const itemsFromDatabase = bill.items.map(item => ({
-                uniqueNumber: item.item.uniqueNumber, // Assuming item has a field called 'code'
-                name: item.item.name, // Assuming item has a field called 'name'
-                hscode: item.item.hscode, // Assuming item has a field called 'hsCode'
-                quantity: item.quantity, // This is the quantity from the bill
-                unit: item.item.unit, // Handle cases where unit may be undefined
-                batchNumber: item.batchNumber || item.item.stockEntries?.[0]?.batchNumber || '', // Fallback to stock entry's batchNumber
-                expiryDate: item.expiryDate
-                    ? item.expiryDate.toISOString().split('T')[0]
-                    : item.item.stockEntries?.[0]?.expiryDate || '', // Fallback to stock entry's expiryDate
-                price: item.price, // This is the price from the bill
-                amount: item.price * item.quantity, // Calculate the amount
-                vatStatus: item.vatStatus
-            }));
+            // // Prepare the items array for the template
+            // const itemsFromDatabase = bill.items.map(item => ({
+            //     uniqueNumber: item.item.uniqueNumber, // Assuming item has a field called 'code'
+            //     name: item.item.name, // Assuming item has a field called 'name'
+            //     hscode: item.item.hscode, // Assuming item has a field called 'hsCode'
+            //     quantity: item.quantity, // This is the quantity from the bill
+            //     unit: item.item.unit, // Handle cases where unit may be undefined
+            //     batchNumber: item.batchNumber || item.item.stockEntries?.[0]?.batchNumber || '', // Fallback to stock entry's batchNumber
+            //     expiryDate: item.expiryDate
+            //         ? item.expiryDate.toISOString().split('T')[0]
+            //         : item.item.stockEntries?.[0]?.expiryDate || '', // Fallback to stock entry's expiryDate
+            //     price: item.price, // This is the price from the bill
+            //     amount: item.price * item.quantity, // Calculate the amount
+            //     vatStatus: item.vatStatus
+            // }));
 
             // Ensure selectedAccountId is set to the ID of the account linked to the bill
             const selectedAccountId = bill.account ? bill.account._id.toString() : null;
@@ -1301,9 +1291,10 @@ router.get('/bills/edit/:id', ensureAuthenticated, ensureCompanySelected, ensure
             res.render('wholeseller/sales-bills/edit', {
                 company,
                 // accounts: accounts,
-                items: items,
-                itemsFromDatabase: itemsFromDatabase,
+                items: bill.items,
+                // itemsFromDatabase: itemsFromDatabase,
                 bill,
+                vatEnabled: company.vatEnabled,
                 billId: bill._id,
                 billNumber: bill.billNumber,
                 paymentMode: bill.paymentMode,
@@ -1311,6 +1302,8 @@ router.get('/bills/edit/:id', ensureAuthenticated, ensureCompanySelected, ensure
                 selectedAccountId: selectedAccountId, // Updated line
                 accounts: accounts, // Pass accounts to the template
                 selectedAccountId: accounts, // Add selected account ID if needed
+                selectedAccountAddress: selectedAccountId.address || '',
+                selectedAccountPan: selectedAccountId.pan || '',
                 address: bill.address,
                 subTotal: bill.subTotal,
                 totalAmount: bill.totalAmount,
@@ -2240,6 +2233,7 @@ router.get('/statement', ensureAuthenticated, ensureCompanySelected, ensureTrade
                     company: currentCompany, currentFiscalYear,
                     statement: [], accounts, selectedCompany: null, fromDate: '',
                     toDate: '', paymentMode, companyDateFormat, nepaliDate, currentCompanyName,
+                    currentCompany,
                     title: 'Statement',
                     body: 'wholeseller >> report >> statement',
                     user: req.user,
@@ -2330,7 +2324,7 @@ router.get('/statement', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 currentFiscalYear,
                 statement, accounts, selectedCompany, account, fromDate: req.query.fromDate, toDate: req.query.toDate, paymentMode,
                 company: currentCompany, totalDebit, totalCredit, finalBalance: openingBalance + totalDebit - totalCredit,
-                currentCompanyName, companyDateFormat, nepaliDate,
+                currentCompanyName, companyDateFormat, nepaliDate, currentCompany,
                 title: 'Statement',
                 body: 'wholeseller >> report >> statement',
                 user: req.user,

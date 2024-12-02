@@ -86,9 +86,9 @@ router.get('/credit-note/new', ensureAuthenticated, ensureCompanySelected, ensur
                 companyDateFormat,
                 nextBillNumber,
                 currentCompanyName: req.session.currentCompanyName,
+                title: '',
+                body: '',
                 user: req.user,
-                title: 'Add Credit Note',
-                body: 'wholeseller >> credit note >> add credit note',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
     }
@@ -266,8 +266,9 @@ router.get('/credit-note/list', ensureAuthenticated, ensureCompanySelected, ensu
         res.render('wholeseller/creditNote/list', {
             company, currentFiscalYear, currentCompany,
             creditNotes, currentCompanyName: req.session.currentCompanyName,
-            title: 'View Credit Note',
-            body: 'wholeseller >> credit note >> add credit note',
+            title: '',
+            body: '',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
@@ -846,8 +847,8 @@ router.get('/credit-note/:id/direct-print', ensureAuthenticated, ensureCompanySe
                 company,
                 currentFiscalYear,
                 user: req.user,
-                title: 'Print Journal Voucher',
-                body: 'wholeseller >> journal >> print',
+                title: '',
+                body: '',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
@@ -958,8 +959,8 @@ router.get('/credit-note/:id/direct-print-edit', ensureAuthenticated, ensureComp
                 company,
                 currentFiscalYear,
                 user: req.user,
-                title: 'Print Journal Voucher',
-                body: 'wholeseller >> journal >> print',
+                title: '',
+                body: '',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {

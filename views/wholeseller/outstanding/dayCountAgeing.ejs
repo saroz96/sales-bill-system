@@ -52,18 +52,19 @@
 </div>
 
 <div id="printableContent">
-    <div class="container" id="mainContainer">
+    <div class="container ">
         <div class="card mb-4 text-center shadow">
             <br>
-            <div class="header">
-                <h2 class="card-subtitle mb-2">
+            <div class="print-only">
+                <h2 class="card-subtitle">
                     <%= currentCompanyName %>
                 </h2>
                 <h4>
                     <b>
-                        <%= currentCompany.address %>-<%= currentCompany.ward %>, <%= currentCompany.city %>, <%=
-                                        currentCompany.country %>
+                        <%= currentCompany.address %>-<%= currentCompany.ward %>, <%= currentCompany.city %>,
+                                    <%= currentCompany.country %>
                     </b>
+                    <br>
                 </h4>
                 <h3>Ageing Receivables/Payables</h3>
                 <hr style="border: 0.5px solid;">

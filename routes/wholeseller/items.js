@@ -60,10 +60,13 @@ router.get('/items/search', ensureAuthenticated, ensureCompanySelected, ensureTr
 
             // Initialize the search conditions
             let searchConditions = {
-                name: { $regex: new RegExp(searchQuery, 'i') },
                 company: companyId,
                 fiscalYear: fiscalYear,
-                _id: { $nin: excludeIds } // Exclude items that are already in the table
+                _id: { $nin: excludeIds }, // Exclude items that are already in the table
+                $or: [
+                    { name: { $regex: new RegExp(searchQuery, 'i') } }, // Search by name
+                    { uniqueNumber: parseInt(searchQuery, 10) || null } // Search by uniqueNumber
+                ]
             };
 
             // Modify the search conditions based on VAT selection
@@ -89,6 +92,7 @@ router.get('/items/search', ensureAuthenticated, ensureCompanySelected, ensureTr
         }
     }
 });
+
 
 
 
@@ -126,7 +130,7 @@ router.get('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType
             const currentCompanyName = req.session.currentCompanyName;
             const today = new Date();
             const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
-            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
             const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
 
@@ -185,6 +189,7 @@ router.get('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType
             res.render('wholeseller/item/items', {
                 company,
                 currentFiscalYear,
+                vatEnabled: company.vatEnabled,
                 items: itemsWithOpeningStock,
                 categories,
                 units,

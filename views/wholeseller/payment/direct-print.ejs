@@ -1,93 +1,140 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css" rel="stylesheet">
+
+<div class="mt-4" style="float: right; margin-right: 100px;">
+    <a href="/payments-list" class="btn btn-secondary"><i class="bi bi-back"></i></a>
+    <button class="btn btn-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button>
+    <a href="/payments" class="btn btn-primary"><i class="bi bi-receipt"></i></a>
 </div>
 
-<div class="container" id="mainContainer">
-    <div class="voucher" id="voucher">
-        <!-- Print Header -->
-        <div id="printHeader" class="text-center">
-            <div class="header" style="text-align: center;">
-                <h2 class="card-subtitle">
-                    <%= currentCompanyName %>
-                </h2>
-                <b>
+<br>
+
+<div class="container">
+    <div class="card shadow-lg p-4 animate__animated animate__fadeInUp">
+        <div class="voucher" id="voucher">
+            <!-- Print Header -->
+            <div id="printHeader" class="text-center" style="text-align: center;">
+                <div class="header">
+                    <h2 class="card-subtitle">
+                        <%= currentCompanyName %>
+                    </h2>
                     <h4>
-                        <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
-                                    <%=currentCompany.country%>
-                                        <br>
-                                        VAT NO.: <span id="pan-vat-container">
-                                        </span>
+                        <b>
+                            <%= currentCompany.address %>-<%= currentCompany.ward %>, <%= currentCompany.city %>,
+                                        <%= currentCompany.country %>
+                        </b>
+                        <br>
+                        VAT NO.: <span id="pan-vat-container"></span>
                     </h4>
-                </b>
-                <hr style="border: 0.5px solid;">
+                    <hr style="border: 0.5px solid;">
+                </div>
+            </div>
+
+            <div class="voucher-header">
+                <h1 class="text-center" style="text-decoration: underline; letter-spacing: 3px;">Payment Voucher</h1>
+                <div class="invoice-details text-right">
+                    <p><strong>Vch. No:</strong>
+                        <%= payment.billNumber %>
+                    </p>
+                    <p><strong>Date:</strong>
+                        <%= payment.date.toLocaleDateString() %>
+                    </p>
+                </div>
+            </div>
+
+            <table class="voucher-table">
+                <thead>
+                    <tr>
+                        <th>S.N</th>
+                        <th>Particular</th>
+                        <th>Debit Amount</th>
+                        <th>Credit Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>
+                            <% if (payment.isActive) { %>
+                                <%= payment.account.name %>
+                                    <% } else { %>
+                                        <span class="text-danger">Canceled</span>
+                                        <% } %>
+                        </td>
+                        <td>
+                            <% if (payment.isActive) { %>
+                                <%= payment.debit.toFixed(2) %>
+                                    <% } else { %>
+                                        <span class="text-danger">0.00</span>
+                                        <% } %>
+                        </td>
+                        <td>0.00</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>
+                            <% if (payment.isActive) { %>
+                                <%= payment.paymentAccount.name %>
+                                    <% } else { %>
+                                        <span class="text-danger">Canceled</span>
+                                        <% } %>
+                        </td>
+                        <td>0.00</td>
+                        <td>
+                            <% if (payment.isActive) { %>
+                                <%= payment.debit.toFixed(2) %>
+                                    <% } else { %>
+                                        <span class="text-danger">0.00</span>
+                                        <% } %>
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="2">Total</th>
+                        <th>
+                            <%= payment.debit.toFixed(2) %>
+                        </th>
+                        <th>
+                            <%= payment.debit.toFixed(2) %>
+                        </th>
+                    </tr>
+                </tfoot>
+            </table>
+            <p>
+                Note: <%=payment.description%>
+            </p>
+            <div class="row">
+                <div class="col-6">
+                    <label for="modeOfPayment">Mode of Payment: <%= payment.InstType%>
+                    </label>
+                </div>
+                <div class="col-6">
+                    <label for="InstNo">Inst No: <%=payment.InstNo%></label>
+                </div>
+            </div>
+            <br>
+            <div class="signature-section" style="text-decoration: overline;">
+                <div class="signature">
+                    <p>Prepared By:</p>
+                </div>
+                <div class="signature">
+                    <p>Checked By:</p>
+                </div>
+                <div class="signature">
+                    <p>Approved By:</p>
+                </div>
             </div>
         </div>
-        <h1 class="text-center" style="text-decoration: underline;letter-spacing: 3px;">Payment Voucher</h1>
-        <table class="voucher-table">
-            <tbody>
-                <tr>
-                    <th>Voucher Number:</th>
-                    <td>
-                        <%= payment.billNumber %>
-                    </td>
-                </tr>
-                <tr>
-                    <th>Date:</th>
-                    <td>
-                        <%= payment.date.toLocaleDateString() %>
-                    </td>
-                </tr>
-                <tr>
-                    <th>Debited Account:</th>
-                    <td>
-                        <%= payment.account.name %>
-                    </td>
-                </tr>
-                <tr>
-                    <th>Payment Account:</th>
-                    <td>
-                        <%= payment.paymentAccount.name %>
-                    </td>
-                </tr>
-                <tr>
-                    <th>Debit Amount:</th>
-                    <td>
-                        <%= payment.debit %>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-
-        <h2>Transactions</h2>
-        <table class="voucher-table">
-            <tr>
-                <th>Payment Account</th>
-                <th>Inst. Type</th>
-                <th>Inst. No.</th>
-            </tr>
-            <tr>
-                <td>
-                    <%= payment.paymentAccount.name %>
-                </td>
-                <td>
-                    <%= payment.InstType? payment.InstType :"Null" %>
-                </td>
-                <td>
-                    <%= payment.InstNo? payment.InstNo:"Null" %>
-                </td>
-            </tr>
-        </table>
-        <p>Note: <%=payment.description%>
-        </p>
     </div>
 </div>
 
 <style>
     @media print {
-        @page {
-            size: landscape;
-            margin: 0;
-        }
+        /* @page {
+            size: A5 portrait;
+            margin: 10mm;
+        } */
 
         body * {
             visibility: hidden;
@@ -102,139 +149,73 @@
             position: absolute;
             left: 0;
             top: 0;
+            width: 260mm;
+            height: 150mm;
+            margin: auto;
         }
 
         .text-center button,
         .text-center a {
             display: none;
-            /* Hide buttons during print */
         }
     }
 
     .voucher {
-        width: 297mm;
-        /* A4 width in landscape */
-        height: 210mm;
-        /* A4 height in landscape */
-        padding: 20mm;
+        width: 250mm;
+        /* A5 portrait width */
+        height: 150mm;
+        /* A5 portrait height */
+        padding: 10mm;
         margin: auto;
         border: 1px solid black;
-        /* Updated border color */
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        /* Optional shadow for depth */
         background-color: white;
-        /* Background color */
         font-family: Arial, sans-serif;
-        /* Font for the voucher */
-        overflow: hidden;
-        /* Ensure no overflow */
+    }
+
+
+    .voucher-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .invoice-details {
+        text-align: right;
     }
 
     .voucher-table {
         width: 100%;
-        /* Full width for table */
         border-collapse: collapse;
-        /* Collapse borders */
-        margin: 20px 0;
-        /* Margin around tables */
+        margin: 10px 0;
     }
 
     .voucher-table th,
     .voucher-table td {
         border: 1px solid black;
-        /* Updated table cell border color */
-        padding: 12px;
-        /* Increased padding for better spacing */
+        padding: 8px;
         text-align: left;
-        /* Left-align text */
-        font-size: 16px;
-        /* Increased font size for better readability */
+        font-size: 14px;
     }
 
     .voucher-table th {
         background-color: #f2f2f2;
-        /* Header background color */
-        font-weight: bold;
-        /* Bold font for headers */
     }
 
-    h1 {
-        font-size: 28px;
-        /* Main heading size */
-        margin-bottom: 10px;
-        /* Spacing below the heading */
-        text-align: center;
-        /* Center the heading */
+    .signature-section {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
     }
 
-    .text-center {
+    .signature {
+        width: 30%;
         text-align: center;
-        /* Center-align text */
     }
 
     .btn {
-        padding: 10px 20px;
-        /* Increased button padding for better click area */
-        font-size: 16px;
-        /* Font size for buttons */
-    }
-
-    button {
-        margin-right: 10px;
-        /* Space between buttons */
-        background-color: #007bff;
-        /* Bootstrap primary color */
-        color: white;
-        /* Button text color */
-        border: none;
-        /* Remove border */
-        border-radius: 5px;
-        /* Rounded corners */
-        cursor: pointer;
-        /* Pointer cursor on hover */
-        transition: background-color 0.3s;
-        /* Smooth background color transition */
-    }
-
-    button:hover {
-        background-color: #0056b3;
-        /* Darker blue on hover */
-    }
-
-    .btn-secondary {
-        background-color: #6c757d;
-        /* Bootstrap secondary color */
-        color: white;
-        /* Button text color */
-        border: none;
-        /* Remove border */
-        border-radius: 5px;
-        /* Rounded corners */
-    }
-
-    .btn-secondary:hover {
-        background-color: #5a6268;
-        /* Darker gray on hover */
-    }
-
-    @media (max-width: 768px) {
-        .voucher {
-            padding: 10mm;
-            /* Reduced padding for smaller screens */
-        }
-
-        .voucher-table th,
-        .voucher-table td {
-            font-size: 14px;
-            /* Smaller font size for smaller screens */
-            padding: 8px;
-            /* Adjust padding for smaller screens */
-        }
-
-        h1 {
-            font-size: 24px;
-            /* Smaller heading size for smaller screens */
-        }
+        padding: 8px 16px;
+        font-size: 14px;
     }
 </style>
 
@@ -263,10 +244,5 @@
         digit.className = 'bordered-digit';
         digit.textContent = panVatNo[i];
         container.appendChild(digit);
-    }
-
-    // Optional: Show loading spinner while fetching data
-    function showLoadingSpinner() {
-        document.getElementById('loadingSpinner').style.display = 'block';
     }
 </script>
