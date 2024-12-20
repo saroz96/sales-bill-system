@@ -8,6 +8,7 @@ const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
 const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRange');
 const Company = require('../../models/wholeseller/Company');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
+const Account = require('../../models/wholeseller/Account');
 
 // // Import the seeding script
 // const seedDatabase = require('../seeds/seed');
@@ -123,13 +124,47 @@ router.put('/account-group/:id', ensureAuthenticated, ensureCompanySelected, ens
 });
 
 // Route to handle form submission and delete the company group
-router.delete('/account-group/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
-    if (req.tradeType === 'Wholeseller') {
-        const { id } = req.params;
-        await companyGroup.findByIdAndDelete(id);
-        req.flash('success', 'Groups deleted successfully');
-        res.redirect('/account-group');
+// router.delete('/account-group/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+//     if (req.tradeType === 'Wholeseller') {
+//         const { id } = req.params;
+
+//         await companyGroup.findByIdAndDelete(id);
+//         req.flash('success', 'Groups deleted successfully');
+//         res.redirect('/account-group');
+//     }
+// })
+
+router.delete(
+    '/account-group/:id',
+    ensureAuthenticated,
+    ensureCompanySelected,
+    ensureTradeType,
+    ensureFiscalYear,
+    checkFiscalYearDateRange,
+    async (req, res) => {
+        if (req.tradeType === 'Wholeseller') {
+            try {
+                const { id } = req.params;
+
+                // Check if the group is associated with any accounts
+                const isGroupAssociated = await Account.exists({ companyGroups: id });
+                if (isGroupAssociated) {
+                    req.flash('error', 'This group is associated with accounts and cannot be deleted.');
+                    return res.redirect('/account-group');
+                }
+
+                // Delete the group if no association exists
+                await companyGroup.findByIdAndDelete(id);
+                req.flash('success', 'Group deleted successfully');
+                res.redirect('/account-group');
+            } catch (err) {
+                console.error('Error deleting group:', err);
+                req.flash('error', 'An error occurred while trying to delete the group.');
+                res.redirect('/account-group');
+            }
+        }
     }
-})
+);
+
 
 module.exports = router;

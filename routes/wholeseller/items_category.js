@@ -6,6 +6,7 @@ const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware
 const { ensureTradeType } = require('../../middleware/tradeType');
 const Company = require('../../models/wholeseller/Company');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
+const Item = require('../../models/wholeseller/Item');
 
 
 // Category routes
@@ -118,14 +119,51 @@ router.put('/categories/:id', ensureAuthenticated, ensureCompanySelected, ensure
     }
 });
 
+// // Route to handle form submission and delete the category
+// router.delete('/categories/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+//     if (req.tradeType === 'Wholeseller') {
+//         const { id } = req.params;
+//         await Category.findByIdAndDelete(id);
+//         req.flash('success', 'Category deleted successfully');
+//         res.redirect('/categories');
+//     }
+// })
+
 // Route to handle form submission and delete the category
 router.delete('/categories/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const { id } = req.params;
-        await Category.findByIdAndDelete(id);
-        req.flash('success', 'Category deleted successfully');
-        res.redirect('/categories');
+
+        try {
+            // Check if the category is the default "general" category
+            const category = await Category.findById(id);
+            if (!category) {
+                req.flash('error', 'Category not found');
+                return res.redirect('/categories');
+            }
+            if (category.name === 'General') {
+                req.flash('error', 'The default "General" category cannot be deleted');
+                return res.redirect('/categories');
+            }
+
+            // Check if any items are associated with the category
+            const associatedItems = await Item.findOne({ category: id });
+            if (associatedItems) {
+                req.flash('error', 'Category cannot be deleted because it is associated with items');
+                return res.redirect('/categories');
+            }
+
+            // If no restrictions, proceed with deletion
+            await Category.findByIdAndDelete(id);
+            req.flash('success', 'Category deleted successfully');
+            res.redirect('/categories');
+        } catch (error) {
+            console.error('Error deleting category:', error);
+            req.flash('error', 'An error occurred while deleting the category');
+            res.redirect('/categories');
+        }
     }
-})
+});
+
 
 module.exports = router;

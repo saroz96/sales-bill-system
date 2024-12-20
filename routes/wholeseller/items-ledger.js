@@ -117,8 +117,8 @@ router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensu
                 }
             });
 
-            const stockAdjustmentEntries = await StockAdjustment.find({ item: itemId, company: companyId }).populate({
-                path: 'item',
+            const stockAdjustmentEntries = await StockAdjustment.find({ 'items.item': itemId, company: companyId }).populate({
+                path: 'items.item',
                 model: 'Item',
                 select: 'name stock',
                 populate: {
@@ -225,24 +225,28 @@ router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensu
 
             // Process stock adjustment entries
             stockAdjustmentEntries.forEach(adjustment => {
-                const qtyIn = adjustment.adjustmentType === 'xcess' ? adjustment.quantity : 0;
-                const qtyOut = adjustment.adjustmentType === 'short' ? adjustment.quantity : 0;
-                itemsLedger[itemId].entries.push({
-                    date: adjustment.date,
-                    partyName: 'Stock Adjustments',
-                    billNumber: adjustment.billNumber,
-                    type: adjustment.adjustmentType,
-                    qtyIn: qtyIn,
-                    qtyOut: qtyOut,
-                    unit: adjustment.item.unit.name,
-                    price: adjustment.puPrice,
-                    batchNumber: adjustment.batchNumber || 'N/A',
-                    expiryDate: adjustment.expiryDate ? itemEntry.expiryDate : "N/A",
-                    balance: 0,
-                });
-                itemsLedger[itemId].qtyBalance += qtyIn;
-                itemsLedger[itemId].qtyBalance -= qtyOut;
-            });
+                adjustment.items.forEach(itemEntry => {
+                    if (itemEntry.item._id.toString() === itemId) {
+                        const qtyIn = adjustment.adjustmentType === 'xcess' ? itemEntry.quantity : 0;
+                        const qtyOut = adjustment.adjustmentType === 'short' ? itemEntry.quantity : 0;
+                        itemsLedger[itemId].entries.push({
+                            date: adjustment.date,
+                            partyName: 'Stock Adjustments',
+                            billNumber: adjustment.billNumber,
+                            type: adjustment.adjustmentType,
+                            qtyIn: qtyIn,
+                            qtyOut: qtyOut,
+                            unit: itemEntry.unit.name,
+                            price: itemEntry.puPrice,
+                            batchNumber: itemEntry.batchNumber || 'N/A',
+                            expiryDate: itemEntry.expiryDate ? itemEntry.expiryDate : "N/A",
+                            balance: 0,
+                        });
+                        itemsLedger[itemId].qtyBalance += qtyIn;
+                        itemsLedger[itemId].qtyBalance -= qtyOut;
+                    }
+                })
+            })
 
             // Sort entries by date
             itemsLedger[itemId].entries.sort((a, b) => a.date - b.date);

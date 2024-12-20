@@ -200,8 +200,10 @@
                                     <%= salesBill.user?salesBill.user.name:'User Not Found' %>
                                 </td>
                                 <td>
-                                    <a href="/bills/<%= salesBill._id %>/print">View</a>
-                                    <a href="/bills/edit/<%=salesBill._id%>">Edit</a>
+                                    <a href="/bills/<%= salesBill._id %>/print"><button class="btn-sm btn-info"><i
+                                                class="fas fa-eye"></i></button></a>
+                                    <a href="/bills/edit/<%=salesBill._id%>"><button class="btn btn-sm btn-warning"><i
+                                                class="fas fa-edit"></i></button></a>
                                 </td>
                             </tr>
                             <% }); %>

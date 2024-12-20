@@ -47,8 +47,9 @@ router.get('/switch-fiscal-year', ensureAuthenticated, ensureFiscalYear, checkFi
             currentFiscalYear,
             fiscalYears,
             currentCompanyName,
-            title: 'Fiscal Years',
-            body: 'wholeseller >> fiscal year >> list',
+            user: req.user,
+            title: '',
+            body: '',
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } catch (err) {
@@ -134,8 +135,9 @@ router.get('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, en
                 currentCompanyName,
                 nepaliDate,
                 companyDateFormat,
-                title: 'Add Debit Note',
-                body: 'wholeseller >> debit note >> add debit note',
+                user: req.user,
+                title: '',
+                body: '',
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (err) {

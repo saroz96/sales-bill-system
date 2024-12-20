@@ -192,7 +192,12 @@
                             <td>
                                 <%= purchaseReturn.user?purchaseReturn.user.name:'User Not Found' %>
                             </td>
-                            <td><a href="/purchase-return/<%= purchaseReturn._id %>/print">View</a></td>
+                            <td>
+                                <a href="/purchase-return/<%= purchaseReturn._id %>/print"><button
+                                        class="btn-sm btn-info"><i class="fas fa-eye"></i></button></a>
+                                <a href="/purchase-return/edit/<%=purchaseReturn._id%>"><button
+                                        class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button></a>
+                            </td>
                         </tr>
                         <% }); %>
                 </tbody>

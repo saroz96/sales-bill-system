@@ -1,5 +1,6 @@
-<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+<%- include('../layouts/boilerplate', { title: '' , body:''}) %>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
     <style>
         .vatable-item {
             background-color: lightgreen;
@@ -202,84 +203,150 @@
             height: auto;
         }
     </style>
-
     <div class="container wow-form expanded-container">
-        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
+        <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
             <div class="card-header">
-                Edit Adjustment
+                Create Sales Return
             </div>
             <div class="card-body">
-                <form action="/stockAdjustments/<%=stockAdjustment._id%>?_method=PUT" method="post" id="billForm">
+                <form action="/sales-return/edit/<%=salesReturnBill._id%>?_method=PUT" method="post"
+                    id="salesReturnBillForm" class="wow-form">
                     <div class="form-group row">
+
                         <% if (companyDateFormat==='nepali' ) { %>
+                            <!-- Nepali Date Fields -->
                             <div class="col">
-                                <label for="nepaliDate">Date:</label>
-                                <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
-                                    value="<%= stockAdjustment.date ? stockAdjustment.date.toISOString().split('T')[0] : '' %>"
-                                    autofocus <%=stockAdjustment.status==='canceled' ? 'disabled' : '' %>>
+                                <label for="transactionDateNepali">Transaction Date:</label>
+                                <input type="text" name="transactionDateNepali" id="transactionDateNepali"
+                                    class="form-control"
+                                    value="<%= salesReturnBill.transactionDate ? salesReturnBill.transactionDate.toISOString().split('T')[0]: '' %>"
+                                    autofocus required>
+
                             </div>
+                            <div class="col">
+                                <label for="nepaliDate">Invoice Date:</label>
+                                <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
+                                    value="<%= salesReturnBill.date ? salesReturnBill.date.toISOString().split('T')[0] : '' %>"
+                                    autofocus>
+                            </div>
+
+                            <!-- Hidden field for salesReturnBillDate, since we are using NepaliDate -->
+                            <input type="hidden" name="salesReturnBillDate" id="salesReturnBillDate" value="">
                             <% } else { %>
+                                <!-- English Date Fields -->
                                 <div class="col">
-                                    <label for="billDate">Date:</label>
-                                    <input type="date" name="billDate" id="billDate" class="form-control" required
-                                        value="<%= stockAdjustment.date.toISOString().split('T')[0] %>" autofocus
-                                        <%=stockAdjustment.status==='canceled' ? 'disabled' : '' %>>
+                                    <label for="transactionDateRoman">Transaction Date:</label>
+                                    <input type="date" name="transactionDateRoman" id="transactionDateRoman"
+                                        class="form-control"
+                                        value="<%= salesReturnBill.transactionDate ? salesReturnBill.transactionDate.toISOString().split('T')[0]: '' %>"
+                                        autofocus required>
                                 </div>
+                                <div class="col">
+                                    <label for="salesReturnBillDate">Invoice Date:</label>
+                                    <input type="date" name="salesReturnBillDate" id="salesReturnBillDate"
+                                        class="form-control" required
+                                        value="<%= salesReturnBill.date ? salesReturnBill.date.toISOString().split('T')[0] : '' %>">
+                                </div>
+                                <!-- Hidden field for nepaliDate, since we are using English Date -->
+                                <input type="hidden" name="nepaliDate" id="nepaliDate" value="">
                                 <% } %>
-                                    <div class="col">
-                                        <label for="adjustmentType">Type:</label>
-                                        <select id="adjustmentType" name="adjustmentType" class="form-control"
-                                            onchange="toggleReasonDropdowns()" <%=stockAdjustment.status==='canceled'
-                                            ? 'disabled' : '' %>>
-                                            <option value="" disabled selected>Select adjustment type </option>
-                                            <option value="short" <%=stockAdjustment.adjustmentType==='short'
-                                                ? 'selected' : '' %>>Short</option>
-                                            <option value="xcess" <%=stockAdjustment.adjustmentType==='xcess'
-                                                ? 'selected' : '' %>>Xcess</option>
-                                        </select>
-                                    </div>
                                     <div class="col">
                                         <label for="billNumber">Vch. No:</label>
                                         <input type="number" name="billNumber" id="billNumber" class="form-control"
-                                            value="<%= stockAdjustment.billNumber %>"
-                                            <%=stockAdjustment.status==='canceled' ? 'disabled' : '' %> required
-                                        readonly>
+                                            value="<%= salesReturnBill.billNumber %>" required readonly>
                                     </div>
+                                    <div class="col">
+                                        <label for="paymentMode">Payment Mode:</label>
+                                        <select class="form-control" id="paymentMode" name="paymentMode"
+                                            onchange="toggleCreditPartyOptions()">
+                                            <option>Select</option>
+                                            <option value="cash" <%=salesReturnBill.paymentMode==='cash' ? 'selected'
+                                                : '' %>>Cash
+                                            </option>
+                                            <option value="credit" <%=salesReturnBill.paymentMode==='credit'
+                                                ?'selected':''%>
+                                                >Credit</option>
+                                        </select>
+                                    </div>
+
                                     <div class="col">
                                         <label for="isVatExempt">VAT</label>
                                         <select name="isVatExempt" id="isVatExempt" class="form-control"
                                             onchange="toggleVatInputs()"
-                                            onchange="filterItems(document.getElementById('itemSearch'))"
-                                            <%=stockAdjustment.status==='canceled' ? 'disabled' : '' %>>
+                                            onchange="filterItems(document.getElementById('itemSearch'))">
                                             <option value="" disabled selected>Select vat</option>
                                             <% if (vatEnabled) {%>
                                                 <option value="false"
-                                                    <%=stockAdjustment.isVatExempt===false&&stockAdjustment.isVatAll==='true'
+                                                    <%=salesReturnBill.isVatExempt===false&&salesReturnBill.isVatAll==='true'
                                                     ? 'selected' :'' %>>All</option>
                                                 <option value="false"
-                                                    <%=stockAdjustment.isVatExempt===false&&stockAdjustment.isVatAll==='false'
+                                                    <%=salesReturnBill.isVatExempt===false&&salesReturnBill.isVatAll==='false'
                                                     ? 'selected' : '' %>>13%
                                                 </option>
                                                 <%}%>
                                                     <option value="true"
-                                                        <%=stockAdjustment.isVatExempt===true&&stockAdjustment.isVatAll==='false'
-                                                        ? 'selected' : '' %>>Exempt</option>
+                                                        <%=salesReturnBill.isVatExempt===true&&salesReturnBill.isVatAll==='false'
+                                                        ? 'selected' : '' %>>Exempt
+                                                    </option>
                                         </select>
                                     </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col hidden">
+                            <label for="purchaseSalesType">Return From:</label>
+                            <select id="purchaseSalesType" name="purchaseSalesType" class="form-control" disabled>
+                                <option value="Sales">Sales</option>
+                            </select>
+                        </div>
+                        <div class="col hidden">
+                            <label for="purchaseSalesReturnType">Type:</label>
+                            <select id="purchaseSalesReturnType" name="purchaseSalesReturnType" class="form-control"
+                                disabled>
+                                <option value="Sales Return">Sales Return</option>
+                            </select>
+                        </div>
+
+                        <div class="col-6">
+                            <label for="account">Party Name:</label>
+                            <select name="account" id="account" class="form-control" required>
+                                <option value="" disabled selected>Select a party name</option>
+                                <% if (accounts && accounts.length> 0) { %>
+                                    <% accounts.forEach(account=> { %>
+                                        <option value="<%= account._id %>"
+                                            <%=(account._id.equals(salesReturnBill.account._id) ||
+                                            account.name==='Cash in Hand' )? 'selected' : '' %> data-address="<%=
+                                                account.address %>"
+                                                data-pan="<%= account.pan %>">
+                                                    <%= account.name %>
+                                        </option>
+                                        <% }); %>
+                                            <% } else { %>
+                                                <option disabled>No companies available</option>
+                                                <% } %>
+                            </select>
+                        </div>
+                        <div class="col">
+                            <!-- New field for the address -->
+                            <label for="address">Party Address:</label>
+                            <input type="text" id="address" name="address" class="form-control"
+                                value="<%=salesReturnBill.account.address%>">
+                        </div>
+                        <div class="col">
+                            <!-- New field for the address -->
+                            <label for="pan">Vat No:</label>
+                            <input type="text" id="pan" name="pan" class="form-control"
+                                value="<%=salesReturnBill.account.pan%>">
+                        </div>
+
                     </div>
                     <hr style="border: 1px solid gray;">
                     <div class="form-group row">
                         <div class="col">
-                            <div class="form-group row">
-                                <div class="col">
-                                    <label for="itemSearch">Search Item</label>
-                                    <input type="text" id="itemSearch" class="form-control"
-                                        placeholder="Search for an item" oninput="filterItems(this)" autocomplete="off"
-                                        onkeydown="handleItemSearchKeydown(event)"
-                                        <%=stockAdjustment.status==='canceled' ? 'disabled' : '' %>>
-                                    <div id="dropdownMenu" class="dropdown-menu"></div>
-                                </div>
-                            </div>
+                            <label for="itemSearch">Search Item</label>
+                            <input type="text" id="itemSearch" class="form-control" placeholder="Search for an item"
+                                oninput="filterItems(this)" autocomplete="off"
+                                onkeydown="handleItemSearchKeydown(event)">
+                            <div id="dropdownMenu" class="dropdown-menu"></div>
                         </div>
                     </div>
 
@@ -292,15 +359,15 @@
                                 <th>H.S. Code</th>
                                 <th>Qty</th>
                                 <th>Unit</th>
-                                <th>Batch & Exp.</th>
+                                <th>Batch & Exp.Date</th>
                                 <th>Price</th>
                                 <th>Amount</th>
-                                <th>Reason</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="items">
                             <!-- Item rows will be dynamically added here -->
+
                             <% if (items && items.length> 0) { %>
                                 <% items.forEach((item, index)=> { %>
                                     <tr class="item <%= item.vatStatus ? 'vatable-item' : 'non-vatable-item' %>">
@@ -326,8 +393,7 @@
                                                 id="quantity-<%= index %>" min="1" step="any"
                                                 oninput="updateItemTotal(this)"
                                                 onkeydown="handleQuantityKeydown(event, <%= index %>)"
-                                                onfocus="selectValue(this)" <%=stockAdjustment.status==='canceled'
-                                                ? 'disabled' : '' %>>
+                                                onfocus="selectValue(this)">
                                         </td>
                                         <td>
                                             <%= item.unit.name %>
@@ -339,43 +405,22 @@
                                                 value="<%= item.batchNumber || '' %>"
                                                 class="form-control item-batchNumber" id="batchNumber-<%= index %>"
                                                 onkeydown="handleBatchKeydown(event, <%= index %>)"
-                                                onfocus="selectValue(this)" <%=stockAdjustment.status==='canceled'
-                                                ? 'disabled' : '' %>>
+                                                onfocus="selectValue(this)">
                                             <input type="date" name="items[<%= index %>][expiryDate]"
                                                 value="<%= item.expiryDate.toISOString().split('T')[0] || '' %>"
                                                 class="form-control item-expiryDate" id="expiryDate-<%= index %>"
                                                 onkeydown="handleExpDateKeydown(event, <%= index %>)"
-                                                onfocus="selectValue(this)" <%=stockAdjustment.status==='canceled'
-                                                ? 'disabled' : '' %>>
+                                                onfocus="selectValue(this)">
                                         </td>
                                         <td>
-                                            <input type="number" name="items[<%= index %>][puPrice]"
-                                                value="<%= item.puPrice || '' %>" class="form-control item-puPrice"
+                                            <input type="number" name="items[<%= index %>][price]"
+                                                value="<%= item.price || '' %>" class="form-control item-price"
                                                 id="puPrice-<%= index %>" step="any" oninput="updateItemTotal(this)"
                                                 onkeydown="handlePriceKeydown(event, <%= index %>)"
-                                                onfocus="selectValue(this)" <%=stockAdjustment.status==='canceled'
-                                                ? 'disabled' : '' %>>
+                                                onfocus="selectValue(this)">
                                         </td>
                                         <td class="item-amount">
-                                            <%= (item.quantity * item.puPrice).toFixed(2) %>
-                                        </td>
-                                        <td>
-                                            <select name="items[<%= index %>][reason]"
-                                                class="form-control reason-dropdown" id="reason-<%= index %>"
-                                                <%=stockAdjustment.status==='canceled' ? 'disabled' : '' %>>
-                                                <option value="Exp." <%=stockAdjustment.adjustmentType==='short'
-                                                    ||item.reason==='Exp.' ? 'selected' : '' %>>Exp.
-                                                </option>
-                                                <option value="Damage" <%=stockAdjustment.adjustmentType==='short'
-                                                    ||item.reason==='Damage' ? 'selected' : '' %>
-                                                    >Damage</option>
-                                                <option value="Donate" <%=stockAdjustment.adjustmentType==='short'
-                                                    ||item.reason==='Donate' ? 'selected' : '' %>
-                                                    >Donate</option>
-                                                <option value="Bonus" <%=stockAdjustment.adjustmentType==='xcess'
-                                                    ||item.reason==='Bonus' ? 'selected' : '' %>
-                                                    >Bonus</option>
-                                            </select>
+                                            <%= (item.quantity * item.price).toFixed(2) %>
                                         </td>
                                         <td>
                                             <button type="button" class="btn btn-danger" onclick="removeItem(this)">
@@ -388,12 +433,14 @@
                         </tbody>
                     </table>
 
-                    <hr style="border: 1px solid gray;">
-                    <div class="form-group">
-                        <label for="note">Description:</label>
-                        <input type="text" class="form-control" id="note" name="note" value="<%=stockAdjustment.note%>"
-                            placeholder="add note" onkeydown="handleAddNoteKeydown(event)">
+                    <div id="stockDetails" style="display: none;">
+                        <label for="stock">Stock</label>
+                        <select id="stock" name="stock" class="form-control">
+                            <!-- Stock details will be populated here via JavaScript -->
+                        </select>
                     </div>
+
+                    <hr style="border: 1px solid gray;">
                     <!-- Bill Details Table -->
                     <div class="table-responsive">
                         <table class="table table-bordered">
@@ -408,7 +455,7 @@
                                     <td><label for="subTotal">Sub Total:</label></td>
                                     <td colspan="2" class="text-right">
                                         <p class="form-control-plaintext">Rs. <span id="subTotal">
-                                                <%= stockAdjustment.subTotal.toFixed(2) %>
+                                                <%= salesReturnBill.subTotal.toFixed(2) %>
                                             </span></p>
                                     </td>
                                 </tr>
@@ -419,13 +466,13 @@
                                     <td>
                                         <input type="number" step="any" name="discountPercentage"
                                             id="discountPercentage" class="form-control"
-                                            value="<%= stockAdjustment.discountPercentage.toFixed(2) %>"
+                                            value="<%= salesReturnBill.discountPercentage.toFixed(2) %>"
                                             oninput="calculateTotal()">
                                     </td>
                                     <td><label for="discountAmount">Discount (Rs.):</label></td>
                                     <td>
                                         <input type="number" step="any" name="discountAmount" id="discountAmount"
-                                            value="<%= stockAdjustment.discountAmount.toFixed(2) %>"
+                                            value="<%= salesReturnBill.discountAmount.toFixed(2) %>"
                                             class="form-control" oninput="calculateTotal()">
                                     </td>
                                 </tr>
@@ -435,7 +482,7 @@
                                     <td><label for="taxableAmount">Taxable Amount:</label></td>
                                     <td colspan="2" class="text-right">
                                         <p class="form-control-plaintext">Rs. <span id="taxableAmount">
-                                                <%= stockAdjustment.taxableAmount.toFixed(2) %>
+                                                <%= salesReturnBill.taxableAmount.toFixed(2) %>
                                             </span>
                                         </p>
                                     </td>
@@ -449,7 +496,7 @@
                                     <td><label for="vatAmount">VAT Amount:</label></td>
                                     <td class="text-right">
                                         <p class="form-control-plaintext">Rs. <span id="vatAmount">
-                                                <%= stockAdjustment.vatAmount.toFixed(2) %>
+                                                <%= salesReturnBill.vatAmount.toFixed(2) %>
                                             </span></p>
                                     </td>
                                 </tr>
@@ -468,7 +515,7 @@
                                     <td><label for="totalAmount">Total Amount:</label></td>
                                     <td>
                                         <p class="form-control-plaintext">Rs. <span id="totalAmount">
-                                                <%= stockAdjustment.totalAmount.toFixed(2) %>
+                                                <%= salesReturnBill.totalAmount.toFixed(2) %>
                                             </span></p>
                                     </td>
                                     <td><label for="amountInWords">In Words:</label></td>
@@ -493,72 +540,54 @@
                 </form>
             </div>
         </div>
+        <a href="/" class="btn btn-link mt-4">Back</a>
     </div>
 
-    <!-- Batch and Expiry Modal -->
-    <div class="modal fade" id="batchModal" tabindex="-1" aria-labelledby="batchModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+    <div id="printModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="batchModalLabel">Batch Information</h5>
+                    <h5 class="modal-title">Print Bill</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body" id="batchModalBody">
-                    <!-- Batch information will be populated here dynamically -->
+                <div class="modal-body">
+                    <p>Do you want to print this salesReturnBill?</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitBillForm(true)">Save & Print</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Sales Price Modal -->
-    <div class="modal fade" id="setSalesPriceModal" tabindex="-1" aria-labelledby="setSalesPriceModalLabel"
+    <!-- Transaction Modal -->
+    <div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="setSalesPriceModalLabel">Set Sales Price for New Batch</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="transactionModalLabel">Last Transactions</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="puPrice" class="form-label">Purchase Price</label>
-                        <input type="number" class="form-control" id="puPrice" step="any" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="marginPercentage" class="form-label">Margin Percentage (%)</label>
-                        <input type="number" class="form-control" id="marginPercentage" min="0" step="any"
-                            placeholder="Enter margin percentage">
-                    </div>
-                    <div class="mb-3">
-                        <label for="currency" class="form-label">Currency</label>
-                        <select class="form-select" id="currency">
-                            <option value="NPR">NPR</option>
-                            <option value="INR">INR</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="mrp" class="form-label">MRP</label>
-                        <input type="number" class="form-control" id="mrp" step="any" placeholder="Enter MRP">
-                    </div>
-                    <div class="mb-3">
-                        <label for="salesPrice" class="form-label">Sales Price</label>
-                        <input type="number" class="form-control" id="salesPrice" step="any" required>
-                    </div>
+                    <ul id="transactionList" class="list-group">
+                        <!-- Transactions will be dynamically inserted here -->
+                    </ul>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="saveSalesPrice">Save Sales Price</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" id="closeModalButton"
+                        onkeydown="handleCloseButtonKeydown(event)">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/nepali-datepicker/js/nepali.datepicker.v4.0.min.js"></script>
+
     <script>
         let itemIndex = 0;
         let currentFocus = 0;
@@ -566,17 +595,35 @@
 
         $(document).ready(function () {
             // Initialize Select2 for searchable dropdown
-            $('#adjustmentType').select2({
-                placeholder: "Select adjustment type",
+            $('#account').select2({
+                placeholder: "Select a party name",
                 allowClear: true,
                 width: '100%', // Ensure it takes the full width of the container
+            });
+
+            // Listen for the change event on the account dropdown
+            $('#account').on('change', function () {
+                const selectedOption = $(this).find('option:selected');
+                const address = selectedOption.data('address');
+
+                // Set the address field with the selected account's address
+                $('#address').val(address || 'Address not available');
+            });
+
+            // Listen for the change event on the account dropdown
+            $('#account').on('change', function () {
+                const selectedOption = $(this).find('option:selected');
+                const pan = selectedOption.data('pan');
+
+                // Set the address field with the selected account's address
+                $('#pan').val(pan || 'Pan no. not available');
             });
         });
 
         $(document).ready(function () {
             // Initialize Select2 for searchable dropdown
-            $('#isVatExempt').select2({
-                placeholder: "Select vat",
+            $('#salesBillNumber').select2({
+                placeholder: "Select invoice number",
                 allowClear: true,
                 width: '100%', // Ensure it takes the full width of the container
             });
@@ -633,7 +680,6 @@
                 }
             }
         });
-
         function addActive(items) {
             if (!items) return false;
             removeActive(items);
@@ -647,7 +693,6 @@
                 items[i].classList.remove('active');
             }
         }
-
         function scrollToItem(items) {
             if (currentFocus >= 0 && currentFocus < items.length) {
                 const item = items[currentFocus];
@@ -665,7 +710,6 @@
                 inputField.value = itemName; // Update the input field with the highlighted item's name
             }
         }
-
 
         async function showAllItems(input) {
             const dropdownMenu = input.nextElementSibling;
@@ -700,7 +744,7 @@
             <div><strong>Name</strong></div>
             <div><strong>Stock</strong></div>
             <div><strong>Unit</strong></div>
-            <div><strong>C.Rate</strong></div>
+            <div><strong>S.Rate</strong></div>
         `;
                 headerRow.style.backgroundColor = '#f0f0f0';
                 headerRow.style.fontWeight = 'bold';
@@ -718,10 +762,7 @@
                         dropdownItem.classList.add('non-vatable-item');
                     }
 
-                    // Calculate total stock and fetch price from stock entries
                     const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
-                    const latestStockEntry = item.stockEntries[item.stockEntries.length - 1];
-                    const puPrice = latestStockEntry ? latestStockEntry.puPrice : 0;
 
                     dropdownItem.innerHTML = `
                 <div>${item.uniqueNumber || 'N/A'}</div>
@@ -729,7 +770,7 @@
                 <div>${item.name}</div>
                 <div>${totalStock}</div>
                 <div>${item.unit ? item.unit.name : ''}</div>
-                <div>Rs.${puPrice.toFixed(2)}</div>
+                <div>Rs.${item.price.toFixed()}</div>
             `;
 
                     dropdownItem.addEventListener('click', () => {
@@ -751,6 +792,7 @@
                     isFirstLoad = false; // Set the flag to false after the first time
                 }
             }
+
         }
 
 
@@ -759,8 +801,6 @@
         document.getElementById('itemSearch').addEventListener('focus', function () {
             showAllItems(this);
         });
-
-
         // Add event listener for input to fetch items dynamically
         document.getElementById('itemSearch').addEventListener('input', function () {
             const query = this.value.trim().toLowerCase();
@@ -809,7 +849,7 @@
                     <div>${item.category ? item.category.name : 'No Category'}</div>
                     <div>${totalStock}</div>
                     <div>${item.unit ? item.unit.name : ''}</div>
-                    <div>Rs.${item.puPrice.toFixed()}</div>
+                    <div>Rs.${item.price.toFixed()}</div>
                 `;
 
                         dropdownItem.addEventListener('click', () => {
@@ -837,276 +877,64 @@
             }
         });
 
-        // async function filterItems(input) {
-        //     const query = input.value.trim().toLowerCase();
-        //     const vatStatus = document.getElementById('isVatExempt').value; // Get the VAT status from the select input
-        //     const dropdownMenu = input.nextElementSibling;
-
-        //     // To exclude already present items from search
-        //     const existingItemIds = Array.from(document.querySelectorAll('input[name^="items["]'))
-        //         .filter(input => input.name.includes('[item]'))
-        //         .map(input => input.value);
-
-        //     if (query.length === 0) {
-        //         dropdownMenu.innerHTML = '';
-        //         dropdownMenu.classList.remove('show'); // Hide the dropdown if input is blank
-        //         return;
-        //     }
-
-        //     try {
-        //         const items = await fetchItems(query, vatStatus, existingItemIds);
-
-        //         console.log('Filtered items:', items);
-
-        //         // Clear existing dropdown items
-        //         dropdownMenu.innerHTML = '';
-
-        //         if (items.length === 0) {
-        //             // Display a "No items found" message
-        //             const noItemsMessage = document.createElement('div');
-        //             noItemsMessage.classList.add('dropdown-item');
-        //             noItemsMessage.textContent = 'No items found';
-        //             noItemsMessage.style.textAlign = 'center'; // Center-align the message
-        //             noItemsMessage.style.color = 'white';
-        //             noItemsMessage.style.backgroundColor = 'blue';
-        //             dropdownMenu.appendChild(noItemsMessage);
-        //             dropdownMenu.classList.add('show');
-        //         } else {
-        //             // Create and add table header
-        //             const header = document.createElement('div');
-        //             header.classList.add('dropdown-header');
-        //             header.innerHTML = `
-        //         <div><strong>Item Code</strong></div>
-        //         <div><strong>H.S. Code</strong></div>
-        //         <div><strong>Item Name</strong></div>
-        //         <div><strong>Category</strong></div>
-        //         <div><strong>Quantity</strong></div>
-        //         <div><strong>Unit</strong></div>
-        //         <div><strong>S.Price</strong></div>
-        //         <div><strong>Pu.Price</strong></div>
-        //     `;
-        //             dropdownMenu.appendChild(header);
-
-        //             // Create and add dropdown items
-        //             items.forEach(item => {
-        //                 const dropdownItem = document.createElement('div');
-        //                 dropdownItem.classList.add('dropdown-item');
-        //                 dropdownItem.tabIndex = 0; // Make the item focusable
-
-        //                 // Add class based on VAT status
-        //                 if (item.vatStatus === 'vatable') {
-        //                     dropdownItem.classList.add('vatable-item');
-        //                 } else {
-        //                     dropdownItem.classList.add('non-vatable-item');
-        //                 }
-
-        //                 // Calculate the total available stock from stockEntries
-        //                 const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
-
-        //                 dropdownItem.innerHTML = `
-        //             <div>${item.uniqueNumber || 'N/A'}</div>
-        //             <div>${item.hscode || 'N/A'}</div>
-        //             <div>${item.name}</div>
-        //             <div>${item.category ? item.category.name : 'No Category'}</div>
-        //             <div>${totalStock}</div>
-        //             <div>${item.unit ? item.unit.name : ''}</div>
-        //             <div>Rs.${item.price}</div>
-        //             <div>Rs.${item.puPrice}</div>
-        //         `;
-        //                 dropdownItem.addEventListener('click', () => addItemToBill(item, dropdownMenu));
-        //                 dropdownMenu.appendChild(dropdownItem);
-        //             });
-
-        //             dropdownMenu.classList.add('show');
-        //         }
-        //     } catch (error) {
-        //         console.error('Error fetching items:', error);
-        //         // Optionally, handle errors here
-        //     }
-        // }
-
-        let selectedBatch = {}; // Store the selected batch information
-
         function addItemToBill(item, dropdownMenu) {
             const tbody = document.getElementById('items');
             const inputField = document.getElementById('itemSearch');
-            const adjustmentType = document.getElementById('adjustmentType').value;
 
             if (!inputField.value.trim()) {
                 return; // Do not add an item if the search field is blank
             }
-
-
-            // Sort stock entries by date (FIFO: First In First Out)
-            const sortedStockEntries = item.stockEntries.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-            // Get the first stock entry (FIFO)
-            const firstStockEntry = sortedStockEntries[0] || {}; // Defaults to an empty object if no stock entry exists
-
-
-            // Show the batch modal only if adjustmentType is 'short'
-            if (adjustmentType === 'short') {
-                showBatchModal(item, (batchInfo) => {
-                    selectedBatch = batchInfo;
-                    createItemRow(item, selectedBatch, tbody, dropdownMenu, adjustmentType);
-                });
-
-                // Clear the item search field after adding the item
-                inputField.value = '';
-            } else {
-                // For 'xcess', directly allow input without showing batch modal
-                selectedBatch = { batchNumber: '', expiryDate: '', puPrice: firstStockEntry.puPrice || 0 };
-                createItemRow(item, selectedBatch, tbody, dropdownMenu, adjustmentType);
-
-                // Clear the item search field after adding the item
-                inputField.value = '';
-            }
-        }
-
-        function createItemRow(item, selectedBatch, tbody, dropdownMenu, adjustmentType) {
             const tr = document.createElement('tr');
             tr.classList.add('item', item.vatStatus ? 'vatable-item' : 'non-vatable-item');
 
+            // Calculate the serial number based on the number of rows already in the table
             const serialNumber = tbody.rows.length + 1;
-
             tr.innerHTML = `
-        <td>${serialNumber}</td>
-        <td>${item.uniqueNumber || 'N/A'}</td>
-        <td class="col-3">
+            <td>${serialNumber}</td>
+            <td>${item.uniqueNumber}</td>
+        <td>
             <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
             ${item.name}
         </td>
         <td>
-            <input type="hidden" name="items[${itemIndex}][hscode]" value="${item.hscode || 'N/A'}">
-            ${item.hscode || 'N/A'}
+            <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
+            ${item.hscode}
         </td>
-        <td>
-            <input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)">
-        </td>
+        <td><input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)"></td>
         <td>
             ${item.unit ? item.unit.name : ''}
             <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
-        </td>
-        <!-- Add fields for batch number and expiry date, these will remain editable -->
+            </td>
         <td>
-            <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
-            <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+            <input type="text" name="items[${itemIndex}][batchNumber]" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" step="any" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+            <input type="date" name="items[${itemIndex}][expiryDate]" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)" required>
         </td>
-        <td><input type="number" name="items[${itemIndex}][puPrice]" value="${selectedBatch.puPrice}" class="form-control item-puPrice" id="puPrice-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
+        <td><input type="number" name="items[${itemIndex}][price]" value="${item.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
         <td class="item-amount">0.00</td>
         <td>
-            <select name="items[${itemIndex}][reason]" class="form-control reason-dropdown short-reason" style="${adjustmentType === 'short' ? 'display: block;' : 'display: none;'}" id="shortReason-${itemIndex}" onkeydown="handleReasonKeydown(event,${itemIndex})" onfocus="selectValue(this)">
-                <option value="">None</option>
-                <option value="Exp.">Exp.</option>
-                <option value="Damage">Damage</option>
-                <option value="Donate">Donate</option>
-            </select>
-            <select name="items[${itemIndex}][reason]" class="form-control reason-dropdown xcess-reason" style="${adjustmentType === 'xcess' ? 'display: block;' : 'display: none;'}" id="xcessReason-${itemIndex}" onkeydown="handleReasonKeydown(event,${itemIndex})" onfocus="selectValue(this)">
-                <option value="">None</option>
-                <option value="Bonus">Bonus</option>
-            </select>
-        </td>
-        <td>
-            <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
+             <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
                 <span aria-hidden="true">&times;</span>
             </button>
         </td>
         <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
     `;
             tbody.appendChild(tr);
+
             itemIndex++;
             calculateTotal();
+
+            // Fetch and display last transactions for the added item
+            fetchLastTransactions(item._id);
 
             // Hide the dropdown menu after selecting an item
             dropdownMenu.classList.remove('show');
 
-            // Focus on the newly added row's quantity input
+            // Clear the input field
+            inputField.value = '';
+
+            // Focus on the quantity input field of the newly added row
             document.getElementById(`quantity-${itemIndex - 1}`).focus();
         }
-
-        function showBatchModal(item, callback) {
-            const modal = document.getElementById('batchModal');
-            const modalBody = document.getElementById('batchModalBody');
-
-            const outOfStock = item.stockEntries.every((entry) => entry.quantity === 0);
-            let modalContent = `<h5>Batch Information for ${item.name}</h5>`;
-
-            if (outOfStock) {
-                modalContent += `<div class="alert alert-warning" role="alert">Out of Stock</div>`;
-            } else {
-                modalContent += `
-        <table class="table" id="batchTable">
-            <thead>
-                <tr>
-                    <th>Batch Number</th>
-                    <th>Expiry Date</th>
-                    <th>Quantity</th>
-                    <th>S.P</th>
-                    <th>C.P</th>
-                    <th>%</th>
-                    <th>Mrp</th>
-
-                </tr>
-            </thead>
-            <tbody>
-        `;
-
-                item.stockEntries.forEach((entry) => {
-                    if (entry.quantity > 0) {
-                        modalContent += `
-                <tr tabindex="0">
-                    <td>${entry.batchNumber || 'N/A'}</td>
-                    <td>${entry.expiryDate || 'N/A'}</td>
-                    <td>${entry.quantity}</td>
-                    <td>${entry.price}</td>
-                    <td>${entry.puPrice}</td>
-                    <td>${entry.marginPercentage}</td>
-                    <td>${entry.mrp}</td>
-
-                </tr>
-            `;
-                    }
-                });
-
-                modalContent += '</tbody></table>';
-            }
-
-            modalBody.innerHTML = modalContent;
-            $(modal).modal('show');
-
-            $(modal).on('shown.bs.modal', function () {
-                const firstRow = modalBody.querySelector('tbody tr');
-                if (firstRow) {
-                    firstRow.focus();
-                }
-            });
-
-            const rows = modalBody.querySelectorAll('tbody tr');
-            let selectedIndex = 0;
-
-            rows.forEach((row, index) => {
-                row.addEventListener('keydown', (event) => {
-                    if (event.key === 'ArrowDown') {
-                        selectedIndex = (index + 1) % rows.length;
-                        rows[selectedIndex].focus();
-                    } else if (event.key === 'ArrowUp') {
-                        selectedIndex = (index - 1 + rows.length) % rows.length;
-                        rows[selectedIndex].focus();
-                    } else if (event.key === 'Enter') {
-                        const batchNumber = row.cells[0].textContent;
-                        const expiryDate = row.cells[1].textContent;
-                        const puPrice = row.cells[4].textContent;
-                        callback({ batchNumber, expiryDate, puPrice });
-                        $(modal).modal('hide');
-                    }
-                });
-            });
-
-            modal.addEventListener('hidden.bs.modal', function () {
-                modalBody.innerHTML = '';
-            });
-        }
-
 
         function removeItem(button) {
             const row = button.closest('tr');
@@ -1114,42 +942,11 @@
             calculateTotal();
         }
 
-        function toggleReasonDropdowns() {
-            const adjustmentType = document.getElementById('adjustmentType').value;
-            const rows = document.querySelectorAll('#items tr');
-
-            rows.forEach(row => {
-                const shortReasonDropdown = row.querySelector('.short-reason');
-                const xcessReasonDropdown = row.querySelector('.xcess-reason');
-
-                if (adjustmentType === 'short') {
-                    shortReasonDropdown.style.display = 'block';
-                    xcessReasonDropdown.style.display = 'none';
-                } else if (adjustmentType === 'xcess') {
-                    shortReasonDropdown.style.display = 'none';
-                    xcessReasonDropdown.style.display = 'block';
-                } else {
-                    shortReasonDropdown.style.display = 'none';
-                    xcessReasonDropdown.style.display = 'none';
-                }
-            });
-        }
-
-        // Initial setup for reason dropdowns on page load
-        document.addEventListener('DOMContentLoaded', function () {
-            toggleReasonDropdowns();
-        });
-
-        // Update dropdowns when adjustment type changes
-        document.getElementById('adjustmentType').addEventListener('change', toggleReasonDropdowns);
-
-
-
         function updateItemTotal(input) {
             const row = input.closest('tr');
             const quantity = parseFloat(row.querySelector('input.item-quantity').value) || 0;
-            const puPrice = parseFloat(row.querySelector('input.item-puPrice').value) || 0;
-            const amount = quantity * puPrice;
+            const price = parseFloat(row.querySelector('input.item-price').value) || 0;
+            const amount = quantity * price;
             row.querySelector('.item-amount').textContent = amount.toFixed(2);
             calculateTotal();
         }
@@ -1239,6 +1036,14 @@
         }
 
 
+        function toggleCreditPartyOptions() {
+            const paymentMode = document.getElementById('paymentMode').value;
+            const creditPartyOptions = document.querySelectorAll('.credit-party');
+            creditPartyOptions.forEach(option => {
+                option.style.display = paymentMode === 'credit' ? 'block' : 'none';
+            });
+        }
+
         function toggleVatInputs() {
             const isVatExempt = document.getElementById('isVatExempt').value === 'true';
 
@@ -1266,10 +1071,9 @@
         function showPrintModal() {
             $('#printModal').modal('show');
         }
-
         function submitBillForm(print) {
             shouldPrint = print;
-            const billForm = document.getElementById('billForm');
+            const salesReturnBillForm = document.getElementById('salesReturnBillForm');
             const saveButton = document.getElementById('saveBill');
 
             // Change button text and disable it
@@ -1277,14 +1081,14 @@
             saveButton.disabled = true;
 
             if (print) {
-                const url = new URL(billForm.action);
+                const url = new URL(salesReturnBillForm.action);
                 url.searchParams.append('print', 'true');
-                billForm.action = url.toString();
+                salesReturnBillForm.action = url.toString();
             }
 
             // Simulate form submission (replace this with actual form submission logic)
             setTimeout(() => {
-                billForm.submit();
+                salesReturnBillForm.submit();
 
                 // Reset button text and enable it after submission
                 saveButton.innerText = 'Save Bill';
@@ -1292,14 +1096,12 @@
             }, 2000); // Simulating a delay; adjust or remove as needed
         }
 
-
-        document.getElementById('billForm').addEventListener('submit', function (event) {
+        document.getElementById('salesReturnBillForm').addEventListener('submit', function (event) {
             if (!shouldPrint && event.submitter && event.submitter.innerText === 'Save & Print Bill') {
                 event.preventDefault();
                 showPrintModal();
             }
         });
-
         function numberToWords(num) {
             const ones = [
                 '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
@@ -1352,7 +1154,6 @@
 
             return words.trim();
         }
-
         // Fetch Total Amount and Convert to Words
         document.addEventListener('DOMContentLoaded', () => {
             const totalAmount = parseFloat(document.getElementById('totalAmount').innerText);
@@ -1362,6 +1163,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             toggleVatInputs();
+            toggleCreditPartyOptions();
         });
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -1375,10 +1177,6 @@
                 calculateTotal();
             });
 
-            // document.querySelectorAll('.price-input, .quantity-input, .item-select').forEach(element => {
-            //     element.addEventListener('input', calculateTotal);
-            // });
-
             document.getElementById('roundOffAmount').addEventListener('input', function () {
                 calculateTotal();
             });
@@ -1386,32 +1184,104 @@
             calculateTotal();
         });
 
-        // Assuming you have a batch modal with an ID 'batchModal' and an input field inside it
-        const batchModal = document.getElementById('batchModal');
-
-        // Add keydown event listener to the batch modal to detect "Enter" press
-        batchModal.addEventListener('keydown', function (event) {
-            if (event.key === 'Enter') {
-                event.preventDefault(); // Prevent form submission or modal close
-
-                // Focus on the quantity field of the last added row after pressing "Enter"
-                focusOnLastQuantityField();
+        async function shouldDisplayTransactions() {
+            try {
+                const response = await fetch(`/settings/get-display-sales-return-transactions`);
+                const { displayTransactionsForSalesReturn } = await response.json();
+                return displayTransactionsForSalesReturn;
+            } catch (error) {
+                console.error('Error fetching settings:', error);
+                return false;
             }
-        });
+        }
 
-        // Function to focus on the quantity field of the last added item
-        function focusOnLastQuantityField() {
-            const tbody = document.getElementById('items');
+        async function fetchLastTransactions(itemId) {
+            // const itemId = select.value;
+            const accountId = document.getElementById('account').value;
+            const purchaseSalesType = document.getElementById('purchaseSalesType').value; // Ensure this element exists and has a value
+            const transactionList = document.getElementById('transactionList');
 
-            // Get the last row's quantity field
-            const lastRow = tbody.querySelector('tr.item:last-child');
+            if (!purchaseSalesType) {
+                console.error('Account Type is undefined. Please ensure it is set.');
+                return;
+            }
 
-            if (lastRow) {
-                const lastQuantityField = lastRow.querySelector('.item-quantity');
+            try {
 
-                if (lastQuantityField) {
-                    lastQuantityField.focus();
+                const response = await fetch(`/api/transactions/${itemId}/${accountId}/${purchaseSalesType}`);
+                const transactions = await response.json();
+                // const { transactions, companyDateFormat } = await response.json();
+                console.log('Fetched Transactions:', transactions);
+
+                // Check if transactions are empty
+                if (transactions.length === 0) {
+                    transactionList.innerHTML = '<p>No transactions to display.</p>';
+                    // Do not show the modal if there are no transactions
+                    return;
                 }
+
+                // Create table header
+                let tableHtml = `
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Trans. Id</th>
+                        <th>Date</th>
+                        <th>Bill No.</th>
+                        <th>Type</th>
+                        <th>A/c Type</th>
+                        <th>Pay.Mode</th>
+                        <th>Qty.</th>
+                        <th>Unit</th>
+                        <th>S.price</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+                // Add table rows for each transaction
+                tableHtml += transactions.map(transaction => {
+
+                    if (!transaction || !transaction.salesReturnBillId || !transaction.salesReturnBillId._id) {
+                        console.error('Invalid transaction:', transaction);
+                        return ''; // Return an empty string for invalid transactions
+                    }
+
+                    return `
+                <tr onclick="window.location.href='/salesReturnBills/${transaction.salesReturnBillId._id}/print'" style="cursor: pointer;">
+                    <td>${transaction._id}</td>
+                    <td>${new Date(transaction.date).toLocaleDateString()}</td>
+                    <td>${transaction.salesReturnBillNumber}</td>
+                    <td>${transaction.type}</td>
+                    <td>${transaction.purchaseSalesType}</td>
+                    <td>${transaction.paymentMode}</td>
+                    <td>${transaction.quantity}</td>
+                    <td>${transaction.unit ? transaction.unit.name : 'N/A'}</td>
+                    <td>Rs.${transaction.price}</td>
+                </tr>
+            `;
+                }).join('');
+
+                // Close table
+                tableHtml += `
+                </tbody>
+            </table>
+        `;
+
+                // Set the innerHTML of the transaction list container
+                transactionList.innerHTML = tableHtml;
+                console.log('Transactions:', transactions);
+
+                // Show the modal
+                $('#transactionModal').modal('show');
+            } catch (error) {
+                console.error('Error fetching transactions:', error);
+            }
+        }
+        async function handleFetchLastTransactions(itemId) {
+            const displayTransactionsForSalesReturn = await shouldDisplayTransactions();
+            if (displayTransactionsForSalesReturn) {
+                await fetchLastTransactions(itemId);
             }
         }
 
@@ -1426,41 +1296,52 @@
 
             if (itemSearchInput.value.length > 0) {
                 if (event.key === 'Enter') {
+                    // Fetch and check if transactions should be displayed
+                    const displayTransactionsForSalesReturn = await shouldDisplayTransactions();
 
-                    focusOnLastRow('item-quantity');
+                    // Only open the modal if displayTransactionsForSalesReturn is true
+                    if (displayTransactionsForSalesReturn) {
+                        openModalAndFocusCloseButton();
+                    } else {
+                        focusOnLastRow('item-quantity');
+                    }
                 }
             } else if (itemSearchInput.value.length < 0 || itemsAvailable) {
                 if (event.key === 'Enter') {
-                    const addNoteInput = document.getElementById('note')
-                    addNoteInput.focus();
+                    const submitBillForm = document.getElementById('saveBill')
+                    submitBillForm.focus();
                 }
             }
         }
+        function openModalAndFocusCloseButton() {
+            // Open the modal
+            $('#transactionModal').modal('show');
 
-        function handleAddNoteKeydown(event) {
+            // Wait until the modal is fully shown before focusing the close button
+            $('#transactionModal').on('shown.bs.modal', function () {
+                document.getElementById('closeModalButton').focus();
+            });
+        }
+
+        function handleCloseButtonKeydown(event) {
             if (event.key === 'Enter') {
-                const submitBillForm = document.getElementById('saveBill');
-                const itemsAvailable = itemsTable && itemsTable.querySelectorAll('.item').length > 0;
+                // Close the modal (optional, depending on your implementation)
+                $('#transactionModal').modal('hide');
 
-                if (itemsAvailable) {
-                    event.preventDefault();
-                    submitBillForm.focus();
-                }
+                // Focus on the quantity input field
+                document.getElementById(`quantity-${itemIndex - 1}`).focus();
             }
         }
 
         function handleQuantityKeydown(event) {
             if (event.key === 'Enter') {
                 // Focus on the price input field
-                // document.getElementById('price').focus();
-                // document.getElementById(`price-${itemIndex}`).focus();
                 const batchNumberInput = document.getElementById(`batchNumber-${itemIndex - 1}`);
                 batchNumberInput.focus();
                 batchNumberInput.select();
 
             }
         }
-
         function handleBatchKeydown(event) {
             if (event.key === 'Enter') {
                 const expDateInput = document.getElementById(`expiryDate-${itemIndex - 1}`);
@@ -1471,181 +1352,19 @@
 
         function handleExpDateKeydown(event) {
             if (event.key === 'Enter') {
-                const priceInput = document.getElementById(`puPrice-${itemIndex - 1}`);
+                const priceInput = document.getElementById(`price-${itemIndex - 1}`);
                 priceInput.focus();
                 priceInput.select();
             }
         }
 
-        // function handlePriceKeydown(event) {
-        //     if (event.key === 'Enter') {
-
-        //         // Get the current item index
-        //         const index = itemIndex - 1;
-
-        //         // Get the reason dropdowns based on the current item index
-        //         const shortReasonInput = document.getElementById(`shortReason-${index}`);
-        //         const xcessReasonInput = document.getElementById(`xcessReason-${index}`);
-
-        //         // Check which dropdown should be focused based on the adjustment type
-        //         const adjustmentType = document.getElementById('adjustmentType').value;
-
-        //         if (adjustmentType === 'short' && shortReasonInput) {
-        //             shortReasonInput.focus();
-        //             shortReasonInput.select();
-        //         } else if (adjustmentType === 'xcess' && xcessReasonInput) {
-        //             xcessReasonInput.focus();
-        //             xcessReasonInput.select();
-        //         }
-        //     }
-        // }
-
-        function handlePriceKeydown(event, itemIndex) {
+        function handlePriceKeydown(event) {
             if (event.key === 'Enter') {
-                const puPriceInput = document.getElementById(`puPrice-${itemIndex}`);
-                const adjustmentType = document.getElementById('adjustmentType').value;
-
-                if (puPriceInput.value) {
-                    // Only show the modal if adjustment type is 'xcess'
-                    if (adjustmentType === 'xcess') {
-                        // Set the PU Price in the modal
-                        document.getElementById('puPrice').value = puPriceInput.value;
-
-                        // Show the sales price modal
-                        $('#setSalesPriceModal').modal('show');
-
-                        // Handle modal shown event to focus on the margin percentage input
-                        $('#setSalesPriceModal').on('shown.bs.modal', function () {
-                            document.getElementById('marginPercentage').focus();
-                        });
-
-                        // Handle margin percentage input
-                        const marginPercentageInput = document.getElementById('marginPercentage');
-                        marginPercentageInput.oninput = function () {
-                            updateSalesPriceFromMargin(puPriceInput.value);
-                        };
-
-                        // Handle MRP input
-                        const mrpInput = document.getElementById('mrp');
-                        mrpInput.oninput = function () {
-                            updateSalesPriceFromMRP(mrpInput.value);
-                            updateMarginFromMRPAndSalesPrice(mrpInput.value, puPriceInput.value);
-                        };
-
-                        // Handle sales price input
-                        const salesPriceInput = document.getElementById('salesPrice');
-                        salesPriceInput.oninput = function () {
-                            updateMarginFromMRPAndSalesPrice(mrpInput.value, puPriceInput.value);
-                        };
-
-                        // Handle currency change
-                        const currencySelect = document.getElementById('currency');
-                        currencySelect.onchange = function () {
-                            updateSalesPriceFromMRP(mrpInput.value);
-                        };
-
-                        // Handle sales price save action
-                        const saveSalesPriceButton = document.getElementById('saveSalesPrice');
-                        saveSalesPriceButton.onclick = function () {
-                            const salesPrice = document.getElementById('salesPrice').value;
-                            const mrpValue = document.getElementById('mrp').value;
-                            const marginPercentage = document.getElementById('marginPercentage').value;
-
-                            if (salesPrice) {
-                                // Store sales price in a hidden input within the current row
-                                const tr = puPriceInput.closest('tr');
-                                const salesPriceInput = document.createElement('input');
-                                salesPriceInput.type = 'hidden';
-                                salesPriceInput.name = `items[${itemIndex}][price]`;
-                                salesPriceInput.value = salesPrice;
-                                tr.appendChild(salesPriceInput);
-
-                                // Store MRP in a hidden input within the current row
-                                const mrpInputHidden = document.createElement('input');
-                                mrpInputHidden.type = 'hidden';
-                                mrpInputHidden.name = `items[${itemIndex}][mrp]`;
-                                mrpInputHidden.value = mrpValue;
-                                tr.appendChild(mrpInputHidden);
-
-                                // Store marginPercentage in a hidden input within the current row
-                                const marginPercentageInputHidden = document.createElement('input');
-                                marginPercentageInputHidden.type = 'hidden';
-                                marginPercentageInputHidden.name = `items[${itemIndex}][marginPercentage]`;
-                                marginPercentageInputHidden.value = marginPercentage;
-                                tr.appendChild(marginPercentageInputHidden);
-
-                                // Close the modal
-                                $('#setSalesPriceModal').modal('hide');
-
-                                // Now focus on the reason input field based on the adjustment type
-                                const shortReasonInput = document.getElementById(`shortReason-${itemIndex}`);
-                                const xcessReasonInput = document.getElementById(`xcessReason-${itemIndex}`);
-
-                                if (adjustmentType === 'short' && shortReasonInput) {
-                                    shortReasonInput.focus();
-                                    shortReasonInput.select();
-                                } else if (adjustmentType === 'xcess' && xcessReasonInput) {
-                                    xcessReasonInput.focus();
-                                    xcessReasonInput.select();
-                                }
-                            } else {
-                                alert('Please enter a valid sales price.');
-                            }
-                        };
-                    } else {
-                        // If adjustment type is 'short', directly move to reason input
-                        const shortReasonInput = document.getElementById(`shortReason-${itemIndex}`);
-                        if (shortReasonInput) {
-                            shortReasonInput.focus();
-                            shortReasonInput.select();
-                        }
-                    }
-                }
-            }
-        }
-
-        function updateSalesPriceFromMargin(puPrice) {
-            const marginPercentage = parseFloat(document.getElementById('marginPercentage').value) || 0;
-            const salesPriceFromMargin = parseFloat(puPrice) + (parseFloat(puPrice) * marginPercentage / 100);
-            document.getElementById('salesPrice').value = salesPriceFromMargin.toFixed(2); // Set calculated sales price from margin
-        }
-
-        function updateSalesPriceFromMRP(mrpValue) {
-            const currency = document.getElementById('currency').value;
-            let salesPriceFromMRP;
-            if (currency === 'INR') {
-                salesPriceFromMRP = parseFloat(mrpValue) * 1.60; // Convert MRP to sales price for INR
-            } else {
-                salesPriceFromMRP = parseFloat(mrpValue); // Use MRP directly for NPR
-            }
-            document.getElementById('salesPrice').value = salesPriceFromMRP.toFixed(2); // Set calculated sales price from MRP
-        }
-
-        function updateMarginFromMRPAndSalesPrice(mrpValue, puPriceValue) {
-            const salesPrice = parseFloat(document.getElementById('salesPrice').value) || 0;
-            const puPrice = parseFloat(puPriceValue) || 0;
-            const marginPercentageInput = document.getElementById('marginPercentage');
-
-            // Calculate margin percentage based on (Sales Price - PU Price) / PU Price * 100
-            const marginPercentage = ((salesPrice - puPrice) / puPrice) * 100;
-
-            if (!isNaN(marginPercentage) && puPrice > 0) {
-                marginPercentageInput.value = marginPercentage.toFixed(2); // Update margin percentage
-            } else {
-                marginPercentageInput.value = ''; // Reset if the calculation fails or PU Price is 0
-            }
-        }
-
-
-        function selectValue(input) {
-            input.select(); // Select the value of the input field when it is focused
-        }
-
-        function handleReasonKeydown(event) {
-            if (event.key === 'Enter') {
+                // Focus back on the item search input field
                 const itemSearchInput = document.getElementById('itemSearch');
                 itemSearchInput.focus();
                 itemSearchInput.select();
+
             }
         }
 
@@ -1663,28 +1382,5 @@
                     inputField.select();
                 }
             }
-        }
-
-        // //Handle scape buttons
-        // document.addEventListener('keydown', function (event) {
-        //     if (event.key === 'Escape') {
-        //         event.preventDefault(); // Prevent default escape behavior
-        //         var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
-        //         exitModal.show();
-        //     }
-        // });
-
-        // // Handle the exit confirmation
-        // document.getElementById('confirmExit').addEventListener('click', function () {
-        //     // Redirect to the home page
-        //     window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
-        // });
-
-        function confirmCancel() {
-            return confirm("Are you sure you want to cancel this voucher?");
-        }
-
-        function confirmReactivate() {
-            return confirm("Are you sure you want to reactivate this voucher?");
         }
     </script>

@@ -16,17 +16,24 @@ const SalesReturnSchema = new Schema({
         default: 0
     },
     purchaseSalesReturnType: { type: String },
-    salesBillNumber: { type: String },
     originalCopies: { type: Number, default: 1 },
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     billNumber: { type: Number, required: true },
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     unit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
     settings: { type: mongoose.Schema.Types.ObjectId, ref: 'Settings' },
+    fiscalYear: {
+        type: Schema.Types.ObjectId,
+        ref: 'FiscalYear',
+        required: true
+    },
     items: [{
         item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
-        quantity: Number,
-        price: Number,
+        unit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
+        quantity: { type: Number, required: true },  // Required in item schema
+        price: { type: Number, required: true },     // Required in item schema
+        batchNumber: { type: String },
+        expiryDate: { type: Date },
         vatStatus: {
             type: String,
             required: true,
@@ -42,17 +49,13 @@ const SalesReturnSchema = new Schema({
     vatAmount: Number,
     totalAmount: Number,
     isVatExempt: { type: Boolean, default: false },
+    isVatAll: { type: String },
     roundOffAmount: Number,
     paymentMode: String,
     quantity: Number,
     price: Number,
-    // date: { type: String },
     date: { type: Date, default: Date.now() },
     transactionDate: { type: Date, default: Date.now() }
-
-    // oppositeDate: { type: String }
-    // romanDate: { type: Date, default: Date.now() }
-
 
 });
 

@@ -88,6 +88,7 @@ router.get('/companies', ensureAuthenticated, ensureCompanySelected, ensureTrade
             companyGroups,
             companyId,
             currentCompanyName,
+            currentCompany: companyId,
             currentFiscalYear,
             title: 'Account',
             body: 'wholeseller >> account',
@@ -378,7 +379,8 @@ router.delete('/companies/:id', ensureAuthenticated, ensureCompanySelected, ensu
         }
 
         if (account.defaultCashAccount) {
-            return res.status(400).json({ message: 'Cannot delete default cash account' });
+            req.flash('error', 'Cannot delete default cash account');
+            return res.redirect('/companies');
         }
 
         // Check for associated transactions

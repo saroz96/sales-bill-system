@@ -207,7 +207,7 @@
                 Create New Bill
             </div>
             <div class="card-body">
-                <form action="/billsTrackBatchOpen" method="post" id="billForm" class="wow-form">
+                <form action="/bills/edit/<%=bill._id%>?_method=PUT" method="post" id="billForm" class="wow-form">
                     <div class="form-group row">
 
                         <% if (companyDateFormat==='nepali' ) { %>
@@ -245,7 +245,6 @@
                                 <!-- Hidden field for nepaliDate, since we are using English Date -->
                                 <input type="hidden" name="nepaliDate" id="nepaliDate" value="">
                                 <% } %>
-
                                     <div class="col">
                                         <label for="billNumber">Vch. No:</label>
                                         <input type="number" name="billNumber" id="billNumber" class="form-control"
@@ -263,18 +262,6 @@
                                                 >Credit</option>
                                         </select>
                                     </div>
-                                    <!-- <div class="col">
-                                        <label for="isVatExempt">VAT</label>
-                                        <select name="isVatExempt" id="isVatExempt" class="form-control"
-                                            onchange="toggleVatInputs()"
-                                            onchange="filterItems(document.getElementById('itemSearch'))">
-                                            <% if (vatEnabled) {%>
-                                                <option value="all">All</option>
-                                                <option value="false">13%</option>
-                                                <%}%>
-                                                    <option value="true">Exempt</option>
-                                        </select>
-                                    </div> -->
 
                                     <div class="col">
                                         <label for="isVatExempt">VAT</label>

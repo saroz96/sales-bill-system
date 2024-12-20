@@ -35,19 +35,19 @@
                         </h5>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item"><strong>Sales Price:</strong>
-                                <%= salesPrice %>
+                                <%= salesPrice.toFixed(2) %>
                             </li>
                             <li class="list-group-item"><strong>Purchase Price:</strong>
-                                <%= purchasePrice %>
+                                <%= purchasePrice.toFixed(2) %>
                             </li>
                             <li class="list-group-item"><strong>Opening Stock:</strong>
-                                <%= openingStock %>
+                                <%= openingStock.toFixed(2) %>
                             </li>
                             <li class="list-group-item"><strong>Opening Stock Balance:</strong>
                                 <%= openingStockBalance.toFixed(2) || 0.00 %>
                             </li>
                             <li class="list-group-item"><strong>Re-Order Level:</strong>
-                                <%=items.reorderLevel%>
+                                <%=items.reorderLevel %>
                             </li>
                         </ul>
                     </div>

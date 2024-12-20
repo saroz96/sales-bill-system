@@ -123,7 +123,7 @@
                     <div class="card">
                         <div class="card-body bg-success text-white text-center">
                             <h5 class="card-title">Total Sales</h5>
-                            <p class="card-text">Rs.<%= totalSales %>
+                            <p class="card-text">Rs.<%= totalSales.toFixed(2) %>
                             </p>
                             <a href="/bills" class="btn btn-primary">Create Sales</a>
                         </div>
@@ -133,7 +133,7 @@
                     <div class="card">
                         <div class="card-body bg-secondary text-white text-center">
                             <h5 class="card-title">Total Purchase</h5>
-                            <p class="card-text">Rs.<%= totalPurchase %>
+                            <p class="card-text">Rs.<%= totalPurchase.toFixed(2) %>
                             </p>
                             <a href="/purchase-bills" class="btn btn-primary">Create Purchase</a>
                         </div>
@@ -174,12 +174,14 @@
                             <thead>
                                 <tr>
                                     <th>#</th>
+                                    <th>Item Code</th>
                                     <th>H.S. Code</th>
                                     <th>Name</th>
                                     <th>Category</th>
-                                    <th>Price</th>
+                                    <th>S.P</th>
                                     <th>Stock</th>
                                     <th>Unit</th>
+                                    <th>%</th>
                                     <th>Vat</th>
                                 </tr>
                             </thead>
@@ -280,9 +282,7 @@
                 const searchQuery = this.value.toLowerCase();
                 const filteredProducts = products.filter(product =>
                     product.name.toLowerCase().includes(searchQuery) ||
-                    (product.category && product.category.name.toLowerCase().includes(searchQuery)) ||
-                    product.price.toString().includes(searchQuery) ||
-                    product.stock.toString().includes(searchQuery)
+                    (product.category && product.category.name.toLowerCase().includes(searchQuery))
                 );
                 displayProducts(filteredProducts);
             });
@@ -302,16 +302,23 @@
 
 
                     // Calculate the total available stock from stockEntries
+                    // const totalStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+                    // Calculate total stock and fetch price from stock entries
                     const totalStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+                    const latestStockEntry = product.stockEntries[product.stockEntries.length - 1];
+                    const price = latestStockEntry ? latestStockEntry.price : 0;
+                    const margin = latestStockEntry ? latestStockEntry.marginPercentage : 0;
 
                     row.innerHTML = `
             <td>${product._id}</td>
+            <td>${product.uniqueNumber}</td>
             <td>${product.hscode}</td>
             <td>${product.name}</td>
             <td>${product.category ? product.category.name : 'No Category'}</td>
-            <td>${product.price}</td>
+            <td>${price}</td>
             <td>${totalStock}</td>
             <td>${product.unit.name}</td>
+            <td>${margin || 'Null'}</td>
             <td>${product.vatStatus}</td>
             `;
 

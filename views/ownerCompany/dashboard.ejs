@@ -119,6 +119,7 @@
                         <table class="table table-striped mt-3">
                             <thead>
                                 <tr>
+                                    <th>S.n</th>
                                     <th>Company Name</th>
                                     <th>Trade Type</th>
                                     <th>Date Format</th>
@@ -126,8 +127,11 @@
                                 </tr>
                             </thead>
                             <tbody id="companyList">
-                                <% companies.forEach(company=> { %>
+                                <% companies.forEach((company, index)=> { %>
                                     <tr class="searchClass">
+                                        <td>
+                                            <%= index + 1 %>
+                                        </td>
                                         <td><strong>
                                                 <%= company.name %>
                                             </strong></td>

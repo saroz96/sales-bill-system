@@ -18,8 +18,6 @@
     </style>
 
     <div class="container mt-4 wow-form">
-        <!-- <h1 class="mt-5">Items</h1> -->
-
         <!-- Add Item Form -->
         <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
             <h1 style="text-align: center;text-decoration: underline;">Items</h1>
@@ -32,12 +30,13 @@
                         <div class="col">
                             <label for="name">Item Name <i style="color: red;">*</i></label>
                             <input type="text" class="form-control" id="name" name="name" placeholder="Enter item name"
-                                onkeydown="handleItemNameInputKeydown(event)" required>
+                                onkeydown="handleItemNameInputKeydown(event)" autocomplete="off" required>
                         </div>
                         <div class="col">
                             <label for="hscode">Item H.S. Code</label>
                             <input type="number" class="form-control" id="hscode" name="hscode"
-                                placeholder="Enter item H.S code" onkeydown="handleItemHsCodeInputKeydown(event)">
+                                placeholder="Enter item H.S code" onkeydown="handleItemHsCodeInputKeydown(event)"
+                                autocomplete="off">
                         </div>
                         <div class="col">
                             <label for="category">Category <i style="color: red;">*</i></label>
@@ -140,11 +139,11 @@
                     <tr>
                         <th>Name</th>
                         <th>Category</th>
-                        <th>S.Price</th>
-                        <th>C.Price</th>
+                        <th>S.P</th>
+                        <th>C.P</th>
                         <th>Stock</th>
                         <th>Unit</th>
-                        <th>VAT Status</th>
+                        <th>Vat</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -217,11 +216,13 @@
                             <div class="form-group row">
                                 <div class="col">
                                     <label for="editName">Item Name <i style="color: red;">*</i></label>
-                                    <input type="text" class="form-control" id="editName" name="name" required>
+                                    <input type="text" class="form-control" id="editName" name="name" autofocus
+                                        autocomplete="off" required>
                                 </div>
                                 <div class="col">
                                     <label for="editHscode">H.S. Code</label>
-                                    <input type="number" class="form-control" id="editHscode" name="hscode">
+                                    <input type="number" class="form-control" id="editHscode" name="hscode" autofocus
+                                        autocomplete="off">
                                 </div>
                                 <div class="col">
                                     <label for="editCategory">Category <i style="color: red;">*</i></label>
@@ -466,7 +467,10 @@
                 </style>
             </head>
             <body>
-                <h2>Items List</h2>
+                <h2 class="card-subtitle mb-2 text-center">
+                            <%= currentCompanyName %>
+                        </h2>
+                <h2 class="text-center">Items List</h2>
                 ${printContent}
             </body>
             </html>

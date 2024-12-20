@@ -1,0 +1,220 @@
+
+//router.put logic should be here
+router.put('/purchase-bills/edit/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        const billId = req.params.id;
+        const {
+            account,
+            items,
+            vatPercentage,
+            transactionDateRoman,
+            transactionDateNepali,
+            billDate,
+            nepaliDate,
+            isVatExempt,
+            discountPercentage,
+            paymentMode,
+            roundOffAmount: manualRoundOffAmount,
+        } = req.body;
+
+        const companyId = req.session.currentCompany;
+        const currentFiscalYear = req.session.currentFiscalYear.id;
+        const userId = req.user._id;
+
+        if (!companyId) {
+            return res.status(400).json({ error: 'Company ID is required' });
+        }
+
+        const existingBill = await PurchaseBill.findOne({ _id: billId, company: companyId });
+        if (!existingBill) {
+            req.flash('error', 'Purchase not found');
+            return res.redirect('/purchase-bills-list');
+        }
+
+        // Step 1: Restore stock from the existing bill items
+        for (const existingItem of existingBill.items) {
+            const product = await Item.findById(existingItem.item);
+            const batchEntry = product.stockEntries.find(entry => entry.batchNumber === existingItem.batchNumber);
+            if (batchEntry) {
+                batchEntry.quantity -= existingItem.quantity; // Restore stock for the existing item
+            } else {
+                console.warn(`Batch number ${existingItem.batchNumber} not found for product: ${product.name}`);
+            }
+            await product.save(); // Save the updated product
+        }
+        console.log('Stock successfully reversed for existing bill items.');
+
+        // Delete all associated transactions
+        await Transaction.deleteMany({ purchaseBillId: billId });
+        console.log('Existing transactions deleted successfully');
+
+        // Calculate amounts based on the updated POST route logic
+        const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
+        const isVatAll = isVatExempt === 'all';
+        const discount = parseFloat(discountPercentage) || 0;
+
+        let totalTaxableAmount = 0;
+        let totalNonTaxableAmount = 0;
+
+        for (const item of items) {
+            const product = await Item.findById(item.item);
+            if (product.vatStatus) {
+                totalTaxableAmount += item.quantity * item.puPrice;
+            } else {
+                totalNonTaxableAmount += item.quantity * item.puPrice;
+            }
+        }
+
+        const discountForTaxable = (totalTaxableAmount * discount) / 100;
+        const discountForNonTaxable = (totalNonTaxableAmount * discount) / 100;
+
+        const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
+        const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
+
+        let vatAmount = 0;
+        if (!isVatExemptBool || isVatExempt === 'all') {
+            vatAmount = (finalTaxableAmount * vatPercentage) / 100;
+        }
+
+        const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
+
+        let finalAmount = totalAmount;
+        let roundOffAmount = 0;
+
+        const roundOffForPurchase = await Settings.findOne({ companyId, userId, fiscalYear: currentFiscalYear, }) || { roundOffPurchase: false };
+
+        if (roundOffForPurchase.roundOffPurchase) {
+            finalAmount = Math.round(finalAmount.toFixed(2));
+            roundOffAmount = finalAmount - totalAmount;
+        } else if (manualRoundOffAmount && !roundOffForPurchase.roundOffPurchase) {
+            roundOffAmount = parseFloat(manualRoundOffAmount);
+            finalAmount = totalAmount + roundOffAmount;
+        }
+
+        // Update existing bill
+        existingBill.account = account;
+        existingBill.isVatExempt = isVatExemptBool;
+        existingBill.vatPercentage = isVatExemptBool ? 0 : vatPercentage;
+        existingBill.subTotal = totalTaxableAmount + totalNonTaxableAmount;
+        existingBill.discountPercentage = discount;
+        existingBill.discountAmount = discountForTaxable + discountForNonTaxable;
+        existingBill.nonVatSales = finalNonTaxableAmount;
+        existingBill.taxableAmount = finalTaxableAmount;
+        existingBill.vatAmount = vatAmount;
+        existingBill.isVatAll = isVatAll,
+            existingBill.totalAmount = finalAmount;
+        existingBill.roundOffAmount = roundOffAmount;
+        existingBill.paymentMode = paymentMode;
+        existingBill.date = nepaliDate || new Date(billDate);
+        existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
+
+        //FIFO stock addition function
+        async function addStock(product, batchNumber, expiryDate, quantity, price, puPrice, marginPercentage, mrp) {
+            // Ensure quantity is treated as a number
+            const quantityNumber = Number(quantity);
+
+            const stockEntry = {
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                quantity: quantityNumber,
+                batchNumber: batchNumber,
+                expiryDate: expiryDate,
+                puPrice: puPrice,
+                mrp: mrp,
+                marginPercentage: marginPercentage,
+            };
+
+
+            // Debug: log stock entry to ensure values are correct
+            console.log('Stock Entry:', stockEntry);
+            product.stockEntries.push(stockEntry); // Add entry to stockEntries array
+            // Ensure stock is incremented correctly as a number
+            product.stock = (product.stock || 0) + quantityNumber;
+            await product.save();
+        }
+
+        const billItems = await Promise.all(items.map(async item => {
+            const product = await Item.findById(item.item);
+
+            // Increment stock quantity using FIFO
+            await addStock(product, item.batchNumber, item.expiryDate, item.quantity, item.price, item.puPrice, item.marginPercentage, item.mrp);
+
+            return {
+                item: product._id,
+                quantity: item.quantity,
+                puPrice: item.puPrice,
+                unit: item.unit,
+                batchNumber: item.batchNumber,
+                expiryDate: item.expiryDate,
+                vatStatus: product.vatStatus,
+                fiscalYear: currentFiscalYear,
+            };
+        }));
+
+        existingBill.items = billItems;
+
+        // After updating the existingBill.items, reinserting transactions
+        const billItemsTransactions = await Promise.all(existingBill.items.map(async item => {
+            const product = await Item.findById(item.item);
+
+            if (!product) {
+                throw new Error(`Product with ID ${item.item} not found`);
+            }
+
+            // Create a transaction for each item
+            const transaction = new Transaction({
+                item: product._id,
+                account: account,
+                billNumber: existingBill.billNumber,
+                quantity: item.quantity,
+                price: item.puPrice,
+                unit: item.unit,
+                type: 'Purc',
+                purchaseBillId: existingBill._id,
+                purchaseSalesType: 'Purchase',
+                debit: 0, // Update as per your logic
+                credit: finalAmount, // Since it's a sale
+                paymentMode: paymentMode,
+                balance: 0, // Update with the correct balance logic if needed
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear
+            });
+            await transaction.save();
+            console.log('Transaction created:', transaction);
+
+            return transaction; // Optional, if you need to track the transactions created
+        }));
+
+        console.log('All transactions successfully created for updated bill.');
+
+        await existingBill.save();
+        if (paymentMode === 'cash') {
+            const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
+
+            if (cashAccount) {
+                const cashTransaction = new Transaction({
+                    account: cashAccount._id,
+                    billNumber: existingBill.billNumber,
+                    type: 'Purc',
+                    purchaseBillId: existingBill._id,
+                    purchaseSalesType: 'Purchase',
+                    debit: finalAmount, // The cash amount received
+                    credit: 0,
+                    paymentMode: paymentMode,
+                    balance: 0, // Adjust with the correct balance logic
+                    date: nepaliDate ? nepaliDate : new Date(billDate),
+                    company: companyId,
+                    user: userId,
+                    fiscalYear: currentFiscalYear
+                });
+                await cashTransaction.save();
+                console.log('Cash transaction created:', cashTransaction);
+            }
+        }
+
+        req.flash('success', 'Purchase updated successfully');
+        res.redirect(`/purchase-bills/edit/${billId}`);
+    }
+
+})

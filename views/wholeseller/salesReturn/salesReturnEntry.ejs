@@ -257,6 +257,15 @@
                                         </p>
                                     </div>
                                     <div class="col">
+                                        <label for="paymentMode">Payment Mode:</label>
+                                        <select class="form-control" id="paymentMode" name="paymentMode"
+                                            onchange="toggleCreditPartyOptions()">
+                                            <option>Select</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="credit">Credit</option>
+                                        </select>
+                                    </div>
+                                    <div class="col">
                                         <label for="isVatExempt">VAT</label>
                                         <select name="isVatExempt" id="isVatExempt" class="form-control"
                                             onchange="toggleVatInputs()"
@@ -268,33 +277,6 @@
                                                     <option value="true">Exempt</option>
                                         </select>
                                     </div>
-                    </div>
-                    <div class="form-group row">
-                        <div class="col">
-                            <label for="salesBillNumber">Sales Invoice No:</label>
-                            <select id="salesBillNumber" name="salesBillNumber" class="form-control">
-                                <option value="" disabled selected>Select invoice number</option>
-                                <% if(salesInvoice && salesInvoice.length>0){%>
-                                    <% salesInvoice.forEach(invoice=>{%>
-                                        <option value="<%=invoice._id%>">
-                                            <%= invoice.billNumber%>
-                                        </option>
-                                        <%});%>
-                                            <%}else{%>
-                                                <option disabled>No invoice number available</option>
-                                                <% } %>
-
-                            </select>
-                        </div>
-                        <div class="col">
-                            <label for="paymentMode">Payment Mode:</label>
-                            <select class="form-control" id="paymentMode" name="paymentMode"
-                                onchange="toggleCreditPartyOptions()">
-                                <option>Select</option>
-                                <option value="cash">Cash</option>
-                                <option value="credit">Credit</option>
-                            </select>
-                        </div>
                     </div>
                     <div class="form-group row">
                         <div class="col hidden">
@@ -940,7 +922,10 @@
             ${item.hscode}
         </td>
         <td><input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)"></td>
-        <td>${item.unit ? item.unit.name : ''}</td>
+        <td>
+            ${item.unit ? item.unit.name : ''}
+            <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
+        </td>
         <td>
             <input type="text" name="items[${itemIndex}][batchNumber]" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" step="any" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
             <input type="date" name="items[${itemIndex}][expiryDate]" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)" required>

@@ -23,10 +23,19 @@ const PurchaseBillSchema = new Schema({
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     unit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
     settings: { type: mongoose.Schema.Types.ObjectId, ref: 'Settings' },
+    fiscalYear: {
+        type: Schema.Types.ObjectId,
+        ref: 'FiscalYear',
+        required: true
+    },
     items: [{
         item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
-        quantity: Number,
-        puPrice: Number,
+        unit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
+        quantity: { type: Number, required: true },  // Required in item schema
+        price: { type: Number },     // Required in item schema
+        puPrice: { type: Number },
+        batchNumber: { type: String },
+        expiryDate: { type: Date },
         vatStatus: {
             type: String,
             required: true,
@@ -42,10 +51,11 @@ const PurchaseBillSchema = new Schema({
     vatAmount: Number,
     totalAmount: Number,
     isVatExempt: { type: Boolean, default: false },
+    isVatAll: { type: String },
     roundOffAmount: Number,
     paymentMode: String,
-    quantity: Number,
-    puPrice: Number,
+    // quantity: Number,
+    // puPrice: Number,
     date: { type: Date, default: Date.now() },
     transactionDate: { type: Date, default: Date.now() }
 

@@ -214,7 +214,7 @@
         <div class="row">
             <div class="col d-flex justify-content-end align-items-start">
                 <a href="/sales-return/list" class="btn btn-secondary"><i class="bi bi-back"></i></a>
-                <a href="/sales-return/<%= bill._id %>/pdf" class="btn btn-primary ml-2"><i
+                <a href="/sales-return/<%= bill._id %>/pdf" class="btn btn-danger ml-2"><i
                         class="bi bi-file-pdf"></i></a>
                 <button class="btn btn-info ml-2" onclick="printBill()"><i class="bi bi-printer"></i></button>
             </div>
@@ -432,11 +432,9 @@
                     <p><strong class="user-details">Received By:</strong></p>
                 </div>
                 <div class="col">
-
-                    <p>
-                        <%= bill.user.name %>
-                    </p>
-                    <p><strong class="user-details">Prepared By:</strong></p>
+                    <br>
+                    <%= bill.user.name %>
+                        <p><strong class="user-details">Prepared By:</strong></p>
                 </div>
                 <div class="col">
                     <br>
