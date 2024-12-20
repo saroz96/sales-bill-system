@@ -32,7 +32,7 @@ const billCounterSchema = new Schema({
 });
 
 // Create a compound index to enforce uniqueness within company, fiscal year, and transaction type
-billCounterSchema.index({ fiscalYear: 1, transactionType: 1 }, { unique: true });
+billCounterSchema.index({ company: 1, fiscalYear: 1, transactionType: 1 }, { unique: true });
 
 const BillCounter = mongoose.model('BillCounter', billCounterSchema);
 module.exports = BillCounter;

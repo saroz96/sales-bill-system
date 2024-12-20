@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const StockAdjustmentSchema = new Schema({
-    // item: { type: Schema.Types.ObjectId, ref: 'Item', required: true },
     items: [
         {
             item: { type: Schema.Types.ObjectId, ref: 'Item', required: true },
@@ -48,4 +47,5 @@ const StockAdjustmentSchema = new Schema({
     }
 });
 
+StockAdjustmentSchema.index({ billNumber: 1, company: 1, fiscalYear: 1 }, { unique: true });
 module.exports = mongoose.model('StockAdjustment', StockAdjustmentSchema);

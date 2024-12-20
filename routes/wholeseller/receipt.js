@@ -549,7 +549,7 @@ router.get('/receipts/edit/billNumber', ensureAuthenticated, ensureCompanySelect
         }
 
         // Find the payment document by ID
-        const receipts = await Receipt.findOne({ billNumber: billNumber })
+        const receipts = await Receipt.findOne({ billNumber: billNumber, company: companyId, fiscalYear: fiscalYear })
             .populate('account')
             .populate('receiptAccount'); // Populate the paymentAccount field
         if (!receipts) {

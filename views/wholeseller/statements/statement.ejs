@@ -120,7 +120,7 @@
                                 <div class="form-group">
                                     <label for="fromDate">From</label>
                                     <input type="date" name="fromDate" id="fromDate" class="form-control"
-                                        value="<%= fromDate ? fromDate : new Date().toISOString().substr(0, 10) %>">
+                                        value="<%= fromDate ? fromDate : (currentFiscalYear ? new Date(currentFiscalYear.startDate).toISOString().substr(0, 10) : new Date().toISOString().substr(0, 10)) %>">
                                 </div>
                             </div>
                             <div class="col">
@@ -135,7 +135,7 @@
                                     <div class="form-group">
                                         <label for="fromDate">From</label>
                                         <input type="text" name="fromDate" id="fromDate" class="form-control"
-                                            value="<%= fromDate ? fromDate : nepaliDate %>">
+                                            value="<%= fromDate ? fromDate : (currentFiscalYear ? new Date(currentFiscalYear.startDate).toISOString().substr(0, 10) : new Date().toISOString().substr(0, 10)) %>">
                                     </div>
                                 </div>
                                 <div class="col">

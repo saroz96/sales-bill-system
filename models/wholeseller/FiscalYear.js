@@ -32,6 +32,6 @@ const fiscalYearSchema = new mongoose.Schema({
     }
 });
 
-// Index to ensure unique account names within a company
+// Index to ensure unique fiscalyear names within a company
 fiscalYearSchema.index({ name: 1, company: 1 }, { unique: true });
 module.exports = mongoose.model('FiscalYear', fiscalYearSchema);

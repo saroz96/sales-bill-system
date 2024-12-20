@@ -8,6 +8,11 @@ const creditNoteSchema = new mongoose.Schema({
         type: Date,
         required: true,
     },
+    fiscalYear: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'FiscalYear',
+        required: true
+    },
     debitAccounts: [
         {
             account: {
@@ -51,5 +56,8 @@ const creditNoteSchema = new mongoose.Schema({
     status: { type: String, enum: ['active', 'canceled'], default: 'active' },
     isActive: { type: Boolean, default: true }
 });
+
+creditNoteSchema.index({ billNumber: 1, company: 1, fiscalYear: 1 }, { unique: true });
+
 
 module.exports = mongoose.model('CreditNote', creditNoteSchema);

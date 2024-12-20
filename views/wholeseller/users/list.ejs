@@ -5,7 +5,7 @@
 <div class="container mt-4" id="mainContainer">
     <h1 class="mb-4">User List</h1>
 
-    <% if(users.length===0) { %>
+    <% if (users.length===0) { %>
         <div class="alert alert-info" role="alert">
             No users found.
         </div>
@@ -30,47 +30,49 @@
                                 <%= user.email %>
                             </td>
                             <td>
-                                <!-- If the user is admin or supervisor, allow role change -->
-                                <% if (isAdminOrSupervisor) { %>
-                                    <form action="/admin/users/<%= user._id %>/role" method="POST">
-                                        <select name="role" class="form-select">
-                                            <option value="Sales" <%=user.role==='Sales' ? 'selected' : '' %>>Sales
-                                            </option>
-                                            <option value="Purchase" <%=user.role==='Purchase' ? 'selected' : '' %>
-                                                >Purchase</option>
-                                            <option value="Supervisor" <%=user.role==='Supervisor' ? 'selected' : '' %>
-                                                >Supervisor</option>
-                                        </select>
-                                        <button type="submit" class="btn btn-primary btn-sm mt-2">Update Role</button>
-                                    </form>
-                                    <% } else { %>
-                                        <%= user.role %> <!-- Show static role for non-admin users -->
-                                            <% } %>
+                                <% if (user.isOwner) { %>
+                                    <span class="badge bg-info">Owner</span>
+                                    <% } else if (isAdminOrSupervisor) { %>
+                                        <form action="/admin/users/<%= user._id %>/role" method="POST">
+                                            <select name="role" class="form-select">
+                                                <option value="Sales" <%=user.role==='Sales' ? 'selected' : '' %>>Sales
+                                                </option>
+                                                <option value="Purchase" <%=user.role==='Purchase' ? 'selected' : '' %>
+                                                    >Purchase</option>
+                                                <option value="Supervisor" <%=user.role==='Supervisor' ? 'selected' : ''
+                                                    %>>Supervisor</option>
+                                            </select>
+                                            <button type="submit" class="btn btn-primary btn-sm mt-2">Update
+                                                Role</button>
+                                        </form>
+                                        <% } else { %>
+                                            <%= user.role %>
+                                                <% } %>
                             </td>
                             <td>
                                 <%= user.isActive ? 'Active' : 'Inactive' %>
                             </td>
                             <td class="action-btns">
-                                <!-- Activation/Deactivation -->
-                                <% if (user.isActive) { %>
-                                    <form action="/admin/users/<%= user._id %>/deactivate" method="POST"
-                                        style="display: inline;">
-                                        <button type="submit" class="btn btn-warning btn-sm">Deactivate</button>
-                                    </form>
-                                    <% } else { %>
-                                        <form action="/admin/users/<%= user._id %>/activate" method="POST"
+                                <% if (isAdminOrSupervisor && !user.isOwner) { %>
+                                    <% if (user.isActive) { %>
+                                        <form action="/admin/users/<%= user._id %>/deactivate" method="POST"
                                             style="display: inline;">
-                                            <button type="submit" class="btn btn-success btn-sm">Activate</button>
+                                            <button type="submit" class="btn btn-warning btn-sm">Deactivate</button>
                                         </form>
-                                        <% } %>
-
-                                            <!-- View, Edit, Delete -->
-                                            <a href="/admin/users/view/<%= user._id %>"
-                                                class="btn btn-primary btn-sm">View</a>
-                                            <% if (isAdminOrSupervisor) { %>
-                                                <a href="/admin/users/edit/<%= user._id %>"
-                                                    class="btn btn-warning btn-sm">Edit</a>
+                                        <% } else { %>
+                                            <form action="/admin/users/<%= user._id %>/activate" method="POST"
+                                                style="display: inline;">
+                                                <button type="submit" class="btn btn-success btn-sm">Activate</button>
+                                            </form>
+                                            <% } %>
                                                 <% } %>
+
+                                                    <a href="/admin/users/view/<%= user._id %>"
+                                                        class="btn btn-primary btn-sm">View</a>
+                                                    <% if (isAdminOrSupervisor && !user.isOwner) { %>
+                                                        <a href="/admin/users/edit/<%= user._id %>"
+                                                            class="btn btn-warning btn-sm">Edit</a>
+                                                        <% } %>
                             </td>
                         </tr>
                         <% }) %>

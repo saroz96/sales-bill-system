@@ -253,7 +253,7 @@ router.get('/purchase-bills/edit/billNumber', ensureAuthenticated, ensureCompany
             .populate('companyGroups');
         console.log('Accounts:', accounts);
 
-        const purchaseInvoice = await PurchaseBill.findOne({ billNumber: billNumber })
+        const purchaseInvoice = await PurchaseBill.findOne({ billNumber: billNumber, company: companyId, fiscalYear: fiscalYear })
             .populate('items.item')
             .populate('items.unit')
             .populate('account')
@@ -262,7 +262,8 @@ router.get('/purchase-bills/edit/billNumber', ensureAuthenticated, ensureCompany
             .populate('fiscalYear'); // Populate fiscal year details
 
         if (!purchaseInvoice || !purchaseInvoice.items) {
-            return res.status(404).send('Sales invoice or items not found');
+            req.flash('error', 'Purchase invoice not found!');
+            return res.redirect('/purchase-bills/finds')
         }
 
         res.render('wholeseller/purchase/edit', {

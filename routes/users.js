@@ -410,7 +410,7 @@ router.get('/admin/users/list', ensureAuthenticated, async (req, res) => {
 
         // Fetch the company document to ensure the owner is associated correctly
         // const company = await Company.findById(companyId).populate('owner');
-        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat')
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat owner')
             .populate('fiscalYear')
             .populate('owner');
 
@@ -456,8 +456,31 @@ router.get('/admin/users/list', ensureAuthenticated, async (req, res) => {
         // Fetch users associated with the company, including the owner
         const users = await User.find({ company: companyId });
 
+        // Include the company owner in the list and mark them as "Owner"
+        if (company.owner) {
+            const ownerExists = users.some(user => user._id.toString() === company.owner._id.toString());
+            if (!ownerExists) {
+                users.push({ ...company.owner.toObject(), isOwner: true });
+            } else {
+                // Mark the existing user as owner if already in the list
+                users.forEach(user => {
+                    if (user._id.toString() === company.owner._id.toString()) {
+                        user.isOwner = true;
+                    }
+                });
+            }
+        }
+
         // Log the fetched users to check if any results are returned
         console.log('Fetched Users:', users);
+
+        // Sort users array to place the owner at the top
+        users.sort((a, b) => {
+            if (a.isOwner) return -1;
+            if (b.isOwner) return 1;
+            return 0;
+        });
+
 
         // Render the list of users associated with the current company
         res.render('wholeseller/users/list', {
@@ -626,8 +649,9 @@ router.get('/user/change-password', ensureAuthenticated, ensureCompanySelected, 
         company,
         currentFiscalYear,
         currentCompanyName: req.session.currentCompanyName,
-        title: 'Change Password',
-        body: 'wholeseller >> user >> change password',
+        title: '',
+        body: '',
+        user: req.user,
         isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
     });
 });

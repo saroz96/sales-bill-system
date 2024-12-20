@@ -450,7 +450,7 @@ router.get('/journal/edit/billNumber', ensureAuthenticated, ensureCompanySelecte
         }
 
         //find the journal voucher document by Id
-        const journals = await JournalVoucher.findOne({ billNumber: billNumber })
+        const journals = await JournalVoucher.findOne({ billNumber: billNumber, company: companyId, fiscalYear: fiscalYear })
             .populate('debitAccounts.account')
             .populate('creditAccounts.account')
             .populate('user')

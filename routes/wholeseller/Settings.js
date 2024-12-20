@@ -56,8 +56,9 @@ router.get('/', ensureAuthenticated, ensureCompanySelected, ensureTradeType, asy
                 currentFiscalYear,
                 settings,
                 currentCompanyName,
-                title: 'Settings',
-                body: 'wholeseller >> settings',
+                title: '',
+                body: '',
+                user: req.user,
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
@@ -178,7 +179,14 @@ router.get('/roundoff-sales-return', ensureAuthenticated, ensureCompanySelected,
                     displayTransactionsForPurchase: false
                 }; // Provide default settings
             }
-            res.render('wholeseller/settings/settings', { settingsForSalesReturn, currentCompanyName });
+            res.render('wholeseller/settings/settings', {
+                settingsForSalesReturn,
+                currentCompanyName,
+                title: '',
+                body: '',
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            });
         } catch (error) {
             console.error("Error fetching settings:", error);
             req.flash('error', 'Error fetching settings');
@@ -257,7 +265,14 @@ router.get('/roundoff-purchase', ensureAuthenticated, ensureCompanySelected, ens
             if (!settingsForPurchase) {
                 settingsForPurchase = { roundOffSales: false, roundOffPurchase: false, displayTransactions: false }; // Provide default settings
             }
-            res.render('wholeseller/settings/settings', { settingsForPurchase, currentCompanyName });
+            res.render('wholeseller/settings/settings', {
+                settingsForPurchase,
+                currentCompanyName,
+                title: '',
+                body: '',
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            });
         } catch (error) {
             console.error("Error fetching settings:", error);
             req.flash('error', 'Error fetching settings');
@@ -371,7 +386,14 @@ router.get('/roundoff-purchase-return', ensureAuthenticated, ensureCompanySelect
             if (!settingsForPurchaseReturn) {
                 settingsForPurchaseReturn = { roundOffSales: false, roundOffPurchase: false, roundOffPurchaseReturn: false, displayTransactions: false }; // Provide default settings
             }
-            res.render('wholeseller/settings/settings', { settingsForPurchaseReturn, currentCompanyName });
+            res.render('wholeseller/settings/settings', {
+                settingsForPurchaseReturn,
+                currentCompanyName,
+                title: '',
+                body: '',
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            });
         } catch (error) {
             console.error("Error fetching settings:", error);
             req.flash('error', 'Error fetching settings');
@@ -462,7 +484,15 @@ router.get('/get-display-transactions', ensureAuthenticated, ensureCompanySelect
             const displayTransactions = settings ? settings.displayTransactions : false;
 
 
-            res.json({ displayTransactions, currentCompanyName, company: companyId });
+            res.json({
+                displayTransactions,
+                currentCompanyName,
+                company: companyId,
+                title: '',
+                body: '',
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            });
         } catch (error) {
             console.error('Error fetching display transactions setting:', error);
             res.status(500).send('Internal Server Error');
@@ -550,7 +580,10 @@ router.get('/get-display-sales-return-transactions', ensureAuthenticated, ensure
             const settings = await Settings.findOne({ companyId, userId });
             res.json({
                 displayTransactionsForSalesReturn: settings ? settings.displayTransactionsForSalesReturn : false,
-                currentCompanyName, company: companyId
+                currentCompanyName, company: companyId, title: '',
+                body: '',
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
             console.error('Error fetching display transactions setting:', error);
@@ -672,7 +705,10 @@ router.get('/get-display-purchase-transactions', ensureAuthenticated, ensureComp
             const settings = await Settings.findOne({ companyId, userId, fiscalYear: fiscalYear });
             res.json({
                 displayTransactionsForPurchase: settings ? settings.displayTransactionsForPurchase : false,
-                currentCompanyName, company: companyId
+                currentCompanyName, company: companyId, title: '',
+                body: '',
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
             console.error('Error fetching display transactions setting:', error);
@@ -759,7 +795,11 @@ router.get('/get-display-purchase-return-transactions', ensureAuthenticated, ens
             const settings = await Settings.findOne({ companyId, userId });
             res.json({
                 displayTransactionsForPurchaseReturn: settings ? settings.displayTransactionsForPurchaseReturn : false,
-                currentCompanyName, company: companyId
+                currentCompanyName, company: companyId,
+                title: '',
+                body: '',
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
         } catch (error) {
             console.error('Error fetching display transactions setting:', error);

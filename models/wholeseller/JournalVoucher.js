@@ -48,8 +48,16 @@ const journalVoucherSchema = new mongoose.Schema({
         ref: 'Company',
         required: true,
     },
+    fiscalYear: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'FiscalYear',
+        required: true
+    },
     status: { type: String, enum: ['active', 'canceled'], default: 'active' },
     isActive: { type: Boolean, default: true }
 });
+
+journalVoucherSchema.index({ billNumber: 1, company: 1, fiscalYear: 1 }, { unique: true });
+
 
 module.exports = mongoose.model('JournalVoucher', journalVoucherSchema);

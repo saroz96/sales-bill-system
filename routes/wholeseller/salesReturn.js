@@ -265,7 +265,7 @@ router.get('/sales-return/edit/billNumber', ensureAuthenticated, ensureCompanySe
         console.log('Accounts:', accounts);
 
         // Find the stock adjustment by billNumber
-        const salesReturnBill = await SalesReturn.findOne({ billNumber: billNumber })
+        const salesReturnBill = await SalesReturn.findOne({ billNumber: billNumber, company: companyId, fiscalYear: fiscalYear })
             .populate('items.item')
             .populate('items.unit')
             .populate('account')
@@ -274,7 +274,8 @@ router.get('/sales-return/edit/billNumber', ensureAuthenticated, ensureCompanySe
             .populate('fiscalYear'); // Populate fiscal year details
 
         if (!salesReturnBill || !salesReturnBill.items) {
-            return res.status(404).send('Sales return or items not found');
+            req.flash('error', 'Sales return invoice not found!');
+            return res.redirect('/sales-return/finds')
         }
 
         res.render('wholeseller/salesReturn/edit', {

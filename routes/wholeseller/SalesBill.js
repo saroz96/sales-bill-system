@@ -289,7 +289,7 @@ router.get('/sales-bills/edit/billNumber', ensureAuthenticated, ensureCompanySel
             .populate('companyGroups');
         console.log('Accounts:', accounts);
 
-        const bill = await SalesBill.findOne({ billNumber: billNumber })
+        const bill = await SalesBill.findOne({ billNumber: billNumber, company: companyId, fiscalYear: fiscalYear })
             .populate('items.item')
             .populate('items.unit')
             .populate('account')
@@ -298,7 +298,8 @@ router.get('/sales-bills/edit/billNumber', ensureAuthenticated, ensureCompanySel
             .populate('fiscalYear'); // Populate fiscal year details
 
         if (!bill || !bill.items) {
-            return res.status(404).send('Sales invoice or items not found');
+            req.flash('error', 'Sales invoice not found!');
+            return res.redirect('/sales-bills/finds')
         }
 
         res.render('wholeseller/sales-bills/edit', {

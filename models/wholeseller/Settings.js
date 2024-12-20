@@ -59,4 +59,7 @@ const SettingsSchema = new Schema({
     },
 });
 
+// Create a unique compound index for company
+SettingsSchema.index({ company: 1 }, { unique: true });
+
 module.exports = mongoose.model('Settings', SettingsSchema);

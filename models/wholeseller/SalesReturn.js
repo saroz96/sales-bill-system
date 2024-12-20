@@ -60,7 +60,7 @@ const SalesReturnSchema = new Schema({
 });
 
 // //This means each company can have accounts with the same name, but account names must be unique within a company.
-SalesReturnSchema.index({ billNumber: 1, company: 1 }, { unique: true });
+SalesReturnSchema.index({ billNumber: 1, company: 1, fiscalYear: 1 }, { unique: true });
 // //---------------------------------------------------------------------------------------------------------------
 
 

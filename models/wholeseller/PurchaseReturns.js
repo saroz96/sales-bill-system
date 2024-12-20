@@ -21,6 +21,11 @@ const PurchaseReturnSchema = new Schema({
     billNumber: { type: Number, required: true },
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     settings: { type: mongoose.Schema.Types.ObjectId, ref: 'Settings' },
+    fiscalYear: {
+        type: Schema.Types.ObjectId,
+        ref: 'FiscalYear',
+        required: true
+    },
     items: [{
         item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
         unit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
@@ -54,7 +59,7 @@ const PurchaseReturnSchema = new Schema({
 });
 
 // //This means each company can have accounts with the same name, but account names must be unique within a company.
-PurchaseReturnSchema.index({ billNumber: 1, company: 1 }, { unique: true });
+PurchaseReturnSchema.index({ billNumber: 1, company: 1, fiscalYear: 1 }, { unique: true });
 // //---------------------------------------------------------------------------------------------------------------
 
 

@@ -69,7 +69,8 @@
                             <div class="form-group">
                                 <label for="fromDate">From</label>
                                 <input type="text" name="fromDate" id="fromDate" class="form-control"
-                                    value="<%= fromDate ? fromDate : '2023-07-17' %>" autofocus>
+                                    value="<%= fromDate ? fromDate : (currentFiscalYear ? new Date(currentFiscalYear.startDate).toISOString().substr(0, 10) : new Date().toISOString().substr(0, 10)) %>"
+                                    autofocus>
                             </div>
                         </div>
                         <div class="col">
@@ -84,7 +85,8 @@
                                 <div class="form-group">
                                     <label for="fromDate">From</label>
                                     <input type="text" name="fromDate" id="fromDate" class="form-control"
-                                        value="<%= fromDate ? fromDate : '2081-04-01' %>" autofocus>
+                                        value="<%= fromDate ? fromDate : (currentFiscalYear ? new Date(currentFiscalYear.startDate).toISOString().substr(0, 10) : new Date().toISOString().substr(0, 10)) %>"
+                                        autofocus>
                                 </div>
                             </div>
                             <div class="col">
@@ -125,20 +127,16 @@
 
                 <% } else { %>
                     <div class="report-container">
-                        <strong>
-                            <h1 style="text-align: center;">
-                                <%= currentCompanyName %>
-                            </h1>
-                        </strong>
-                        <h5 style="text-align: center;">
-                            <%= currentCompany.address %>-<%= currentCompany.ward %>, <%= currentCompany.city %>,
-                                        <%= currentCompany.country %>
-                        </h5>
+                        <h2 style="text-align: center;">
+                            <%= currentCompanyName %>
+                        </h2>
                         <p style="text-align: center;">
-                            <strong>PAN:</strong> <strong>
-                                <%= currentCompany.pan %>
-                            </strong>
+                            <%= currentCompany.address %>-<%= currentCompany.ward %>, <%= currentCompany.city %>,
+                                        <%= currentCompany.country %> <br>
+                                            <strong>PAN:</strong>
+                                            <%= currentCompany.pan %>
                         </p>
+                        <hr style="border: 0.5px solid;">
                         <div class="form-group row">
                             <div class="col" style="display: flex; justify-content: space-between;">
                                 <p><strong>From:</strong>

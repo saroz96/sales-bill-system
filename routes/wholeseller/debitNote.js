@@ -449,7 +449,7 @@ router.get('/debit-note/edit/billNumber', ensureAuthenticated, ensureCompanySele
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
 
-        const debitNotes = await DebitNote.findOne({ billNumber: billNumber })
+        const debitNotes = await DebitNote.findOne({ billNumber: billNumber, company: companyId, fiscalYear: fiscalYear })
             .populate('debitAccounts.account')
             .populate('creditAccounts.account')
             .populate('user')

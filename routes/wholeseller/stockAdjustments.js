@@ -272,7 +272,7 @@ router.get('/stockAdjustments/edit/billNumber', ensureAuthenticated, ensureCompa
 
 
         // Find the stock adjustment by ID
-        const stockAdjustment = await StockAdjustment.findOne({ billNumber: billNumber })
+        const stockAdjustment = await StockAdjustment.findOne({ billNumber: billNumber, company: companyId, fiscalYear: fiscalYear })
             .populate('items.item') // Populate item details
             .populate('items.unit') // Populate unit details
             .populate('company') // Populate company details
@@ -281,7 +281,9 @@ router.get('/stockAdjustments/edit/billNumber', ensureAuthenticated, ensureCompa
 
 
         if (!stockAdjustment || !stockAdjustment.items) {
-            return res.status(404).send('Stock Adjustment or items not found');
+            // return res.status(404).send('Stock Adjustment or items not found');
+            req.flash('error', 'Stock adjustment not found!');
+            return res.redirect('/stockAdjustments/finds')
         }
 
         res.render('wholeseller/stockAdjustments/edit', {
