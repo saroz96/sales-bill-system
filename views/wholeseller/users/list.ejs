@@ -1,82 +1,86 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 
-<div class="container mt-4" id="mainContainer">
-    <h1 class="mb-4">User List</h1>
+    <div class="container mt-4">
+        <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <h1 class="mb-4">User List</h1>
 
-    <% if (users.length===0) { %>
-        <div class="alert alert-info" role="alert">
-            No users found.
-        </div>
-        <% } else { %>
-            <table class="table table-hover">
-                <thead class="thead-light">
-                    <tr>
-                        <th scope="col">Name</th>
-                        <th scope="col">Email</th>
-                        <th scope="col">Role</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% users.forEach(user=> { %>
-                        <tr>
-                            <td>
-                                <%= user.name %>
-                            </td>
-                            <td>
-                                <%= user.email %>
-                            </td>
-                            <td>
-                                <% if (user.isOwner) { %>
-                                    <span class="badge bg-info">Owner</span>
-                                    <% } else if (isAdminOrSupervisor) { %>
-                                        <form action="/admin/users/<%= user._id %>/role" method="POST">
-                                            <select name="role" class="form-select">
-                                                <option value="Sales" <%=user.role==='Sales' ? 'selected' : '' %>>Sales
-                                                </option>
-                                                <option value="Purchase" <%=user.role==='Purchase' ? 'selected' : '' %>
-                                                    >Purchase</option>
-                                                <option value="Supervisor" <%=user.role==='Supervisor' ? 'selected' : ''
-                                                    %>>Supervisor</option>
-                                            </select>
-                                            <button type="submit" class="btn btn-primary btn-sm mt-2">Update
-                                                Role</button>
-                                        </form>
-                                        <% } else { %>
-                                            <%= user.role %>
-                                                <% } %>
-                            </td>
-                            <td>
-                                <%= user.isActive ? 'Active' : 'Inactive' %>
-                            </td>
-                            <td class="action-btns">
-                                <% if (isAdminOrSupervisor && !user.isOwner) { %>
-                                    <% if (user.isActive) { %>
-                                        <form action="/admin/users/<%= user._id %>/deactivate" method="POST"
-                                            style="display: inline;">
-                                            <button type="submit" class="btn btn-warning btn-sm">Deactivate</button>
-                                        </form>
-                                        <% } else { %>
-                                            <form action="/admin/users/<%= user._id %>/activate" method="POST"
-                                                style="display: inline;">
-                                                <button type="submit" class="btn btn-success btn-sm">Activate</button>
-                                            </form>
-                                            <% } %>
-                                                <% } %>
-
-                                                    <a href="/admin/users/view/<%= user._id %>"
-                                                        class="btn btn-primary btn-sm">View</a>
-                                                    <% if (isAdminOrSupervisor && !user.isOwner) { %>
-                                                        <a href="/admin/users/edit/<%= user._id %>"
-                                                            class="btn btn-warning btn-sm">Edit</a>
+            <% if (users.length===0) { %>
+                <div class="alert alert-info" role="alert">
+                    No users found.
+                </div>
+                <% } else { %>
+                    <table class="table table-hover">
+                        <thead class="thead-light">
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Role</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% users.forEach(user=> { %>
+                                <tr>
+                                    <td>
+                                        <%= user.name %>
+                                    </td>
+                                    <td>
+                                        <%= user.email %>
+                                    </td>
+                                    <td>
+                                        <% if (user.isOwner) { %>
+                                            <span class="badge bg-info">Owner</span>
+                                            <% } else if (isAdminOrSupervisor) { %>
+                                                <form action="/admin/users/<%= user._id %>/role" method="POST">
+                                                    <select name="role" class="form-select">
+                                                        <option value="Sales" <%=user.role==='Sales' ? 'selected' : ''
+                                                            %>>Sales
+                                                        </option>
+                                                        <option value="Purchase" <%=user.role==='Purchase' ? 'selected'
+                                                            : '' %>
+                                                            >Purchase</option>
+                                                        <option value="Supervisor" <%=user.role==='Supervisor'
+                                                            ? 'selected' : '' %>>Supervisor</option>
+                                                    </select>
+                                                    <button type="submit" class="btn btn-primary btn-sm mt-2">Update
+                                                        Role</button>
+                                                </form>
+                                                <% } else { %>
+                                                    <%= user.role %>
                                                         <% } %>
-                            </td>
-                        </tr>
-                        <% }) %>
-                </tbody>
-            </table>
-            <% } %>
-</div>
+                                    </td>
+                                    <td>
+                                        <%= user.isActive ? 'Active' : 'Inactive' %>
+                                    </td>
+                                    <td class="action-btns">
+                                        <% if (isAdminOrSupervisor && !user.isOwner) { %>
+                                            <% if (user.isActive) { %>
+                                                <form action="/admin/users/<%= user._id %>/deactivate" method="POST"
+                                                    style="display: inline;">
+                                                    <button type="submit"
+                                                        class="btn btn-warning btn-sm">Deactivate</button>
+                                                </form>
+                                                <% } else { %>
+                                                    <form action="/admin/users/<%= user._id %>/activate" method="POST"
+                                                        style="display: inline;">
+                                                        <button type="submit"
+                                                            class="btn btn-success btn-sm">Activate</button>
+                                                    </form>
+                                                    <% } %>
+                                                        <% } %>
+
+                                                            <a href="/admin/users/view/<%= user._id %>"
+                                                                class="btn btn-primary btn-sm">View</a>
+                                                            <% if (isAdminOrSupervisor && !user.isOwner) { %>
+                                                                <a href="/admin/users/edit/<%= user._id %>"
+                                                                    class="btn btn-warning btn-sm">Edit</a>
+                                                                <% } %>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                        </tbody>
+                    </table>
+                    <% } %>
+        </div>
+    </div>

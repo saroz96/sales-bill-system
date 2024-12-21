@@ -1,43 +1,42 @@
-<div class="form-control">
-    <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 
-<br>
-<div class="container" id="mainContainer">
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">Create a New User</h2>
-        </div>
-        <div class="card-body">
-            <!-- User creation form -->
-            <form action="/admin/create-user/new" method="POST">
-                <div class="mb-3">
-                    <label for="name" class="form-label">Name:</label>
-                    <input type="text" class="form-control" id="name" name="name" required>
+    <div class="container">
+        <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Create a New User</h2>
                 </div>
-                <div class="mb-3">
-                    <label for="email" class="form-label">Email:</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
+                <div class="card-body">
+                    <!-- User creation form -->
+                    <form action="/admin/create-user/new" method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name:</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email:</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password:</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password2" class="form-label">Confirm Password:</label>
+                            <input type="password" class="form-control" id="password2" name="password2" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Role:</label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="Sales">Sales Department</option>
+                                <option value="Purchase">Purchase Department</option>
+                                <option value="Supervisor">Supervisor</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create User</button>
+                        <a href="/admin/users/list" class="btn btn-secondary ms-2">Back to User List</a>
+                    </form>
                 </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password:</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
-                </div>
-                <div class="mb-3">
-                    <label for="password2" class="form-label">Confirm Password:</label>
-                    <input type="password" class="form-control" id="password2" name="password2" required>
-                </div>
-                <div class="mb-3">
-                    <label for="role" class="form-label">Role:</label>
-                    <select class="form-select" id="role" name="role" required>
-                        <option value="Sales">Sales Department</option>
-                        <option value="Purchase">Purchase Department</option>
-                        <option value="Supervisor">Supervisor</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-primary">Create User</button>
-                <a href="/admin/users/list" class="btn btn-secondary ms-2">Back to User List</a>
-            </form>
+            </div>
         </div>
     </div>
-</div>

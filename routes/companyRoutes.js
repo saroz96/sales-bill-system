@@ -39,6 +39,7 @@ router.get('/company/new', ensureAuthenticated, ensureNotAdministrator, async (r
 router.get('/dashboard', ensureAuthenticated, async (req, res) => {
     try {
         let userCompanies;
+        const companyDataSizes = {};
 
         // Check if the user is an admin
         if (req.user.isAdmin) {
@@ -54,9 +55,59 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
             userCompanies = await Company.find({ _id: req.user.company });
         }
 
+        const db = mongoose.connection.db;
+        if (!db) {
+            throw new Error('Database connection not established.');
+        }
+
+        // Calculate data size for each company
+        for (const company of userCompanies) {
+            let totalSize = 0;
+
+            // List of collections related to the company
+            const relatedCollections = [
+                'sales',
+                'purchases',
+                'transactions',
+                'accounts',
+                'billcounters',
+                'categories',
+                'companies',
+                'companygroups',
+                'creditnotes',
+                'debitnotes',
+                'fiscalyears',
+                'items',
+                'journalvouchers',
+                'payments',
+                'receipts',
+                'settings',
+                'stockadjustments',
+                'units',
+                'users'
+            ]; // Add your relevant collections
+
+            for (const collectionName of relatedCollections) {
+                const collection = db.collection(collectionName);
+
+                // Use db.command to get collection stats
+                const stats = await db.command({ collStats: collectionName });
+
+                // Count documents for the specific company
+                const companyDocsCount = await collection.countDocuments({ company: company._id });
+
+                // Approximate size: (total size of the collection) * (docs for this company) / (total docs)
+                const companySize = (stats.size * companyDocsCount) / stats.count;
+                totalSize += companySize || 0;
+            }
+
+            companyDataSizes[company._id] = Math.round(totalSize / 1024); // Convert to KB
+        }
+
         res.render('ownerCompany/dashboard', {
             user: req.user,
             companies: userCompanies,
+            companyDataSizes,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } catch (err) {
