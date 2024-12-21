@@ -90,73 +90,82 @@
     </nav>
 
     <div class="container mt-4">
-        <% if (messages && messages.length) { %>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <%= messages %>
-                    <span class="btn-close" data-bs-dismiss="alert" aria-label="Close">&times;</span>
-            </div>
-            <% } %>
+        <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <% if (messages && messages.length) { %>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <%= messages %>
+                        <span class="btn-close" data-bs-dismiss="alert" aria-label="Close">&times;</span>
+                </div>
+                <% } %>
 
-                <% if (error && error.length) { %>
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <%= error %>
-                            <span class="btn-close" data-bs-dismiss="alert" aria-label="Close">&times;</span>
-                    </div>
-                    <% } %>
-
-                        <h1 class="mb-4">Welcome, <%= user.name %>
-                        </h1>
-                        <h2 class="mb-3">Your Companies</h2>
-
-                        <!-- Search Form -->
-                        <div class="search-input">
-                            <input type="text" class="form-control" id="searchInput"
-                                placeholder="Search company by name..." autofocus>
+                    <% if (error && error.length) { %>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <%= error %>
+                                <span class="btn-close" data-bs-dismiss="alert" aria-label="Close">&times;</span>
                         </div>
+                        <% } %>
 
-                        <div class="no-results" id="noResultsMessage">No companies found.</div>
+                            <h1 class="mb-4">Welcome, <%= user.name %>
+                            </h1>
+                            <h2 class="mb-3">Your Companies</h2>
 
-                        <table class="table table-striped mt-3">
-                            <thead>
-                                <tr>
-                                    <th>S.n</th>
-                                    <th>Company Name</th>
-                                    <th>Trade Type</th>
-                                    <th>Date Format</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="companyList">
-                                <% companies.forEach((company, index)=> { %>
-                                    <tr class="searchClass">
-                                        <td>
-                                            <%= index + 1 %>
-                                        </td>
-                                        <td><strong>
-                                                <%= company.name %>
-                                            </strong></td>
-                                        <td><small><b>
-                                                    <%= company.tradeType %>
-                                                </b></small></td>
-                                        <td><small><b>
-                                                    <%= company.dateFormat.charAt(0).toUpperCase() +
-                                                        company.dateFormat.slice(1) %>
-                                                </b></small></td>
-                                        <td>
-                                            <form action="/switch/<%= company._id %>" method="GET"
-                                                style="display:inline;">
-                                                <button type="submit"
-                                                    class="btn btn-primary btn-sm switch-button">Switch</button>
-                                            </form>
-                                            <a href="/company/<%= company._id %>" class="btn btn-info btn-sm ml-1"
-                                                title="View Company">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        </td>
+                            <!-- Search Form -->
+                            <div class="search-input">
+                                <input type="text" class="form-control" id="searchInput"
+                                    placeholder="Search company by name..." autofocus>
+                            </div>
+
+                            <div class="no-results" id="noResultsMessage">No companies found.</div>
+
+                            <table class="table table-striped mt-3">
+                                <thead>
+                                    <tr>
+                                        <th>S.n</th>
+                                        <th>Company Name</th>
+                                        <th>Trade Type</th>
+                                        <th>Date Format</th>
+                                        <th>Size</th>
+                                        <th>Actions</th>
                                     </tr>
-                                    <% }) %>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody id="companyList">
+                                    <% companies.forEach((company, index)=> { %>
+                                        <tr class="searchClass">
+                                            <td>
+                                                <%= index + 1 %>
+                                            </td>
+                                            <td><strong>
+                                                    <%= company.name %>
+                                                </strong></td>
+                                            <td><small><b>
+                                                        <%= company.tradeType %>
+                                                    </b></small></td>
+                                            <td><small><b>
+                                                        <%= company.dateFormat.charAt(0).toUpperCase() +
+                                                            company.dateFormat.slice(1) %>
+                                                    </b></small>
+                                            </td>
+                                            <td>
+                                                <%= companyDataSizes[company._id] || 'N/A' %> KB
+                                            </td>
+                                            <td>
+
+                                                <form action="/switch/<%= company._id %>" method="GET"
+                                                    style="display:inline;">
+                                                    <button type="submit"
+                                                        class="btn btn-primary btn-sm switch-button">Switch</button>
+                                                </form>
+                                                <a href="/company/<%= company._id %>" class="btn btn-info btn-sm ml-1"
+                                                    title="View Company">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        <% }) %>
+                                </tbody>
+                            </table>
+        </div>
+
     </div>
 
     <!-- Bootstrap JS and dependencies -->

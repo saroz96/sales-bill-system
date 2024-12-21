@@ -217,6 +217,8 @@ router.post('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) 
         res.redirect('/admin/create-user/new');
     }
 });
+
+
 // Admin route to view user details by ID
 router.get('/admin/users/view/:id', ensureAuthenticated, ensureCompanySelected, ensureAdminOrSupervisor, async (req, res) => {
     try {
@@ -282,6 +284,69 @@ router.get('/admin/users/view/:id', ensureAuthenticated, ensureCompanySelected, 
         console.error(err);
         req.flash('error', 'An error occurred while fetching user details.');
         res.redirect('/admin/users/list');
+    }
+});
+
+// Normal user route to view self user details by ID
+router.get('/account/users/view/:id', ensureAuthenticated, ensureCompanySelected, async (req, res) => {
+    try {
+        const companyId = req.session.currentCompany;
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+
+        // Fetch the user by ID
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            req.flash('error', 'User not found.');
+            return res.redirect('/wholesellerDashboard');
+        }
+
+        // Render the view page with user details
+        res.render('wholeseller/users/view', {
+            company,
+            currentFiscalYear,
+            user,
+            currentCompanyName: req.session.currentCompanyName,
+            title: '',
+            body: '',
+            user: req.user,
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+        });
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'An error occurred while fetching user details.');
+        res.redirect('/wholesellerDashboard');
     }
 });
 
@@ -385,7 +450,6 @@ router.post('/admin/users/edit/:id', ensureAuthenticated, ensureCompanySelected,
         res.redirect(`/admin/users/edit/${req.params.id}`);
     }
 });
-
 
 router.get('/admin/users/list', ensureAuthenticated, async (req, res) => {
     try {
