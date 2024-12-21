@@ -552,8 +552,8 @@ router.get('/admin/users/list', ensureAuthenticated, async (req, res) => {
             currentFiscalYear,
             users,
             currentCompanyName: req.session.currentCompanyName,
-            title: 'User List',
-            body: 'wholeseller >> user >> list',
+            title: '',
+            body: '',
             user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
@@ -563,6 +563,89 @@ router.get('/admin/users/list', ensureAuthenticated, async (req, res) => {
         res.redirect('/dashboard');
     }
 });
+
+// Route to view individual user details
+router.get('/users/view/:id', ensureAuthenticated, ensureCompanySelected, async (req, res) => {
+    try {
+
+        // Ensure that only the admin or supervisor of the current company can view the users
+        if (!req.user.isAdmin && req.user.role !== 'Supervisor') {
+            req.flash('error', 'You do not have permission to view this page');
+            return res.redirect('/dashboard');
+        }
+
+
+        // Fetch the company ID from the authenticated user's data
+        const companyId = req.session.currentCompany;
+
+        // Ensure companyId is present to avoid fetching users without an associated company
+        if (!companyId) {
+            req.flash('error', 'No company is associated with your account.');
+            return res.redirect('/dashboard');
+        }
+
+        // Fetch the company document to ensure the owner is associated correctly
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat owner')
+            .populate('fiscalYear')
+            .populate('owner');
+
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+
+
+        const userById = await User.findById(req.params.id)
+            .populate('company', 'name') // Populate company name if needed
+            .populate('fiscalYear', 'name'); // Populate fiscal year if needed
+
+        if (!userById) {
+            return res.status(404).render('errors/404', { message: 'User not found.' }); // Optional: Add a 404 page
+        }
+
+        res.render('wholeseller/users/userById', {
+            userById,
+            company,
+            currentFiscalYear,
+            currentCompanyName: req.session.currentCompanyName,
+            title: '',
+            body: '',
+            user: req.user,
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).render('errors/500', { message: 'An error occurred while fetching user details.' }); // Optional: Add a 500 page
+    }
+});
+
 
 // Route to deactivate a user
 router.post('/admin/users/:id/deactivate', ensureAuthenticated, async (req, res) => {

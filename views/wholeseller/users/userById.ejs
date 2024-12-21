@@ -1,0 +1,59 @@
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+
+
+    <div class="container mt-5">
+        <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-primary text-white">
+                            <h2 class="mb-0">
+                                <i class="fas fa-user"></i>
+                                <%= userById.name %>
+                            </h2>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <h5><i class="fas fa-envelope"></i> Email</h5>
+                                <p class="text-muted">
+                                    <%= userById.email %>
+                                </p>
+                            </div>
+
+                            <div class="mb-3">
+                                <h5><i class="fas fa-user-tag"></i> Role</h5>
+                                <span class="badge bg-info text-dark">
+                                    <%= user.role %>
+                                </span>
+                            </div>
+
+                            <div class="mb-3">
+                                <h5><i class="fas fa-toggle-on"></i> Status</h5>
+                                <% if (user.isActive) { %>
+                                    <span class="badge bg-success">Active</span>
+                                    <% } else { %>
+                                        <span class="badge bg-danger">Inactive</span>
+                                        <% } %>
+                            </div>
+
+                            <div class="mb-3">
+                                <h5><i class="fas fa-user-shield"></i> Admin Privileges</h5>
+                                <% if (user.isAdmin) { %>
+                                    <span class="badge bg-success">Yes</span>
+                                    <% } else { %>
+                                        <span class="badge bg-secondary">No</span>
+                                        <% } %>
+                            </div>
+                        </div>
+                        <% if (isAdminOrSupervisor && !user.isOwner) { %>
+                            <div class="card-footer text-end">
+                                <a href="/admin/users/list" class="btn btn-outline-primary">
+                                    <i class="fas fa-arrow-left"></i> Back to User List
+                                </a>
+                            </div>
+                            <%}%>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
