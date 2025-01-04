@@ -7,12 +7,14 @@ const AccountGroup = require('../models/wholeseller/CompanyGroup');
 // const addDefaultAccountGroups = require('../Seed/InsertDefaultAccountGroups');
 const Account = require('../models/wholeseller/Account');
 const NepaliDate = require('nepali-date');
-const { ensureAuthenticated } = require('../middleware/auth');
+const { ensureAuthenticated, isLoggedIn, storeReturnTo } = require('../middleware/auth');
 const Category = require('../models/wholeseller/Category');
 const Unit = require('../models/wholeseller/Unit');
 const FiscalYear = require('../models/wholeseller/FiscalYear');
 const Settings = require('../models/wholeseller/Settings');
 const { ensureNotAdministrator } = require('../middleware/adminAuth');
+const catchAsync = require('../catchAsync');
+const setNoCache = require('../middleware/setNoCache');
 
 router.get('/company/new', ensureAuthenticated, ensureNotAdministrator, async (req, res) => {
     const companyId = req.session.currentCompany;
@@ -31,12 +33,11 @@ router.get('/company/new', ensureAuthenticated, ensureNotAdministrator, async (r
         currentCompanyName,
         nepaliDate,
         companyDateFormat,
-        user: req.user,
         isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
     });
 });
 
-router.get('/dashboard', ensureAuthenticated, async (req, res) => {
+router.get('/dashboard', isLoggedIn, storeReturnTo, ensureAuthenticated, catchAsync(async (req, res) => {
     try {
         let userCompanies;
         const companyDataSizes = {};
@@ -105,7 +106,6 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
         }
 
         res.render('ownerCompany/dashboard', {
-            user: req.user,
             companies: userCompanies,
             companyDataSizes,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
@@ -114,7 +114,7 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
         console.error(err);
         res.status(500).json({ error: err.message });
     }
-});
+}));
 
 
 
@@ -131,7 +131,7 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
 router.get('/retailerDashboard', ensureAuthenticated, async (req, res) => {
     try {
         const userCompanies = await Company.find({ owner: req.user._id });
-        res.render('retailerDashboard', { user: req.user, companies: userCompanies });
+        res.render('retailerDashboard', { companies: userCompanies });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message });
@@ -141,7 +141,7 @@ router.get('/retailerDashboard', ensureAuthenticated, async (req, res) => {
 router.get('/pharmacyDashboard', ensureAuthenticated, async (req, res) => {
     try {
         const userCompanies = await Company.find({ owner: req.user._id });
-        res.render('pharmacyDashboard', { user: req.user, companies: userCompanies });
+        res.render('pharmacyDashboard', { companies: userCompanies });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message });
@@ -151,7 +151,7 @@ router.get('/pharmacyDashboard', ensureAuthenticated, async (req, res) => {
 router.get('/defaultDashboard', ensureAuthenticated, async (req, res) => {
     try {
         const userCompanies = await Company.find({ owner: req.user._id });
-        res.render('defaultDashboard', { user: req.user, companies: userCompanies });
+        res.render('defaultDashboard', { companies: userCompanies });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message });
@@ -523,7 +523,7 @@ router.get('/switch/:id/', ensureAuthenticated, async (req, res) => {
         let redirectPath;
         switch (company.tradeType) {
             case 'Wholeseller':
-                redirectPath = '/wholesellerDashboard';
+                redirectPath = '/wholesellerDashboard/indexv1';
                 break;
             case 'Retailer':
                 redirectPath = '/retailerDashboard';
@@ -560,7 +560,6 @@ router.get('/company/:id', async (req, res) => {
         }
 
         res.render('ownerCompany/view', {
-            user: req.user,
             company,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
 
@@ -587,7 +586,6 @@ router.get('/company/edit/:id', ensureAuthenticated, async (req, res) => {
 
         res.render('ownerCompany/edit', {
             company,
-            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } catch (err) {

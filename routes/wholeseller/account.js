@@ -2,7 +2,7 @@ const express = require('express')
 
 const Account = require('../../models/wholeseller/Account')
 const CompanyGroup = require('../../models/wholeseller/CompanyGroup')
-const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware/auth')
+const { ensureAuthenticated, ensureCompanySelected, isLoggedIn } = require('../../middleware/auth')
 const { ensureTradeType } = require('../../middleware/tradeType')
 const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear')
 const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRange')
@@ -15,7 +15,7 @@ const router = express.Router()
 
 
 // Company routes to get all companies (for select options)
-router.get('/companies/get', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/companies/get', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const currentCompanyName = req.session.currentCompanyName;
 
@@ -36,7 +36,7 @@ router.get('/companies/get', ensureAuthenticated, ensureCompanySelected, ensureT
 
 
 // Company routes to get all company
-router.get('/companies', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/companies', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
 
         const companyId = req.session.currentCompany;
@@ -82,6 +82,7 @@ router.get('/companies', ensureAuthenticated, ensureCompanySelected, ensureTrade
             fiscalYear: fiscalYear
         }).populate('companyGroups');
         const companyGroups = await CompanyGroup.find({ company: companyId });
+
         res.render('wholeseller/company/companies', {
             company,
             accounts,
@@ -99,7 +100,7 @@ router.get('/companies', ensureAuthenticated, ensureCompanySelected, ensureTrade
 })
 
 // Create a new company
-router.post('/companies', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.post('/companies', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const { name, address, phone, ward, pan, email, contactperson, openingBalance, companyGroups } = req.body;
@@ -160,20 +161,20 @@ router.post('/companies', ensureAuthenticated, ensureCompanySelected, ensureTrad
                 contactperson,
                 companyGroups,
                 openingBalance: {
+                    date: currentFiscalYear.startDate,
                     amount: parseFloat(openingBalance.amount),
                     type: openingBalance.type,
                     fiscalYear: fiscalYear // Record stock entry with fiscal year
                 },
-
                 openingBalanceByFiscalYear: [
                     {
                         amount: parseFloat(openingBalance.amount), // Ensure the amount is stored as a number
                         type: openingBalance.type, // 'Dr' or 'Cr'
-                        date: new Date(),
+                        date: currentFiscalYear.startDate,
                         fiscalYear: fiscalYear // Record stock entry with fiscal year
                     }
                 ],
-                openingBalanceDate: new Date(), // Use the date from the request
+                openingBalanceDate: currentFiscalYear.startDate, // Use the date from the request
                 company: companyId,
                 fiscalYear: fiscalYear, // Associate the item with the current fiscal year
                 createdAt: new Date()
@@ -196,9 +197,206 @@ router.post('/companies', ensureAuthenticated, ensureCompanySelected, ensureTrad
     }
 });
 
+//to create an account from /bills routes
+router.post('/create-account', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        try {
+            const { name, address, phone, ward, pan, email, contactperson, openingBalance, companyGroups } = req.body;
+            const companyId = req.session.currentCompany;
+
+            // Fetch the company and populate the fiscalYear
+            const company = await Company.findById(companyId).populate('fiscalYear');
+
+            // Check if fiscal year is already in the session or available in the company
+            let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+            let currentFiscalYear = null;
+
+            if (fiscalYear) {
+                // Fetch the fiscal year from the database if available in the session
+                currentFiscalYear = await FiscalYear.findById(fiscalYear);
+            }
+
+            // If no fiscal year is found in session or currentCompany, throw an error
+            if (!currentFiscalYear && company.fiscalYear) {
+                currentFiscalYear = company.fiscalYear;
+
+                // Set the fiscal year in the session for future requests
+                req.session.currentFiscalYear = {
+                    id: currentFiscalYear._id.toString(),
+                    startDate: currentFiscalYear.startDate,
+                    endDate: currentFiscalYear.endDate,
+                    name: currentFiscalYear.name,
+                    dateFormat: currentFiscalYear.dateFormat,
+                    isActive: currentFiscalYear.isActive
+                };
+
+                // Assign fiscal year ID for use
+                fiscalYear = req.session.currentFiscalYear.id;
+            }
+
+            if (!fiscalYear) {
+                return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+            }
+
+            if (!companyId) {
+                return res.status(400).json({ error: 'Company ID is required' });
+            }
+
+            // Validate the company group
+            const accountGroup = await CompanyGroup.findOne({ _id: companyGroups, company: companyId });
+            if (!accountGroup) {
+                return res.status(400).json({ error: 'Invalid account group for this company' });
+            }
+
+            // Create a new account and include the fiscal year in the openingBalance field
+            const newCompany = new Account({
+                name,
+                address,
+                phone,
+                ward,
+                pan,
+                email,
+                contactperson,
+                companyGroups,
+                openingBalance: {
+                    date: currentFiscalYear.startDate,
+                    amount: parseFloat(openingBalance.amount),
+                    type: openingBalance.type,
+                    fiscalYear: fiscalYear // Record stock entry with fiscal year
+                },
+                openingBalanceByFiscalYear: [
+                    {
+                        amount: parseFloat(openingBalance.amount), // Ensure the amount is stored as a number
+                        type: openingBalance.type, // 'Dr' or 'Cr'
+                        date: currentFiscalYear.startDate,
+                        fiscalYear: fiscalYear // Record stock entry with fiscal year
+                    }
+                ],
+                openingBalanceDate: currentFiscalYear.startDate, // Use the date from the request
+                company: companyId,
+                fiscalYear: fiscalYear, // Associate the item with the current fiscal year
+                createdAt: new Date()
+            });
+
+            await newCompany.save();
+            console.log(newCompany);
+
+            req.flash('success', 'Successfully created an account!');
+            res.redirect('/bills');
+        } catch (err) {
+            if (err.code === 11000) {
+                // Duplicate key error (unique index violation)
+                req.flash('error', 'An account with this name already exists within the selected company.');
+                return res.redirect('/bills');
+            }
+            console.error(err);
+            res.status(500).json({ error: err.message });
+        }
+    }
+});
+
+
+//to create an account from /billsTrackBatchOpen routes
+router.post('/create-account-from-bills-track-batch-open', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        try {
+            const { name, address, phone, ward, pan, email, contactperson, openingBalance, companyGroups } = req.body;
+            const companyId = req.session.currentCompany;
+
+            // Fetch the company and populate the fiscalYear
+            const company = await Company.findById(companyId).populate('fiscalYear');
+
+            // Check if fiscal year is already in the session or available in the company
+            let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+            let currentFiscalYear = null;
+
+            if (fiscalYear) {
+                // Fetch the fiscal year from the database if available in the session
+                currentFiscalYear = await FiscalYear.findById(fiscalYear);
+            }
+
+            // If no fiscal year is found in session or currentCompany, throw an error
+            if (!currentFiscalYear && company.fiscalYear) {
+                currentFiscalYear = company.fiscalYear;
+
+                // Set the fiscal year in the session for future requests
+                req.session.currentFiscalYear = {
+                    id: currentFiscalYear._id.toString(),
+                    startDate: currentFiscalYear.startDate,
+                    endDate: currentFiscalYear.endDate,
+                    name: currentFiscalYear.name,
+                    dateFormat: currentFiscalYear.dateFormat,
+                    isActive: currentFiscalYear.isActive
+                };
+
+                // Assign fiscal year ID for use
+                fiscalYear = req.session.currentFiscalYear.id;
+            }
+
+            if (!fiscalYear) {
+                return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+            }
+
+            if (!companyId) {
+                return res.status(400).json({ error: 'Company ID is required' });
+            }
+
+            // Validate the company group
+            const accountGroup = await CompanyGroup.findOne({ _id: companyGroups, company: companyId });
+            if (!accountGroup) {
+                return res.status(400).json({ error: 'Invalid account group for this company' });
+            }
+
+            // Create a new account and include the fiscal year in the openingBalance field
+            const newCompany = new Account({
+                name,
+                address,
+                phone,
+                ward,
+                pan,
+                email,
+                contactperson,
+                companyGroups,
+                openingBalance: {
+                    date: currentFiscalYear.startDate,
+                    amount: parseFloat(openingBalance.amount),
+                    type: openingBalance.type,
+                    fiscalYear: fiscalYear // Record stock entry with fiscal year
+                },
+                openingBalanceByFiscalYear: [
+                    {
+                        amount: parseFloat(openingBalance.amount), // Ensure the amount is stored as a number
+                        type: openingBalance.type, // 'Dr' or 'Cr'
+                        date: currentFiscalYear.startDate,
+                        fiscalYear: fiscalYear // Record stock entry with fiscal year
+                    }
+                ],
+                openingBalanceDate: currentFiscalYear.startDate, // Use the date from the request
+                company: companyId,
+                fiscalYear: fiscalYear, // Associate the item with the current fiscal year
+                createdAt: new Date()
+            });
+
+            await newCompany.save();
+            console.log(newCompany);
+
+            req.flash('success', 'Successfully created an account!');
+            res.redirect('/billsTrackBatchOpen');
+        } catch (err) {
+            if (err.code === 11000) {
+                // Duplicate key error (unique index violation)
+                req.flash('error', 'An account with this name already exists within the selected company.');
+                return res.redirect('/billsTrackBatchOpen');
+            }
+            console.error(err);
+            res.status(500).json({ error: err.message });
+        }
+    }
+});
+
 
 // Route to render the view form
-router.get('/companies/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/companies/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const accountId = req.params.id;
@@ -266,7 +464,7 @@ router.get('/companies/:id', ensureAuthenticated, ensureCompanySelected, ensureT
 });
 
 // Route to render the edit form
-router.get('/companies/:id/edit', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/companies/:id/edit', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const accountId = req.params.id;
@@ -291,7 +489,7 @@ router.get('/companies/:id/edit', ensureAuthenticated, ensureCompanySelected, en
 });
 
 // Route to handle form submission and update the company
-router.put('/companies/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.put('/companies/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const { name, address, ward, phone, pan, contactperson, email, companyGroups, openingBalance } = req.body;
@@ -367,7 +565,7 @@ router.put('/companies/:id', ensureAuthenticated, ensureCompanySelected, ensureT
 });
 
 // Route to handle form submission and delete the company
-router.delete('/companies/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.delete('/companies/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const { id } = req.params;
         const companyId = req.session.currentCompany;

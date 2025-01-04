@@ -8,9 +8,10 @@ const PDFDocument = require('pdfkit');
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
 const Item = require('../../models/wholeseller/Item');
+const Unit = require('../../models/wholeseller/Unit');
 const SalesBill = require('../../models/wholeseller/SalesBill');
 const Transaction = require('../../models/wholeseller/Transaction');
-const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware/auth');
+const { ensureAuthenticated, ensureCompanySelected, isLoggedIn } = require('../../middleware/auth');
 const BillCounter = require('../../models/wholeseller/billCounter');
 const Account = require('../../models/wholeseller/Account');
 const Settings = require('../../models/wholeseller/Settings');
@@ -23,10 +24,12 @@ const FiscalYear = require('../../models/wholeseller/FiscalYear');
 const checkDemoPeriod = require('../../middleware/checkDemoPeriod');
 const { getNextBillNumber } = require('../../middleware/getNextBillNumber');
 const AppError = require('../../middleware/AppError');
+const CompanyGroup = require('../../models/wholeseller/CompanyGroup');
+const Category = require('../../models/wholeseller/Category');
 
 
 // Fetch all sales bills
-router.get('/bills-list', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/bills-list', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
         const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
@@ -74,7 +77,6 @@ router.get('/bills-list', ensureAuthenticated, ensureCompanySelected, ensureTrad
             currentCompanyName,
             title: '',
             body: '',
-            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
@@ -94,18 +96,10 @@ router.get('/api/items/search', ensureAuthenticated, ensureCompanySelected, ensu
     }
 });
 
-router.get('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
         const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
-        const items = await Item.find({ company: companyId })
-            .populate('category')
-            .populate('unit')
-            .populate({
-                path: 'stockEntries',
-                match: { quantity: { $gt: 0 } }, // Only fetch stock entries with remaining quantity
-                select: 'batchNumber expiryDate quantity', // Select only necessary fields
-            });
         const bills = await SalesBill.find({ company: companyId }).populate('account').populate('items.item');
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
@@ -146,7 +140,19 @@ router.get('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
 
-        const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear });
+        const items = await Item.find({
+            company: companyId, fiscalYear: fiscalYear // Match items based on fiscalYearId
+        })
+            .populate('category')
+            .populate('unit')
+            .populate({
+                path: 'stockEntries',
+                match: { quantity: { $gt: 0 } }, // Only fetch stock entries with remaining quantity
+                select: 'batchNumber expiryDate quantity', // Select only necessary fields
+            });
+
+        const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear }).populate('companyGroups');
+        const companyGroups = await CompanyGroup.find({ company: companyId });
 
         // Get the next bill number based on company, fiscal year, and transaction type ('sales')
         let billCounter;
@@ -168,10 +174,27 @@ router.get('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType
             nextBillNumber = 1; // Start with 1 if no bill counter exists for this fiscal year and company
         }
 
+        // // Extract openingStock and openingStockBalance if they exist for the current fiscal year
+        // const itemsWithOpeningStock = items.map(item => {
+        //     const openingStockEntry = item.openingStockByFiscalYear.find(entry => entry.fiscalYear.toString() === fiscalYear);
+        //     return {
+        //         ...item._doc,
+        //         openingStock: openingStockEntry ? openingStockEntry.openingStock : 0,
+        //         openingStockBalance: openingStockEntry ? openingStockEntry.openingStockBalance : 0
+        //     };
+        // });
+        // Fetch categories and units for item creation
+        const categories = await Category.find({ company: companyId });
+        const units = await Unit.find({ company: companyId });
+
         res.render('wholeseller/sales-bills/bills', {
             company: company,
+            companyGroups,
+            companyId,
             accounts: accounts,
             items: items,
+            categories,
+            units,
             bills: bills,
             nextBillNumber: nextBillNumber, // Pass the next bill number to the view
             nepaliDate: nepaliDate,
@@ -184,14 +207,13 @@ router.get('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType
             currentCompanyName: req.session.currentCompanyName,
             title: '',
             body: '',
-            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     }
 });
 
 
-router.get('/sales-bills/finds', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/sales-bills/finds', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
         const today = new Date();
@@ -237,13 +259,12 @@ router.get('/sales-bills/finds', ensureAuthenticated, ensureCompanySelected, ens
             date: new Date().toISOString().split('T')[0], // Today's date in ISO format
             title: '',
             body: '',
-            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         })
     }
 });
 
-router.get('/sales-bills/edit/billNumber', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/sales-bills/edit/billNumber', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const { billNumber } = req.query;
         const companyId = req.session.currentCompany;
@@ -321,7 +342,7 @@ router.get('/sales-bills/edit/billNumber', ensureAuthenticated, ensureCompanySel
 })
 
 // POST route to handle sales bill creation
-router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
+router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         let newBillNumber;
         try {
@@ -575,92 +596,92 @@ router.post('/bills', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
     }
 });
 
-router.get('/billsTrackBatch', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
-    if (req.tradeType === 'Wholeseller') {
-        const companyId = req.session.currentCompany;
-        const items = await Item.find({ company: companyId })
-            .populate('category')
-            .populate('unit')
-            .populate({
-                path: 'stockEntries',
-                match: { quantity: { $gt: 0 } },//Only fetch stock entries with remaining quantity
-                select: 'batchNumber expiryDate quantity', // Select only necessary fields
-            });
+// router.get('/billsTrackBatch', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+//     if (req.tradeType === 'Wholeseller') {
+//         const companyId = req.session.currentCompany;
+//         const items = await Item.find({ company: companyId })
+//             .populate('category')
+//             .populate('unit')
+//             .populate({
+//                 path: 'stockEntries',
+//                 match: { quantity: { $gt: 0 } },//Only fetch stock entries with remaining quantity
+//                 select: 'batchNumber expiryDate quantity', // Select only necessary fields
+//             });
 
-        const bills = await SalesBill.find({ company: companyId }).populate('account').populate('items.item');
-        const today = new Date();
-        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
-        const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
-        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
-        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
-        const currentCompany = await Company.findById(new ObjectId(companyId));
+//         const bills = await SalesBill.find({ company: companyId }).populate('account').populate('items.item');
+//         const today = new Date();
+//         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
+//         const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
+//         const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+//         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+//         const currentCompany = await Company.findById(new ObjectId(companyId));
 
-        // Check if fiscal year is already in the session or available in the company
-        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
-        let currentFiscalYear = null;
+//         // Check if fiscal year is already in the session or available in the company
+//         let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+//         let currentFiscalYear = null;
 
-        if (fiscalYear) {
-            // Fetch the fiscal year from the database if available in the session
-            currentFiscalYear = await FiscalYear.findById(fiscalYear);
-        }
+//         if (fiscalYear) {
+//             // Fetch the fiscal year from the database if available in the session
+//             currentFiscalYear = await FiscalYear.findById(fiscalYear);
+//         }
 
-        // If no fiscal year is found in session or currentCompany, throw an error
-        if (!currentFiscalYear && company.fiscalYear) {
-            currentFiscalYear = company.fiscalYear;
+//         // If no fiscal year is found in session or currentCompany, throw an error
+//         if (!currentFiscalYear && company.fiscalYear) {
+//             currentFiscalYear = company.fiscalYear;
 
-            // Set the fiscal year in the session for future requests
-            req.session.currentFiscalYear = {
-                id: currentFiscalYear._id.toString(),
-                startDate: currentFiscalYear.startDate,
-                endDate: currentFiscalYear.endDate,
-                name: currentFiscalYear.name,
-                dateFormat: currentFiscalYear.dateFormat,
-                isActive: currentFiscalYear.isActive
-            };
+//             // Set the fiscal year in the session for future requests
+//             req.session.currentFiscalYear = {
+//                 id: currentFiscalYear._id.toString(),
+//                 startDate: currentFiscalYear.startDate,
+//                 endDate: currentFiscalYear.endDate,
+//                 name: currentFiscalYear.name,
+//                 dateFormat: currentFiscalYear.dateFormat,
+//                 isActive: currentFiscalYear.isActive
+//             };
 
-            // Assign fiscal year ID for use
-            fiscalYear = req.session.currentFiscalYear.id;
-        }
+//             // Assign fiscal year ID for use
+//             fiscalYear = req.session.currentFiscalYear.id;
+//         }
 
-        if (!fiscalYear) {
-            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
-        }
+//         if (!fiscalYear) {
+//             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+//         }
 
-        const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear });
+//         const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear });
 
-        // Get the next bill number based on company, fiscal year, and transaction type ('sales')
-        let billCounter = await BillCounter.findOne({
-            company: companyId,
-            fiscalYear: fiscalYear,
-            transactionType: 'Sales' // Specify the transaction type for sales bill
-        });
+//         // Get the next bill number based on company, fiscal year, and transaction type ('sales')
+//         let billCounter = await BillCounter.findOne({
+//             company: companyId,
+//             fiscalYear: fiscalYear,
+//             transactionType: 'Sales' // Specify the transaction type for sales bill
+//         });
 
-        let nextBillNumber;
-        if (billCounter) {
-            nextBillNumber = billCounter.currentBillNumber + 1; // Increment the current bill number
-        } else {
-            nextBillNumber = 1; // Start with 1 if no bill counter exists for this fiscal year and company
-        }
+//         let nextBillNumber;
+//         if (billCounter) {
+//             nextBillNumber = billCounter.currentBillNumber + 1; // Increment the current bill number
+//         } else {
+//             nextBillNumber = 1; // Start with 1 if no bill counter exists for this fiscal year and company
+//         }
 
-        res.render('wholeseller/sales-bills/billsTrackBatch', {
-            company,
-            currentFiscalYear,
-            accounts: accounts,
-            items: items,
-            bills: bills,
-            nextBillNumber: nextBillNumber, // Pass the next bill number to the view
-            nepaliDate: nepaliDate,
-            transactionDateNepali,
-            companyDateFormat,
-            currentCompany,
-            user: req.user,
-            currentCompanyName: req.session.currentCompanyName,
-            title: 'Sales',
-            body: 'wholeseller >> sales >> add',
-            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
-        });
-    }
-});
+//         res.render('wholeseller/sales-bills/billsTrackBatch', {
+//             company,
+//             currentFiscalYear,
+//             accounts: accounts,
+//             items: items,
+//             bills: bills,
+//             nextBillNumber: nextBillNumber, // Pass the next bill number to the view
+//             nepaliDate: nepaliDate,
+//             transactionDateNepali,
+//             companyDateFormat,
+//             currentCompany,
+//             user: req.user,
+//             currentCompanyName: req.session.currentCompanyName,
+//             title: 'Sales',
+//             body: 'wholeseller >> sales >> add',
+//             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+//         });
+//     }
+// });
 
 // POST route to handle sales bill creation
 // router.post('/billsTrackBatch', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
@@ -939,17 +960,17 @@ router.get('/billsTrackBatch', ensureAuthenticated, ensureCompanySelected, ensur
 // });
 
 
-router.get('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, AppError, async (req, res) => {
+router.get('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
-        const items = await Item.find({ company: companyId })
-            .populate('category')
-            .populate('unit')
-            .populate({
-                path: 'stockEntries',
-                match: { quantity: { $gt: 0 } },//Only fetch stock entries with remaining quantity
-                select: 'batchNumber expiryDate quantity', // Select only necessary fields
-            });
+        // const items = await Item.find({ company: companyId })
+        //     .populate('category')
+        //     .populate('unit')
+        //     .populate({
+        //         path: 'stockEntries',
+        //         match: { quantity: { $gt: 0 } },//Only fetch stock entries with remaining quantity
+        //         select: 'batchNumber expiryDate quantity', // Select only necessary fields
+        //     });
 
         const bills = await SalesBill.find({ company: companyId }).populate('account').populate('items.item');
         const today = new Date();
@@ -990,7 +1011,20 @@ router.get('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, e
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
 
-        const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear });
+
+        const items = await Item.find({
+            company: companyId, fiscalYear: fiscalYear // Match items based on fiscalYearId
+        })
+            .populate('category')
+            .populate('unit')
+            .populate({
+                path: 'stockEntries',
+                match: { quantity: { $gt: 0 } }, // Only fetch stock entries with remaining quantity
+                select: 'batchNumber expiryDate quantity', // Select only necessary fields
+            });
+
+        const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear }).populate('companyGroups');
+        const companyGroups = await CompanyGroup.find({ company: companyId });
 
         // Get the next bill number based on company, fiscal year, and transaction type ('sales')
         let billCounter = await BillCounter.findOne({
@@ -1006,11 +1040,18 @@ router.get('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, e
             nextBillNumber = 1; // Start with 1 if no bill counter exists for this fiscal year and company
         }
 
+        const categories = await Category.find({ company: companyId });
+        const units = await Unit.find({ company: companyId });
+
         res.render('wholeseller/sales-bills/billsTrackBatchOpen', {
             company,
+            companyId,
             currentFiscalYear,
             accounts: accounts,
             items: items,
+            companyGroups,
+            categories,
+            units,
             bills: bills,
             nextBillNumber: nextBillNumber, // Pass the next bill number to the view
             nepaliDate: nepaliDate,
@@ -1029,7 +1070,7 @@ router.get('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, e
 
 
 // POST route to handle sales bill creation
-router.post('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, AppError, async (req, res) => {
+router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const {
@@ -1313,7 +1354,7 @@ router.post('/billsTrackBatchOpen', ensureAuthenticated, ensureCompanySelected, 
 
 
 // GET route to render the edit page for a sales bill
-router.get('/bills/edit/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const billId = req.params.id;
@@ -1431,7 +1472,7 @@ router.get('/bills/edit/:id', ensureAuthenticated, ensureCompanySelected, ensure
 
 
 // PUT route to update a sales bill
-router.put('/bills/edit/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, AppError, async (req, res) => {
+router.put('/bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     try {
         const billId = req.params.id;
         const {
@@ -1656,8 +1697,14 @@ router.put('/bills/edit/:id', ensureAuthenticated, ensureCompanySelected, ensure
             }
         }
 
-        req.flash('success', 'Bill updated successfully');
-        res.redirect(`/bills/edit/${billId}`);
+        if (req.query.print === 'true') {
+            // Redirect to the print route
+            res.redirect(`/bills/${billId}/direct-print`);
+        } else {
+            // Redirect to the bills list or another appropriate page
+            req.flash('success', 'Bill updated successfully');
+            res.redirect(`/bills/edit/${billId}`);
+        }
     } catch (error) {
         console.error("Error updating bill:", error);
         req.flash('error', 'Error updating bill');
@@ -1665,7 +1712,7 @@ router.put('/bills/edit/:id', ensureAuthenticated, ensureCompanySelected, ensure
     }
 });
 
-router.get('/bills/:id/print', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/bills/:id/print', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
 
         const currentCompanyName = req.session.currentCompanyName;
@@ -1813,7 +1860,7 @@ router.get('/bills/:id/print', ensureAuthenticated, ensureCompanySelected, ensur
 });
 
 //directPrint for sales bill
-router.get('/bills/:id/direct-print', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/bills/:id/direct-print', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
 
         const currentCompanyName = req.session.currentCompanyName;

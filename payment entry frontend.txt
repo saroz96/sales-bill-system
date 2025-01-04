@@ -1,0 +1,293 @@
+payment.ejs
+
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+
+    <style>
+        .wow-form {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #ffffff, #e0e0e0);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+        }
+
+        .btn {
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+            color: white;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .wow-form {
+                padding: 15px;
+            }
+        }
+    </style>
+
+    <div class="container mt-4 wow-form" id="mainContainer">
+        <div class="card shadow-lg p-4 animate__animated animate__fadeInUp">
+            <div class="card-header">
+                <h5 class="card-title">Add Payment</h5>
+            </div>
+            <div class="card-body">
+                <form id="paymentForm" action="/payments" method="post" class="wow-form">
+                    <!-- Date Input -->
+                    <div class="form-group row mb-3">
+                        <% if (companyDateFormat==='nepali' ) { %>
+                            <div class="col">
+                                <label for="nepaliDate">Date:</label>
+                                <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
+                                    value="<%= nepaliDate || '' %>" autofocus>
+                            </div>
+                            <div class="col d-none">
+                                <label for="billDate">Date:</label>
+                                <input type="date" name="billDate" id="billDate" class="form-control"
+                                    value="<%= new Date().toISOString().split('T')[0] %>" disabled autofocus>
+                            </div>
+                            <% } else { %>
+                                <div class="col">
+                                    <label for="billDate">Date:</label>
+                                    <input type="date" name="billDate" id="billDate" class="form-control" required
+                                        value="<%= new Date().toISOString().split('T')[0] %>" autofocus>
+                                </div>
+                                <div class="col d-none">
+                                    <label for="nepaliDate">Date:</label>
+                                    <input type="text" name="nepaliDate" id="nepaliDate" class="form-control"
+                                        value="<%= nepaliDate || '' %>" disabled autofocus>
+                                </div>
+                                <% } %>
+                                    <div class="col">
+                                        <label for="billNumber">Voucher Number:</label>
+                                        <input type="number" name="billNumber" id="billNumber" class="form-control"
+                                            value="<%= nextBillNumber %>" required readonly>
+                                    </div>
+                                    <div class="col">
+                                        <label for="accountType">Account Type:</label>
+                                        <input type="text" name="accountType" id="accountType" class="form-control"
+                                            value="Payment" readonly>
+                                    </div>
+                    </div>
+
+
+                    <!-- Payment Mode Selector -->
+                    <div class="row">
+                        <div class="form-group mb-3">
+                            <label for="creditAccounts">Payment Mode:</label>
+                            <select name="creditAccounts[0][account]" id="creditAccounts" class="form-control" required>
+                                <option value="" disabled selected>Select Payment Mode</option>
+                                <!-- Cash Accounts -->
+                                <optgroup label="Cash">
+                                    <% cashAccounts.forEach(cashAccount=> { %>
+                                        <option value="<%= cashAccount._id %>">
+                                            <%= cashAccount.name %>
+                                        </option>
+                                        <% }); %>
+                                </optgroup>
+                                <!-- Bank Accounts -->
+                                <optgroup label="Bank">
+                                    <% bankAccounts.forEach(bankAccount=> { %>
+                                        <option value="<%= bankAccount._id %>">
+                                            <%= bankAccount.name %>
+                                        </option>
+                                        <% }); %>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="creditAccounts">Amount:</label>
+                            <input type="number" name="creditAccounts[0][credit]" id="creditAccounts"
+                                class="form-control" placeholder="Credit Amount" required>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Rows for Account and Amount -->
+                    <div id="rowsContainer" class="mb-3">
+                        <div class="row payment-row">
+                            <div class="col-md-1">
+                                <label for="serialNumber">S.N.:</label>
+                                <input type="number" name="serialNumber" class="form-control serial-number" readonly>
+                            </div>
+
+                            <div class="col-7">
+                                <label for="debitAccounts">Account:</label>
+                                <select name="debitAccounts[0][account]" class="form-control account-select" required>
+                                    <option value="" disabled selected>Select an account</option>
+                                    <% if (accounts && accounts.length> 0) { %>
+                                        <% accounts.forEach(account=> { %>
+                                            <option value="<%= account._id %>">
+                                                <%= account.name %>
+                                            </option>
+                                            <% }); %>
+                                                <% } else { %>
+                                                    <option disabled>No accounts available</option>
+                                                    <% } %>
+                                </select>
+                            </div>
+
+                            <!-- Institution Type and Number (initially hidden) -->
+                            <div class="bank-details col-md-4 d-none">
+                                <div>
+                                    <label for="InstType">Inst. Type</label>
+                                    <select name="InstType" id="InstType" class="form-control">
+                                        <option value="" disabled selected>Select an InstType</option>
+                                        <option value="N/A">N/A</option>
+                                        <option value="RTGS">RTGS</option>
+                                        <option value="Fonepay">Fonepay</option>
+                                        <option value="Cheque">Cheque</option>
+                                        <option value="Connect-Ips">Connect-Ips</option>
+                                        <option value="Esewa">Esewa</option>
+                                        <option value="Khalti">Khalti</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="InstNo">Inst. No.</label>
+                                    <input type="text" name="InstNo" id="InstNo" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="debitAccounts">Amount:</label>
+                                <input type="number" name="debitAccounts[0][debit]" id="debitAccounts"
+                                    class="form-control" placeholder="Debit Amount" required>
+                            </div>
+                            <div class="col-md-1 d-flex align-items-end">
+                                <button type="button" class="btn btn-danger remove-row" data-toggle="tooltip"
+                                    data-placement="top" title="Remove this row">
+                                    <i class="fas fa-minus-circle"></i>
+                                </button>
+                                <!-- Add Row Button -->
+                                <button type="button" id="addRow" class="btn btn-secondary ms-2" data-toggle="tooltip"
+                                    data-placement="top" title="Add another payment row">
+                                    <i class="fas fa-plus-circle"></i>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <div class="col">
+                            <input type="text" class="form-control" name="description" id="description"
+                                placeholder="Add Notes">
+                        </div>
+                        <div style="float: right;">
+                            <button type="button" class="btn btn-primary" id="saveBill" onclick="submitBillForm(false)">
+                                <i class="fas fa-save"></i> Save
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="submitBillForm(true)">
+                                <i class="fas fa-print"></i> Save & Print
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Function to update S.N. for all rows
+            function updateSerialNumbers() {
+                document.querySelectorAll('.serial-number').forEach((input, index) => {
+                    input.value = index + 1;
+                });
+            }
+
+            // Add new row functionality
+            document.getElementById('addRow').addEventListener('click', function () {
+                let firstRow = document.querySelector('.payment-row');
+                let newRow = firstRow.cloneNode(true);
+
+                // Clear the input values in the new row
+                newRow.querySelectorAll('input').forEach(input => input.value = '');
+                newRow.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
+
+                // Append the new row to the rows container
+                document.getElementById('rowsContainer').appendChild(newRow);
+
+                // Add event listener to the remove button in the new row
+                newRow.querySelector('.remove-row').addEventListener('click', function () {
+                    newRow.remove();
+                    updateSerialNumbers();  // Update S.N. after removing a row
+                });
+
+                // Update the serial numbers for all rows
+                updateSerialNumbers();
+            });
+
+            // Add event listener to the remove button in the first row
+            document.querySelector('.remove-row').addEventListener('click', function () {
+                this.closest('.payment-row').remove();
+                updateSerialNumbers();  // Update S.N. after removing a row
+            });
+
+            // Initial serial number update
+            updateSerialNumbers();
+        });
+
+        $(document).ready(function () {
+            // Initialize Select2 for searchable dropdowns
+            $('.account-select').select2({
+                placeholder: "Select an account",
+                allowClear: true,
+                width: '100%', // Ensure it takes the full width of the container
+            });
+        });
+
+        function submitBillForm(print) {
+            shouldPrint = print;
+            const billForm = document.getElementById('paymentForm');
+            const saveButton = document.getElementById('saveBill');
+
+            // Change button text and disable it
+            saveButton.innerText = 'Saving...';
+            saveButton.disabled = true;
+
+            if (print) {
+                const url = new URL(billForm.action);
+                url.searchParams.append('print', 'true');
+                billForm.action = url.toString();
+            }
+
+            // Simulate form submission (replace this with actual form submission logic)
+            setTimeout(() => {
+                billForm.submit();
+
+                // Reset button text and enable it after submission
+                saveButton.innerText = 'Save Bill';
+                saveButton.disabled = false;
+            }, 2000); // Simulating a delay; adjust or remove as needed
+        }
+
+
+        document.getElementById('paymentForm').addEventListener('submit', function (event) {
+            if (!shouldPrint && event.submitter && event.submitter.innerText === 'Save & Print Bill') {
+                event.preventDefault();
+            }
+        });
+
+        // Show/hide institution type and number based on payment account selection
+        const paymentAccountSelect = document.getElementById('paymentAccount');
+        const bankDetailsContainer = document.querySelector('.bank-details');
+
+        paymentAccountSelect.addEventListener('change', function () {
+            const selectedValue = this.value;
+            const selectedOption = this.options[this.selectedIndex];
+
+            // Check if selected option is from the Cash group or Bank group
+            if (selectedOption.parentElement.label === 'Cash') {
+                bankDetailsContainer.classList.add('d-none'); // Hide bank details
+            } else {
+                bankDetailsContainer.classList.remove('d-none'); // Show bank details
+            }
+        });
+
+    </script>

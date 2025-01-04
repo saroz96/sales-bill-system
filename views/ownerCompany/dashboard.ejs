@@ -194,6 +194,13 @@
             document.getElementById('noResultsMessage').style.display = found ? 'none' : 'block';
         });
     </script>
+
+    <script>
+        if (performance.navigation.type === 2) { // If the user navigates via the back button
+            window.location.reload(); // Reload the page to trigger authentication check
+        }
+    </script>
+
 </body>
 
 </html>

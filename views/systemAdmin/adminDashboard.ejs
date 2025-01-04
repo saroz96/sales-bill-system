@@ -19,6 +19,7 @@
 </head>
 
 <body>
+
     <div x-data="{ sidebarOpen: true }" class="flex h-screen bg-gray-100">
         <!-- Sidebar -->
         <aside :class="{ 'sidebar-hidden': !sidebarOpen }"
@@ -39,10 +40,17 @@
                                 class="flex items-center p-3 text-gray-700 hover:bg-gray-200 rounded-lg">
                                 <i class="fas fa-users mr-3"></i> Users
                             </a></li>
-                        <li><a href="/admin/settings"
+                        <li>
+                            <a href="/admin/settings"
                                 class="flex items-center p-3 text-gray-700 hover:bg-gray-200 rounded-lg">
                                 <i class="fas fa-cogs mr-3"></i> Settings
-                            </a></li>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/logout"
+                                class="flex items-center p-3 text-gray-700 hover:bg-gray-200 rounded-lg"><i
+                                    class="fas fa-sign-out-alt mr-3"></i>Logout</a>
+                        </li>
                     </ul>
                 </nav>
             </div>

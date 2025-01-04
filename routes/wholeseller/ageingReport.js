@@ -6,14 +6,14 @@ const Transaction = require('../../models/wholeseller/Transaction');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
 const Company = require('../../models/wholeseller/Company');
 const NepaliDate = require('nepali-date');
-const { ensureCompanySelected, ensureAuthenticated } = require('../../middleware/auth');
+const { ensureCompanySelected, ensureAuthenticated, isLoggedIn } = require('../../middleware/auth');
 const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
 const { ensureTradeType } = require('../../middleware/tradeType');
 const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRange');
 const CompanyGroup = require('../../models/wholeseller/CompanyGroup');
 
 // Route to fetch all accounts
-router.get('/aging/accounts', async (req, res) => {
+router.get('/aging/accounts', isLoggedIn, ensureAuthenticated, ensureCompanySelected, async (req, res) => {
     try {
         const companyId = req.session.currentCompany;
         const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');

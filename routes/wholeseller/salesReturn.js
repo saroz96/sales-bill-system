@@ -1045,8 +1045,11 @@ router.get('/salesReturn-vat-report', ensureAuthenticated, ensureCompanySelected
         const currentCompanyName = req.session.currentCompanyName;
         const currentCompany = await Company.findById(new ObjectId(companyId));
         const companyDateFormat = currentCompany ? currentCompany.dateFormat : '';
-        const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
-        const toDate = req.query.toDate ? new Date(req.query.toDate) : null;
+        // Extract dates from query parameters
+        let fromDate = req.query.fromDate ? req.query.fromDate : null;
+        let toDate = req.query.toDate ? req.query.toDate : null;
+
+
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD');
 
@@ -1083,16 +1086,16 @@ router.get('/salesReturn-vat-report', ensureAuthenticated, ensureCompanySelected
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
 
-        // Build the query to filter transactions within the date range
+        // // Build the query to filter transactions within the date range
         let query = { company: companyId };
 
-        if (fromDate && toDate) {
-            query.date = { $gte: fromDate, $lte: toDate };
-        } else if (fromDate) {
-            query.date = { $gte: fromDate };
-        } else if (toDate) {
-            query.date = { $lte: toDate };
-        }
+        // if (fromDate && toDate) {
+        //     query.date = { $gte: fromDate, $lte: toDate };
+        // } else if (fromDate) {
+        //     query.date = { $gte: fromDate };
+        // } else if (toDate) {
+        //     query.date = { $lte: toDate };
+        // }
 
         const salesReturn = await SalesReturn.find(query)
             .populate('account')
@@ -1114,21 +1117,23 @@ router.get('/salesReturn-vat-report', ensureAuthenticated, ensureCompanySelected
             };
         }));
 
-        res.render('wholeseller/salesReturn/salesReturnVatReport', {
-            company,
-            currentFiscalYear,
-            salesReturnVatReport,
-            companyDateFormat,
-            nepaliDate,
-            currentCompany,
-            fromDate: req.query.fromDate,
-            toDate: req.query.toDate,
-            currentCompanyName,
-            title: '',
-            body: '',
-            user: req.user,
-            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
-        });
+        if (!fromDate || !toDate) {
+            res.render('wholeseller/salesReturn/salesReturnVatReport', {
+                company,
+                currentFiscalYear,
+                salesReturnVatReport,
+                companyDateFormat,
+                nepaliDate,
+                currentCompany,
+                fromDate: req.query.fromDate || '',
+                toDate: req.query.toDate || '',
+                currentCompanyName,
+                title: '',
+                body: '',
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            });
+        }
     } else {
         res.status(403).send('Access denied');
     }

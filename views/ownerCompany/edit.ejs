@@ -12,20 +12,6 @@
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        /* Styling similar to Create Company page body {
-            background-color: #f0f2f5;
-            font-family: Arial, sans-serif;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        } */
-
         h1 {
             text-align: center;
             margin-bottom: 30px;
@@ -138,139 +124,144 @@
         </div>
     </nav>
     <div class="container">
-        <h1>Edit Company</h1>
-        <form action="/company/edit/<%= company._id %>?_method=PUT" method="POST" class="needs-validation" novalidate>
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="name" class="form-label">Company Name:</label>
-                    <input type="text" class="form-control" id="name" name="name" value="<%= company.name %>" required>
-                    <div class="invalid-feedback">Please enter the company name.</div>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="country" class="form-label">Country:</label>
-                    <select class="form-select" id="country" name="country" required>
-                        <option value="Nepal" <%=company.country==='Nepal' ? 'selected' : '' %>>Nepal</option>
-                    </select>
-                    <div class="invalid-feedback">Please select a country.</div>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="state" class="form-label">State:</label>
-                    <input type="text" class="form-control" id="state" name="state" value="<%= company.state %>"
-                        required>
-                    <div class="invalid-feedback">Please enter the state.</div>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="city" class="form-label">City:</label>
-                    <input type="text" class="form-control" id="city" name="city" value="<%= company.city %>" required>
-                    <div class="invalid-feedback">Please enter the city.</div>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="address" class="form-label">Address:</label>
-                    <input type="text" class="form-control" id="address" name="address" value="<%= company.address %>"
-                        required>
-                    <div class="invalid-feedback">Please enter the address.</div>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="pan" class="form-label">PAN:</label>
-                    <input type="text" class="form-control" id="pan" name="pan" value="<%= company.pan %>" required>
-                    <div class="invalid-feedback">Please enter the PAN number.</div>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="phone" class="form-label">Phone:</label>
-                    <input type="tel" class="form-control" id="phone" name="phone" value="<%= company.phone %>"
-                        required>
-                    <div class="invalid-feedback">Please enter a valid phone number.</div>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="ward" class="form-label">Ward No:</label>
-                    <input type="number" class="form-control" id="ward" name="ward" value="<%= company.ward %>"
-                        required>
-                    <div class="invalid-feedback">Please enter the ward number.</div>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="email" class="form-label">Company Email:</label>
-                    <input type="email" class="form-control" id="email" name="email" value="<%= company.email %>"
-                        required>
-                    <div class="invalid-feedback">Please enter a valid email.</div>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="tradeType" class="form-label">Trade Type:</label>
-                    <select class="form-select" id="tradeType" name="tradeType" required>
-                        <option value="Wholeseller" <%=company.tradeType==='Wholeseller' ? 'selected' : '' %>
-                            >Wholeseller</option>
-                        <option value="Retailer" <%=company.tradeType==='Retailer' ? 'selected' : '' %>>Retailer
-                        </option>
-                        <option value="Pharmacy" <%=company.tradeType==='Pharmacy' ? 'selected' : '' %>>Pharmacy
-                        </option>
-                        <option value="Other" <%=company.tradeType==='Other' ? 'selected' : '' %>>Other</option>
-                    </select>
-                    <div class="invalid-feedback">Please select a trade type.</div>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="dateFormat" class="form-label">Preferred Date Format:</label>
-                    <select id="dateFormat" class="form-select" name="dateFormat">
-                        <option value="Select date format" disabled>Select date format</option>
-                        <option value="nepali" <%=company.dateFormat==='nepali' ? 'selected' : '' %>>Nepali Date
-                        </option>
-                        <option value="english" <%=company.dateFormat==='english' ? 'selected' : '' %>>English Date
-                        </option>
-                    </select>
-                </div>
-
-                <div class="col-md-6">
-                    <div class="english-date-fields"
-                        style="display: <%= company.dateFormat === 'english' ? 'block' : 'none' %>;">
-                        <label for="startDateEnglish" class="form-label">Fiscal Year Start Date (English):</label>
-                        <input type="date" class="form-control" id="startDateEnglish" name="startDateEnglish"
-                            value="<%= company.fiscalYearStartDate %>">
+        <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <h1>Edit Company</h1>
+            <form action="/company/edit/<%= company._id %>?_method=PUT" method="POST" class="needs-validation"
+                novalidate>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="name" class="form-label">Company Name:</label>
+                        <input type="text" class="form-control" id="name" name="name" value="<%= company.name %>"
+                            required>
+                        <div class="invalid-feedback">Please enter the company name.</div>
                     </div>
 
-                    <div class="nepali-date-fields"
-                        style="display: <%= company.dateFormat === 'nepali' ? 'block' : 'none' %>;">
-                        <label for="startDateNepali" class="form-label">Fiscal Year Start Date (Nepali):</label>
-                        <input type="date" class="form-control" id="startDateNepali" name="startDateNepali"
-                            value="<%= company.fiscalYearStartDate %>">
+                    <div class="col-md-6">
+                        <label for="country" class="form-label">Country:</label>
+                        <select class="form-select" id="country" name="country" required>
+                            <option value="Nepal" <%=company.country==='Nepal' ? 'selected' : '' %>>Nepal</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a country.</div>
                     </div>
                 </div>
-            </div>
 
-            <div class="row g-3">
-                <div class="col-md-6 gap-2 mt-4">
-                    <div class="d-flex align-items-center">
-                        <label for="vatEnabled" class="form-label me-4">Enable VAT:</label>
-                        <div class="form-check form-switch">
-                            <input type="checkbox" class="form-check-input" id="vatEnabled" name="vatEnabled"
-                                <%=company.vatEnabled ? 'checked' : '' %>>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="state" class="form-label">State:</label>
+                        <input type="text" class="form-control" id="state" name="state" value="<%= company.state %>"
+                            required>
+                        <div class="invalid-feedback">Please enter the state.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="city" class="form-label">City:</label>
+                        <input type="text" class="form-control" id="city" name="city" value="<%= company.city %>"
+                            required>
+                        <div class="invalid-feedback">Please enter the city.</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="address" class="form-label">Address:</label>
+                        <input type="text" class="form-control" id="address" name="address"
+                            value="<%= company.address %>" required>
+                        <div class="invalid-feedback">Please enter the address.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="pan" class="form-label">PAN:</label>
+                        <input type="text" class="form-control" id="pan" name="pan" value="<%= company.pan %>" required>
+                        <div class="invalid-feedback">Please enter the PAN number.</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="phone" class="form-label">Phone:</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" value="<%= company.phone %>"
+                            required>
+                        <div class="invalid-feedback">Please enter a valid phone number.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="ward" class="form-label">Ward No:</label>
+                        <input type="number" class="form-control" id="ward" name="ward" value="<%= company.ward %>"
+                            required>
+                        <div class="invalid-feedback">Please enter the ward number.</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">Company Email:</label>
+                        <input type="email" class="form-control" id="email" name="email" value="<%= company.email %>"
+                            required>
+                        <div class="invalid-feedback">Please enter a valid email.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="tradeType" class="form-label">Trade Type:</label>
+                        <select class="form-select" id="tradeType" name="tradeType" required>
+                            <option value="Wholeseller" <%=company.tradeType==='Wholeseller' ? 'selected' : '' %>
+                                >Wholeseller</option>
+                            <option value="Retailer" <%=company.tradeType==='Retailer' ? 'selected' : '' %>>Retailer
+                            </option>
+                            <option value="Pharmacy" <%=company.tradeType==='Pharmacy' ? 'selected' : '' %>>Pharmacy
+                            </option>
+                            <option value="Other" <%=company.tradeType==='Other' ? 'selected' : '' %>>Other</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a trade type.</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="dateFormat" class="form-label">Preferred Date Format:</label>
+                        <select id="dateFormat" class="form-select" name="dateFormat">
+                            <option value="Select date format" disabled>Select date format</option>
+                            <option value="nepali" <%=company.dateFormat==='nepali' ? 'selected' : '' %>>Nepali Date
+                            </option>
+                            <option value="english" <%=company.dateFormat==='english' ? 'selected' : '' %>>English Date
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="english-date-fields"
+                            style="display: <%= company.dateFormat === 'english' ? 'block' : 'none' %>;">
+                            <label for="startDateEnglish" class="form-label">Fiscal Year Start Date (English):</label>
+                            <input type="date" class="form-control" id="startDateEnglish" name="startDateEnglish"
+                                value="<%= company.fiscalYearStartDate %>">
+                        </div>
+
+                        <div class="nepali-date-fields"
+                            style="display: <%= company.dateFormat === 'nepali' ? 'block' : 'none' %>;">
+                            <label for="startDateNepali" class="form-label">Fiscal Year Start Date (Nepali):</label>
+                            <input type="date" class="form-control" id="startDateNepali" name="startDateNepali"
+                                value="<%= company.fiscalYearStartDate %>">
                         </div>
                     </div>
                 </div>
-            </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6 gap-2 mt-4">
+                        <div class="d-flex align-items-center">
+                            <label for="vatEnabled" class="form-label me-4">Enable VAT:</label>
+                            <div class="form-check form-switch">
+                                <input type="checkbox" class="form-check-input" id="vatEnabled" name="vatEnabled"
+                                    <%=company.vatEnabled ? 'checked' : '' %>>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
 
-            <div class="d-grid gap-2 mt-4">
-                <button type="submit" class="btn btn-primary">Save Changes</button>
-            </div>
-        </form>
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

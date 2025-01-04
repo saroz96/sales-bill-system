@@ -1,4 +1,21 @@
 module.exports = {
+
+    isLoggedIn: function (req, res, next) {
+        console.log('REQ.USER', req.user);
+        if (!req.isAuthenticated()) {
+            req.flash('error', 'You must be sign in first!');
+            return res.redirect('/login')
+        }
+        next();
+    },
+
+    storeReturnTo: function (req, res, next) {
+        if (req.session.returnTo) {
+            res.locals.returnTo = req.session.returnTo;
+        }
+        next();
+    },
+
     ensureAuthenticated: function (req, res, next) {
         if (req.isAuthenticated()) {
             // Check if the user is deactivated

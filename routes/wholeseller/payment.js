@@ -329,7 +329,7 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
             });
 
             const debitTransaction = new Transaction({
-                account,
+                account: account,
                 type: 'Pymt',
                 paymentAccountId: payment._id,
                 drCrNoteAccountTypes: 'Debit',
@@ -339,6 +339,7 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 debit,
                 credit: 0,
                 paymentMode: 'Payment',
+                paymentReceiptType: 'Payment',
                 // paymentAccount,
                 balance: previousDebitBalance + debit,
                 date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),
@@ -360,15 +361,17 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
 
             const creditTransaction = new Transaction({
                 receiptAccount: paymentAccount,
+                account: paymentAccount,
                 type: 'Pymt',
                 paymentAccountId: payment._id,
                 drCrNoteAccountTypes: 'Credit',
-                // billNumber: billCounter.count,
+                // billNumber: bizllCounter.count,
                 billNumber: billNumber,
                 accountType: account,
                 debit: 0,
                 credit: debit,
                 paymentMode: 'Payment',
+                paymentReceiptType: 'Receipt',
                 // paymentAccount,
                 balance: previousCreditBalance - debit,
                 date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),

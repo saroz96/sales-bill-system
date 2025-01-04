@@ -236,7 +236,8 @@
                                             <td>
                                                 <%= entry.accountType?.name || entry.purchaseSalesType ||
                                                     entry.journalAccountType || entry.purchaseSalesReturnType ||
-                                                    entry.drCrNoteAccountType || 'Opening' %>
+                                                    entry.drCrNoteAccountType ||
+                                                    entry.paymentReceiptAccountType|| 'Opening' %>
                                             </td>
                                             <td>
                                                 <%= entry.debit ? entry.debit.toFixed(2) : '-' %>
