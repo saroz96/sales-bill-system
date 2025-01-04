@@ -1,12 +1,11 @@
 const mongoose = require('mongoose');
 
 const receiptSchema = new mongoose.Schema({
-    billNumber: { type: Number, unique: true, required: true },
+    billNumber: { type: Number, required: true },
     date: { type: Date, required: true },
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     debit: { type: Number, default: 0 },
     credit: { type: Number, default: 0 },
-    // notes: { type: String },
     receiptAccount: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Account', // References a specific account (e.g., Cash in Hand, Bank Account)

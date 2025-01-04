@@ -6,7 +6,7 @@ const paymentSchema = new mongoose.Schema({
         ref: 'FiscalYear',
         required: true
     },
-    billNumber: { type: Number, unique: true, required: true },
+    billNumber: { type: Number, required: true },
     date: { type: Date, required: true },
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     debit: { type: Number, default: 0 },

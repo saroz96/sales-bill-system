@@ -277,13 +277,6 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 return res.status(400).json({ message: 'Debit amount must be a positive number.' });
             }
 
-            // let billCounter = await BillCounter.findOne({ company: companyId });
-            // if (!billCounter) {
-            //     billCounter = new BillCounter({ company: companyId });
-            // }
-            // billCounter.count += 1;
-            // await billCounter.save();
-
             const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Receipt')
 
             const creditedAccount = await Account.findById(account);
@@ -296,11 +289,18 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 return res.status(404).json({ message: 'Receipt account not found.' });
             }
 
-            let previousCreditBalance = 0;
-            const lastCreditTransaction = await Transaction.findOne({ account }).sort({ transactionDate: -1 });
-            if (lastCreditTransaction) {
-                previousCreditBalance = lastCreditTransaction.balance;
-            }
+            // let previousCreditBalance = 0;
+            // const lastCreditTransaction = await Transaction.findOne({ account }).sort({ transactionDate: -1 });
+            // if (lastCreditTransaction) {
+            //     previousCreditBalance = lastCreditTransaction.balance;
+            // }
+
+            // Calculate balances
+            const lastCreditTransaction = await Transaction.findOne({ account }).sort({ date: -1 });
+            const previousCreditBalance = lastCreditTransaction?.balance || 0;
+
+            const lastDebitTransaction = await Transaction.findOne({ account: debitAccount._id }).sort({ date: -1 });
+            const previousDebitBalance = lastDebitTransaction?.balance || 0;
 
             const receipt = new Receipt({
                 // billNumber: billCounter.count,
@@ -321,7 +321,7 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
             });
             console.log('Receipt Bill:', receipt);
             const creditTransaction = new Transaction({
-                account,
+                account: account,
                 type: 'Rcpt',
                 receiptAccountId: receipt._id,
                 billNumber: billNumber,
@@ -330,6 +330,7 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 credit,
                 debit: 0,
                 paymentMode: 'Receipt',
+                paymentReceiptType: 'Receipt',
                 balance: previousCreditBalance + credit,
                 date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),
                 company: companyId,
@@ -338,16 +339,18 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
             });
 
             await creditTransaction.save();
+            console.log('Credit Transaction:', creditTransaction);
             await Account.findByIdAndUpdate(account, { $push: { transactions: creditTransaction._id } });
 
-            let previousDebitBalance = 0;
-            const lastDebitTransaction = await Transaction.findOne({ account: debitAccount._id }).sort({ transactionDate: -1 });
-            if (lastDebitTransaction) {
-                previousDebitBalance = lastDebitTransaction.balance;
-            }
+            // let previousDebitBalance = 0;
+            // const lastDebitTransaction = await Transaction.findOne({ account: debitAccount._id }).sort({ transactionDate: -1 });
+            // if (lastDebitTransaction) {
+            //     previousDebitBalance = lastDebitTransaction.balance;
+            // }
 
             const debitTransaction = new Transaction({
                 paymentAccount: receiptAccount,
+                account: receiptAccount,
                 type: 'Rcpt',
                 receiptAccountId: receipt._id,
                 billNumber: billNumber,
@@ -356,6 +359,7 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 credit: 0,
                 debit: credit,
                 paymentMode: 'Receipt',
+                paymentReceiptType: 'Payment',
                 balance: previousDebitBalance - credit,
                 date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),
                 company: companyId,
@@ -364,9 +368,13 @@ router.post('/receipts', ensureAuthenticated, ensureCompanySelected, ensureTrade
             });
 
             await debitTransaction.save();
+            console.log('Debit Transaction: ', debitTransaction);
+
+            // await Account.findByIdAndUpdate(receiptAccount, { $push: { transactions: debitTransaction._id } });
+            // Update account transaction references
+            await Account.findByIdAndUpdate(account, { $push: { transactions: creditTransaction._id } });
             await Account.findByIdAndUpdate(receiptAccount, { $push: { transactions: debitTransaction._id } });
-            console.log(debitTransaction);
-            console.log(creditTransaction);
+
             await receipt.save();
             // req.flash('success', 'Receipt saved successfully!');
             // res.redirect('/receipts');

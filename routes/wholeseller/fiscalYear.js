@@ -24,7 +24,7 @@ router.get('/switch-fiscal-year', ensureAuthenticated, ensureFiscalYear, checkFi
 
         // Fetch all fiscal years for the company
         const fiscalYears = await FiscalYear.find({ company: companyId });
-
+        const initialCurrentFiscalYear = company.fiscalYear; // Assuming it's a single object
         // If no current fiscal year is set in session, set the last one as current
         let currentFiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
 
@@ -45,11 +45,12 @@ router.get('/switch-fiscal-year', ensureAuthenticated, ensureFiscalYear, checkFi
         res.render('wholeseller/fiscalYear/list', {
             company,
             currentFiscalYear,
+            initialCurrentFiscalYear,
             fiscalYears,
             currentCompanyName,
-            user: req.user,
             title: '',
             body: '',
+            user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } catch (err) {
@@ -129,8 +130,27 @@ router.get('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, en
             if (!fiscalYear) {
                 return res.status(400).json({ error: 'No fiscal year found in session or company.' });
             }
+
+            let nextFiscalYearStartDate = null;
+            if (currentFiscalYear) {
+                const currentEndDate = currentFiscalYear.endDate; // Use the end date directly from session
+                if (currentEndDate instanceof Date) {
+                    // If endDate is a Date object
+                    const nextDate = new Date(currentEndDate);
+                    nextDate.setDate(nextDate.getDate() + 1); // Add one day
+                    nextFiscalYearStartDate = nextDate.toISOString().split('T')[0]; // Convert to YYYY-MM-DD format
+                } else if (typeof currentEndDate === 'string') {
+                    // If endDate is a string
+                    const [year, month, day] = currentEndDate.split('-').map(Number);
+                    nextFiscalYearStartDate = `${year}-${String(month).padStart(2, '0')}-${String(day + 1).padStart(2, '0')}`;
+                } else {
+                    throw new Error('Unsupported date format for currentFiscalYear.endDate');
+                }
+            }
+
             res.render('wholeseller/fiscalYear/fiscalYear', {
                 company,
+                nextFiscalYearStartDate,
                 currentFiscalYear,
                 currentCompanyName,
                 nepaliDate,
@@ -241,11 +261,6 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
                         purchasePrice: purchasePrice,
                         salesPrice: item.price,
                     }],
-                    // stockEntries: currentStock > 0 ? [{
-                    //     quantity: currentStock,
-                    //     date: new Date(),
-                    //     fiscalYear: newFiscalYear._id
-                    // }] : [],
                     // Clone stock entries with the specified fields
                     stockEntries: item.stockEntries.map(stockEntry => ({
                         quantity: stockEntry.quantity,
@@ -317,11 +332,19 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
                             break;
                         // Handle other types as needed
                         case 'Pymt': //Party Payment
-                            totalDebits += transaction.debit; // Purchase return should be recorded as debits
-                            break;
+                            if (transaction.debit > 0) {
+                                totalDebits += transaction.debit; // Add to total debits if there's a debit value
+                            }
+                            if (transaction.credit > 0) {
+                                totalCredits += transaction.credit; // Add to total credits if there's a credit value
+                            } break;
                         case 'Rcpt': //Party Receipt
-                            totalCredits += transaction.credit; // Purchases should be recorded as credits
-                            break;
+                            if (transaction.debit > 0) {
+                                totalDebits += transaction.debit; // Add to total debits if there's a debit value
+                            }
+                            if (transaction.credit > 0) {
+                                totalCredits += transaction.credit; // Add to total credits if there's a credit value
+                            } break;
                         case 'Jrnl': // Journal Entry - Handle both debit and credit
                             if (transaction.debit > 0) {
                                 totalDebits += transaction.debit; // Add to total debits if there's a debit value
@@ -331,11 +354,19 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
                             }
                             break;
                         case 'DrNt': //Debit Note
-                            totalDebits += transaction.debit; // Purchase return should be recorded as debits
-                            break;
+                            if (transaction.debit > 0) {
+                                totalDebits += transaction.debit; // Add to total debits if there's a debit value
+                            }
+                            if (transaction.credit > 0) {
+                                totalCredits += transaction.credit; // Add to total credits if there's a credit value
+                            } break;
                         case 'CrNt': //Credit Note
-                            totalCredits += transaction.credit; // Purchases should be recorded as credits
-                            break;
+                            if (transaction.debit > 0) {
+                                totalDebits += transaction.debit; // Add to total debits if there's a debit value
+                            }
+                            if (transaction.credit > 0) {
+                                totalCredits += transaction.credit; // Add to total credits if there's a credit value
+                            } break;
                         // Handle these transaction types if needed
                         case 'Opening Balance':
                             // Opening balance transactions might not need to affect the calculation here
@@ -359,6 +390,11 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
                 } else {
                     totalBalance = openingBalance + totalBalance;
                 }
+
+                console.log('Opening Balance:', openingBalance, 'Total Balance:', totalBalance);
+                const sanimaTransactions = await Transaction.find({ accountId: '67683ec90eea9d2e7abfbe29' });
+                console.log('Transactions for SANIMA BANK LIMITED:', sanimaTransactions);
+
 
                 // Determine the new opening balance type
                 const newBalanceType = totalBalance >= 0 ? 'Dr' : 'Cr';

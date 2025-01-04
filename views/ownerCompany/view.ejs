@@ -139,91 +139,94 @@
     </nav>
 
     <div class="container">
-        <div class="company-header">
-            <h1>Company Details</h1>
-        </div>
-        <div class="row">
-            <div class="col">
-                <!-- Company Details Section -->
-                <div class="company-section">
-                    <h3>General Information</h3>
-                    <p><strong>Name:</strong>
-                        <%= company.name %>
-                    </p>
-                    <p><strong>Address:</strong>
-                        <%= company.address %>
-                    </p>
-                    <p><strong>Country:</strong>
-                        <%= company.country %>
-                    </p>
-                    <p><strong>State:</strong>
-                        <%= company.state %>
-                    </p>
-                    <p><strong>City:</strong>
-                        <%= company.city %>
-                    </p>
-                    <p><strong>Ward:</strong>
-                        <%= company.ward %>
-                    </p>
-                    <p><strong>PAN:</strong>
-                        <%= company.pan %>
-                    </p>
-                    <p><strong>Phone:</strong>
-                        <%= company.phone %>
-                    </p>
-                    <p><strong>Email:</strong>
-                        <%= company.email %>
-                    </p>
-                    <p><strong>Trade Type:</strong>
-                        <%= company.tradeType %>
-                    </p>
-                    <p><strong>Valid UpTo:</strong>
-                        <%= company.renewalDate?company.renewalDate:'Demo Version'%>
-                    </p>
-                    <p><strong>Date Format:</strong>
-                        <%= company.dateFormat.charAt(0).toUpperCase() + company.dateFormat.slice(1) %>
-                    </p>
-                </div>
+        <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+
+            <div class="company-header">
+                <h1>Company Details</h1>
             </div>
-            <div class="col">
-                <!-- Owner Information Section -->
-                <div class="company-section">
-                    <h3>Owner Information</h3>
-                    <p><strong>Name:</strong>
-                        <%= company.owner.name %>
-                    </p>
-                    <p><strong>Email:</strong>
-                        <%= company.owner.email %>
-                    </p>
-                </div>
-            </div>
-            <div class="col">
-                <!-- Fiscal Year Section -->
-                <div class="company-section">
-                    <h3>Fiscal Year</h3>
-                    <% if (company.fiscalYear) { %>
-                        <p><strong>Fiscal Year ID:</strong>
-                            <%= company.fiscalYear._id %>
+            <div class="row">
+                <div class="col">
+                    <!-- Company Details Section -->
+                    <div class="company-section">
+                        <h3>General Information</h3>
+                        <p><strong>Name:</strong>
+                            <%= company.name %>
                         </p>
-                        <!-- Additional fiscal year details can go here -->
-                        <% } else { %>
-                            <p>No fiscal year available.</p>
-                            <% } %>
+                        <p><strong>Address:</strong>
+                            <%= company.address %>
+                        </p>
+                        <p><strong>Country:</strong>
+                            <%= company.country %>
+                        </p>
+                        <p><strong>State:</strong>
+                            <%= company.state %>
+                        </p>
+                        <p><strong>City:</strong>
+                            <%= company.city %>
+                        </p>
+                        <p><strong>Ward:</strong>
+                            <%= company.ward %>
+                        </p>
+                        <p><strong>PAN:</strong>
+                            <%= company.pan %>
+                        </p>
+                        <p><strong>Phone:</strong>
+                            <%= company.phone %>
+                        </p>
+                        <p><strong>Email:</strong>
+                            <%= company.email %>
+                        </p>
+                        <p><strong>Trade Type:</strong>
+                            <%= company.tradeType %>
+                        </p>
+                        <p><strong>Valid UpTo:</strong>
+                            <%= company.renewalDate?company.renewalDate:'Demo Version'%>
+                        </p>
+                        <p><strong>Date Format:</strong>
+                            <%= company.dateFormat.charAt(0).toUpperCase() + company.dateFormat.slice(1) %>
+                        </p>
+                    </div>
+                </div>
+                <div class="col">
+                    <!-- Owner Information Section -->
+                    <div class="company-section">
+                        <h3>Owner Information</h3>
+                        <p><strong>Name:</strong>
+                            <%= company.owner.name %>
+                        </p>
+                        <p><strong>Email:</strong>
+                            <%= company.owner.email %>
+                        </p>
+                    </div>
+                </div>
+                <div class="col">
+                    <!-- Fiscal Year Section -->
+                    <div class="company-section">
+                        <h3>Fiscal Year</h3>
+                        <% if (company.fiscalYear) { %>
+                            <p><strong>Fiscal Year ID:</strong>
+                                <%= company.fiscalYear._id %>
+                            </p>
+                            <!-- Additional fiscal year details can go here -->
+                            <% } else { %>
+                                <p>No fiscal year available.</p>
+                                <% } %>
+                    </div>
                 </div>
             </div>
+            <!-- Company Header with Edit Button -->
+            <% if (isAdminOrSupervisor) { %>
+
+                <div class="company-header d-flex justify-content-end">
+                    <a href="/company/edit/<%= company._id %>" class="btn btn-primary btn-sm me-2">Edit Company</a>
+                    <form action="/company/delete/<%= company._id %>?_method=DELETE" method="post" class="d-inline"
+                        onsubmit="return confirmDeletion()">
+                        <button type="submit" class="btn btn-sm btn-danger">Delete Company</button>
+                    </form>
+                </div>
+
+                <%}%>
         </div>
-        <!-- Company Header with Edit Button -->
-        <% if (isAdminOrSupervisor) { %>
-
-            <div class="company-header d-flex justify-content-end">
-                <a href="/company/edit/<%= company._id %>" class="btn btn-primary btn-sm me-2">Edit Company</a>
-                <form action="/company/delete/<%= company._id %>?_method=DELETE" method="post" class="d-inline"
-                    onsubmit="return confirmDeletion()">
-                    <button type="submit" class="btn btn-sm btn-danger">Delete Company</button>
-                </form>
-            </div>
-
-            <%}%>
     </div>
 
     <!-- Bootstrap JS and dependencies -->

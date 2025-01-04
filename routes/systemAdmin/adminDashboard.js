@@ -1,12 +1,12 @@
 const express = require('express');
-const { ensureAuthenticated } = require('../../middleware/auth');
+const { ensureAuthenticated, isLoggedIn } = require('../../middleware/auth');
 const Company = require('../../models/wholeseller/Company');
 const router = express.Router();
 const NepaliDate = require('nepali-date'); // Adjust if using a different library
 
 
 // System admin dashboard route
-router.get('/admin-dashboard', ensureAuthenticated, async (req, res) => {
+router.get('/admin-dashboard', isLoggedIn, ensureAuthenticated, async (req, res) => {
 
     res.render('systemAdmin/adminDashboard', {
         user: req.user,
@@ -14,7 +14,7 @@ router.get('/admin-dashboard', ensureAuthenticated, async (req, res) => {
 });
 
 // Route to fetch and display all companies
-router.get('/admin/clients', ensureAuthenticated, async (req, res) => {
+router.get('/admin/clients', isLoggedIn, ensureAuthenticated, async (req, res) => {
     try {
         const clients = await Company.find({});
         res.render('systemAdmin/clients', {
@@ -29,7 +29,7 @@ router.get('/admin/clients', ensureAuthenticated, async (req, res) => {
 });
 
 // Route to view client details
-router.get('/admin/clients/:id', ensureAuthenticated, async (req, res) => {
+router.get('/admin/clients/:id', isLoggedIn, ensureAuthenticated, async (req, res) => {
     try {
         // Find the company by ID
         const client = await Company.findById(req.params.id)
@@ -52,7 +52,7 @@ router.get('/admin/clients/:id', ensureAuthenticated, async (req, res) => {
 });
 
 // Route to view client details
-router.get('/admin/clients/:id/renew', ensureAuthenticated, async (req, res) => {
+router.get('/admin/clients/:id/renew', isLoggedIn, ensureAuthenticated, async (req, res) => {
     try {
         // Find the company by ID
         const client = await Company.findById(req.params.id)
@@ -67,7 +67,9 @@ router.get('/admin/clients/:id/renew', ensureAuthenticated, async (req, res) => 
 
         res.render('systemAdmin/renewClient', {
             user: req.user,
-            client
+            client,
+            title: '',
+            body: '',
         });
     } catch (err) {
         req.flash('error', 'An error occurred while retrieving client details.');
@@ -76,7 +78,7 @@ router.get('/admin/clients/:id/renew', ensureAuthenticated, async (req, res) => 
 });
 
 // Route to renew demo period for a company
-router.post('/admin/clients/:id/renew', async (req, res) => {
+router.post('/admin/clients/:id/renew', isLoggedIn, ensureAuthenticated, async (req, res) => {
     try {
         if (req.user.role !== 'ADMINISTRATOR') {
             return res.status(403).json({ error: 'Only administrators can renew the demo period.' });
@@ -112,7 +114,7 @@ router.post('/admin/clients/:id/renew', async (req, res) => {
         await company.save();
 
         req.flash('success', 'Company access renewed for one year.');
-        res.redirect('/admin/clients'); // Redirect or send a success response
+        res.redirect(`/admin/clients/${companyId}/renew`); // Redirect or send a success response
     } catch (err) {
         console.error('Error renewing demo period:', err);
         req.flash('error', 'Failed to renew company access.');

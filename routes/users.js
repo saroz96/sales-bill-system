@@ -848,7 +848,7 @@ router.post('/user/change-password', ensureAuthenticated, async (req, res) => {
 router.get('/logout', (req, res) => {
     req.logout(err => {
         if (err) return next(err);
-        req.flash('success', 'You are logged out');
+        req.flash('success', 'Good bye');
         res.redirect('/login');
     });
 });

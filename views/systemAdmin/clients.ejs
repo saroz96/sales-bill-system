@@ -59,8 +59,7 @@
                                     <th class="py-2 px-4 text-left">Name</th>
                                     <th class="py-2 px-4 text-left">Email</th>
                                     <th class="py-2 px-4 text-left">Date Format</th>
-                                    <th class="py-2 px-4 text-left">Renew To</th>
-                                    <th class="py-2 px-4 text-left">Renew(1 Year)</th>
+                                    <th class="py-2 px-4 text-left">Renew Upto</th>
                                     <th class="py-2 px-4 text-left">Actions</th>
                                 </tr>
                             </thead>
@@ -87,20 +86,6 @@
                                                     <% } else { %>
                                                         Demo Version
                                                         <% } %>
-                                        </td>
-                                        <td class="py-2 px-4">
-                                            <% if (user.role==='ADMINISTRATOR' ) { %>
-                                                <form action="/admin/clients/<%= client._id %>/renew" method="POST"
-                                                    style="display:inline;" id="renewForm">
-                                                    <button type="button" class="btn btn-renew btn-custom"
-                                                        id="renewButton" title="Renew this client for 1 year">
-                                                        Renew
-                                                        <span id="spinner"
-                                                            class="spinner-border spinner-border-sm d-none"
-                                                            role="status" aria-hidden="true"></span>
-                                                    </button>
-                                                </form>
-                                                <%}%>
                                         </td>
                                         <td class="py-2 px-4">
                                             <a href="/admin/clients/<%= client._id %>"

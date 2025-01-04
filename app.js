@@ -39,6 +39,8 @@ const systemAdminDashboardRoutes = require('./routes/systemAdmin/adminDashboard'
 
 const path = require('path');
 const ejsMate = require('ejs-mate');
+const setNoCache = require('./middleware/setNoCache');
+const AppError = require('./middleware/AppError');
 
 const app = express();
 
@@ -46,7 +48,8 @@ const app = express();
 initializePassport(passport);
 
 // Connect with database
-mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/sales-bill-system');
+// mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/sales-bill-system');
+mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/sales-bill-system-demo');
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", () => {
@@ -81,6 +84,7 @@ app.use(methodOverride('_method'));
 
 // Flash middleware
 app.use((req, res, next) => {
+    res.locals.user = req.user;
     res.locals.messages = req.flash('success');
     res.locals.error = req.flash('error');
     next();
@@ -116,6 +120,22 @@ app.use('/wholeseller', stockStatusRoutes);
 
 //Admin Panel
 app.use('/', systemAdminDashboardRoutes);
+
+app.all('*', (req, res, next) => {
+    res.render('404');
+})
+
+app.use((err, req, res, next) => {
+    const { statusCode = 500, message = 'Something went wrong' } = err;
+    if (statusCode === 404) {
+        return res.render('404.ejs', { message });
+    }
+    // Handle other errors if needed
+    res.status(statusCode).send({ status: 'error', message });
+});
+
+
+app.use(setNoCache); //Globally
 
 // Start the server
 app.listen(3000, () => {

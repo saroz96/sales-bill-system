@@ -145,155 +145,158 @@
         </div>
     </nav>
     <div class="container">
-        <div class="text-center">
-            <span class="text-danger">(Maximum of 3 companies allowed.)</span>
+        <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <div class="text-center">
+                <span class="text-danger">(Maximum of 3 companies allowed.)</span>
+            </div>
+            <h1>Create a New Company</h1>
+            <!-- Modal Structure -->
+            <div class="modal fade custom-right-modal" id="messageModal" tabindex="-1"
+                aria-labelledby="messageModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="messageModalLabel">Message</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Dynamic message -->
+                            <% if (messages && messages.length) { %>
+                                <div class="alert alert-success">
+                                    <%= messages %>
+                                </div>
+                                <% } %>
+                                    <% if (error && error.length) { %>
+                                        <div class="alert alert-danger">
+                                            <%= error %>
+                                        </div>
+                                        <% } %>
+                        </div>
+                        <div class="modal-footer">
+                            <button id="okButton" type="button" class="btn btn-primary" autofocus>OK</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <form action="/company" method="POST" class="needs-validation" novalidate>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="name" class="form-label">Company Name:</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="invalid-feedback">Please enter the company name.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="country" class="form-label">Country:</label>
+                        <select class="form-select" id="country" name="country" required>
+                            <option value="" disabled selected>Select a country</option>
+                            <option value="Nepal">Nepal</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a country.</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="state" class="form-label">State:</label>
+                        <input type="text" class="form-control" id="state" name="state" required>
+                        <div class="invalid-feedback">Please enter the state.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="city" class="form-label">City:</label>
+                        <input type="text" class="form-control" id="city" name="city" required>
+                        <div class="invalid-feedback">Please enter the city.</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="address" class="form-label">Address:</label>
+                        <input type="text" class="form-control" id="address" name="address" required>
+                        <div class="invalid-feedback">Please enter the address.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="pan" class="form-label">PAN:</label>
+                        <input type="text" class="form-control" id="pan" name="pan" maxlength="9" minlength="9"
+                            placeholder="PAN no should be 9 digits" required>
+                        <div class="invalid-feedback">Please enter the correct PAN number.</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="phone" class="form-label">Phone:</label>
+                        <input type="tel" class="form-control" id="phone" name="phone"
+                            pattern="^\+?[0-9]{1,4}[- ]?[0-9]{7,10}$" required
+                            placeholder="+977-9801234567 or 9801234567">
+                        <div class="invalid-feedback">Please enter a valid phone number (e.g., +977-9801234567 or
+                            9801234567).</div>
+                    </div>
+
+
+                    <div class="col-md-6">
+                        <label for="ward" class="form-label">Ward No:</label>
+                        <input type="number" class="form-control" id="ward" name="ward" required>
+                        <div class="invalid-feedback">Please enter the ward number.</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">Company Email:</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                        <div class="invalid-feedback">Please enter a valid email.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="tradeType" class="form-label">Trade Type:</label>
+                        <select class="form-select" id="tradeType" name="tradeType" required>
+                            <option value="" disabled selected>Select Trade Type</option>
+                            <option value="Wholeseller">Wholeseller</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a trade type.</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="dateFormat" class="form-label">Preferred Date Format:</label>
+                        <select id="dateFormat" class="form-select" name="dateFormat" required>
+                            <option value="" disabled selected>Select date format</option>
+                            <option value="nepali">Nepali Date</option>
+                            <option value="english">English Date</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a date format.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="english-date-fields" style="display:none;">
+                            <label for="startDateEnglish" class="form-label">Fiscal Year Start Date English:</label>
+                            <input type="date" class="form-control" id="startDateEnglish" name="startDateEnglish"
+                                value="<%= new Date().toISOString().split('T')[0] %>">
+                        </div>
+
+                        <div class="nepali-date-fields" style="display:none;">
+                            <label for="startDateNepali" class="form-label">Fiscal Year Start Date Nepali:</label>
+
+                            <input type="date" class="form-control" id="startDateNepali" name="startDateNepali"
+                                value="<%= nepaliDate || '' %>" placeholder="YYYY/MM/DD">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 gap-2 mt-4">
+                    <label for="vatEnabled">Enable VAT?</label>
+                    <input type="checkbox" id="vatEnabled" name="vatEnabled" value="true">
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">Create Company</button>
+                </div>
+            </form>
         </div>
-        <h1>Create a New Company</h1>
-        <!-- Modal Structure -->
-        <div class="modal fade custom-right-modal" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="messageModalLabel">Message</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Dynamic message -->
-                        <% if (messages && messages.length) { %>
-                            <div class="alert alert-success">
-                                <%= messages %>
-                            </div>
-                            <% } %>
-                                <% if (error && error.length) { %>
-                                    <div class="alert alert-danger">
-                                        <%= error %>
-                                    </div>
-                                    <% } %>
-                    </div>
-                    <div class="modal-footer">
-                        <button id="okButton" type="button" class="btn btn-primary" autofocus>OK</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <form action="/company" method="POST" class="needs-validation" novalidate>
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="name" class="form-label">Company Name:</label>
-                    <input type="text" class="form-control" id="name" name="name" required>
-                    <div class="invalid-feedback">Please enter the company name.</div>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="country" class="form-label">Country:</label>
-                    <select class="form-select" id="country" name="country" required>
-                        <option value="" disabled selected>Select a country</option>
-                        <option value="Nepal">Nepal</option>
-                    </select>
-                    <div class="invalid-feedback">Please select a country.</div>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="state" class="form-label">State:</label>
-                    <input type="text" class="form-control" id="state" name="state" required>
-                    <div class="invalid-feedback">Please enter the state.</div>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="city" class="form-label">City:</label>
-                    <input type="text" class="form-control" id="city" name="city" required>
-                    <div class="invalid-feedback">Please enter the city.</div>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="address" class="form-label">Address:</label>
-                    <input type="text" class="form-control" id="address" name="address" required>
-                    <div class="invalid-feedback">Please enter the address.</div>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="pan" class="form-label">PAN:</label>
-                    <input type="text" class="form-control" id="pan" name="pan" maxlength="9" minlength="9"
-                        placeholder="PAN no should be 9 digits" required>
-                    <div class="invalid-feedback">Please enter the correct PAN number.</div>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="phone" class="form-label">Phone:</label>
-                    <input type="tel" class="form-control" id="phone" name="phone"
-                        pattern="^\+?[0-9]{1,4}[- ]?[0-9]{7,10}$" required placeholder="+977-9801234567 or 9801234567">
-                    <div class="invalid-feedback">Please enter a valid phone number (e.g., +977-9801234567 or
-                        9801234567).</div>
-                </div>
-
-
-                <div class="col-md-6">
-                    <label for="ward" class="form-label">Ward No:</label>
-                    <input type="number" class="form-control" id="ward" name="ward" required>
-                    <div class="invalid-feedback">Please enter the ward number.</div>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="email" class="form-label">Company Email:</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
-                    <div class="invalid-feedback">Please enter a valid email.</div>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="tradeType" class="form-label">Trade Type:</label>
-                    <select class="form-select" id="tradeType" name="tradeType" required>
-                        <option value="" disabled selected>Select Trade Type</option>
-                        <option value="Wholeseller">Wholeseller</option>
-                    </select>
-                    <div class="invalid-feedback">Please select a trade type.</div>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="dateFormat" class="form-label">Preferred Date Format:</label>
-                    <select id="dateFormat" class="form-select" name="dateFormat" required>
-                        <option value="" disabled selected>Select date format</option>
-                        <option value="nepali">Nepali Date</option>
-                        <option value="english">English Date</option>
-                    </select>
-                    <div class="invalid-feedback">Please select a date format.</div>
-                </div>
-
-                <div class="col-md-6">
-                    <div class="english-date-fields" style="display:none;">
-                        <label for="startDateEnglish" class="form-label">Fiscal Year Start Date English:</label>
-                        <input type="date" class="form-control" id="startDateEnglish" name="startDateEnglish"
-                            value="<%= new Date().toISOString().split('T')[0] %>">
-                    </div>
-
-                    <div class="nepali-date-fields" style="display:none;">
-                        <label for="startDateNepali" class="form-label">Fiscal Year Start Date Nepali:</label>
-
-                        <input type="date" class="form-control" id="startDateNepali" name="startDateNepali"
-                            value="<%= nepaliDate || '' %>" placeholder="YYYY/MM/DD">
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 gap-2 mt-4">
-                <label for="vatEnabled">Enable VAT?</label>
-                <input type="checkbox" id="vatEnabled" name="vatEnabled" value="true">
-            </div>
-
-            <div class="d-grid gap-2 mt-4">
-                <button type="submit" class="btn btn-primary">Create Company</button>
-            </div>
-        </form>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

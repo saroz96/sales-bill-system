@@ -60,8 +60,7 @@
                     <div class="form-group row">
                         <div class="col">
                             <label for="unit">Unit <i style="color: red;">*</i></label>
-                            <select class="form-control" id="unit" name="unit" required
-                                onkeydown="handleItemUnitInputKeydown(event)">
+                            <select class="form-control" id="unit" name="unit" required>
                                 <% if (units && units.length> 0) { %>
                                     <option value="" disabled selected>Select a Unit</option>
                                     <% units.forEach(unit=> { %>
@@ -77,8 +76,7 @@
 
                         <div class="col">
                             <label for="vatStatus">VAT Status <i style="color: red;">*</i></label>
-                            <select class="form-control" id="vatStatus" name="vatStatus"
-                                onkeydown="handleItemVatStatusInputKeydown(event)" required>
+                            <select class="form-control" id="vatStatus" name="vatStatus" required>
                                 <option value="" disabled selected>Select Vat Status</option>
                                 <% if (vatEnabled) {%>
                                     <option value="vatable">Vatable</option>
@@ -95,19 +93,16 @@
                     <div class="form-group row">
                         <div class="col">
                             <label for="price">Sales Price</label>
-                            <input type="number" class="form-control" id="price" name="price" step="0.01"
-                                onkeydown="handleItemSalesPriceInputKeydown(event)" value="0.00">
+                            <input type="number" class="form-control" id="price" name="price" step="0.01" value="0.00">
                         </div>
                         <div class="col">
                             <label for="puPrice">Purchase Price</label>
                             <input type="number" class="form-control" id="puPrice" name="puPrice" step="0.01"
-                                onkeydown="handleItemPurchasePriceInputKeydown(event)"
                                 oninput="calculateTotalOpeningStockBalance()" value="0.00">
                         </div>
                         <div class="col">
                             <label for="openingStock">Opening Stock</label>
                             <input type="number" class="form-control" id="openingStock" name="openingStock"
-                                onkeydown="handleItemOpeningStockInputKeydown(event)"
                                 oninput="calculateTotalOpeningStockBalance()" value="0.00">
                         </div>
                         <div class="col">

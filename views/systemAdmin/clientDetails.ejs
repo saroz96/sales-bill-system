@@ -103,6 +103,11 @@
                     <dd class="col-sm-9">
                         <%= new Date(client.createdAt).toLocaleDateString() %>
                     </dd>
+
+                    <dt class="col-sm-3">Renewal Upto:</dt>
+                    <dd class="col-sm-9">
+                        <%= client.renewalDate %>
+                    </dd>
                 </dl>
                 <a href="/admin/clients" class="btn btn-primary">Back to Clients</a>
             </div>
