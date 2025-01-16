@@ -714,6 +714,13 @@ router.put('/purchase-bills/edit/:id', ensureAuthenticated, ensureCompanySelecte
         if (!companyId) {
             return res.status(400).json({ error: 'Company ID is required' });
         }
+        // Check if the purchase bill can be edited
+        const isEditable = await PurchaseBill.isEditable(billId);
+
+        if (!isEditable) {
+            req.flash('error', 'Stock is already in use!');
+            return res.redirect('/purchase-bills-list');
+        }
 
         const existingBill = await PurchaseBill.findOne({ _id: billId, company: companyId });
         if (!existingBill) {

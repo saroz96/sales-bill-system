@@ -23,10 +23,10 @@ const stockEntrySchema = new mongoose.Schema({
         type: String,
         default: getDefaultExpiryDate
     },
-    price: { type: Number },
-    puPrice: { type: Number },
-    mrp: { type: Number },
-    marginPercentage: { type: Number },
+    price: { type: Number, default: 0 },
+    puPrice: { type: Number, default: 0 },
+    mrp: { type: Number, default: 0 },
+    marginPercentage: { type: Number, default: 0 },
     fiscalYear: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'FiscalYear'
