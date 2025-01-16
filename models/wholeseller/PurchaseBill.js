@@ -61,6 +61,28 @@ const PurchaseBillSchema = new Schema({
 
 });
 
+PurchaseBillSchema.statics.isEditable = async function (billId) {
+    const purchaseBill = await this.findById(billId).populate('items.item');
+
+    if (!purchaseBill) {
+        throw new Error('Purchase bill not found')
+    }
+
+    for (const purchaseItem of purchaseBill.items) {
+        const item = purchaseItem.item;
+
+        // Calculate available stock
+        const totalStock = item.stock;
+        const usedStock = purchaseItem.quantity; // Quantity being edited or removed
+
+        // Check if the stock is insufficient
+        if (totalStock < usedStock) {
+            return false;
+        }
+    }
+    return true;
+};
+
 // //This means each company can have accounts with the same name, but account names must be unique within a company.
 PurchaseBillSchema.index({ billNumber: 1, company: 1, fiscalYear: 1 }, { unique: true });
 // //---------------------------------------------------------------------------------------------------------------
