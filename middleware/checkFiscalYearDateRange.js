@@ -31,7 +31,9 @@ async function checkFiscalYearDateRange(req, res, next) {
         let redirectUrl;
         const routePath = req.route.path; // Get the current route path
 
-        if (routePath.includes('purchase-bills')) {
+        if(routePath.includes('purchase-bills/edit')){
+            redirectUrl='/purchase-bills-list'
+        }else if (routePath.includes('purchase-bills')) {
             redirectUrl = '/purchase-bills'; // Redirect to purchase entry page
         } else if (routePath.includes('bills')) {
             redirectUrl = '/bills'; // Redirect to sales entry page

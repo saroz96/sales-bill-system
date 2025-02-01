@@ -2,88 +2,9 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css"
         rel="stylesheet">
-
-    <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: auto;
-            /* Let columns size automatically based on content */
-        }
-
-        th,
-        td {
-            padding: 8px;
-            text-align: left;
-            border: 1px solid black;
-            white-space: nowrap;
-        }
-
-        th {
-            background-color: #f2f2f2;
-        }
-
-        @media print {
-            /* @page {
-                size: A4 landscape;
-                margin: 10mm;
-            } */
-
-            body {
-                font-size: 12px;
-                margin: 10mm;
-            }
-
-            #printHeader {
-                display: block;
-                /* Show header when printing */
-            }
-
-            /* Ensure no text wrapping when printing */
-            th,
-            td {
-                white-space: nowrap;
-            }
-
-            /* Hide unnecessary elements during printing */
-            #filterForm,
-            #searchInput,
-            #billsList .searchClass td:last-child {
-                display: none;
-            }
-
-            /* Adjust the container width to fit landscape */
-            #mainContainer {
-                width: 100%;
-            }
-        }
-
-        @media screen {
-            #printHeader {
-                display: none;
-                /* Hide header when on screen */
-            }
-        }
+    <link rel="stylesheet" href="/stylesheet/purchase/allbills.css">
 
 
-        /* Custom styles to resize the form */
-        .expanded-container {
-            max-width: 90%;
-            /* Expand the container to 90% of the viewport width */
-        }
-
-        .expanded-card {
-            width: 100%;
-            /* Ensure the card takes full width of the container */
-        }
-
-        @media (min-width: 768px) {
-            .expanded-container {
-                max-width: 90%;
-                /* Adjust width for medium and larger screens */
-            }
-        }
-    </style>
     <div class="container wow-form expanded-container">
         <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
             <!-- Print Header -->
@@ -109,15 +30,15 @@
             </div>
             <br>
             <!-- Search Form -->
-            <h1 class="mb-4" id="printh1" style="text-align: center; text-decoration: underline;">List of Purchase
-                Invoice
+            <h1 class="mb-4" id="printh1" style="text-align: center; text-decoration: underline;">Purchase
+                Voucher's
             </h1>
             <!-- Add margin to separate title from the forms -->
             <div class="row g-3 align-items-center mb-4"> <!-- Align items vertically in the center -->
                 <div class="col-9"> <!-- Add margin-bottom for better spacing -->
                     <form class="input-group"> <!-- Use d-flex for horizontal alignment -->
                         <input type="text" class="form-control" id="searchInput"
-                            placeholder="Search by invoice number, party name & users..." aria-label="Search">
+                            placeholder="Search by voucher number, suppliers name & users..." aria-label="Search">
                         <button class="btn btn-outline-secondary" type="button" id="clearSearch">Clear</button>
                         <!-- Added clear button -->
                     </form>
@@ -148,8 +69,8 @@
             <table class="table table-striped" id="billsList">
                 <thead>
                     <tr>
-                        <th>Bill no.</th>
                         <th>Date</th>
+                        <th>Vch. No.</th>
                         <th>Suppliers Name</th>
                         <th>Pay.Mode</th>
                         <th>Sub Total</th>
@@ -164,12 +85,12 @@
                 </thead>
                 <tbody>
                     <% bills.forEach(purchaseBill=> { %>
-                        <tr class="searchClass" data-payment-mode="<%= purchaseBill.paymentMode %>">
-                            <td>
-                                <%= purchaseBill.billNumber %>
-                            </td>
+                        <tr class="searchClass bill-row" data-payment-mode="<%= purchaseBill.paymentMode %>">
                             <td>
                                 <%= new Date(purchaseBill.date).toLocaleDateString() %>
+                            </td>
+                            <td>
+                                <%= purchaseBill.billNumber %>
                             </td>
                             <td>
                                 <%= purchaseBill.account ? purchaseBill.account.name : 'Account Not Found' %>
@@ -193,17 +114,17 @@
                                 <%= purchaseBill.roundOffAmount %>
                             </td>
                             <td>
-                                <%= purchaseBill.totalAmount %>
+                                <%= purchaseBill.totalAmount.toFixed(2) %>
                             </td>
                             <td>
                                 <%= purchaseBill.user?purchaseBill.user.name:'User Not Found' %>
                             </td>
                             <td>
 
-                                <a href="/purchase-bills/<%= purchaseBill._id %>/print"><button
-                                        class="btn-sm btn-info"><i class="fas fa-eye"></i></button></a>
-                                <a href="/purchase-bills/edit/<%=purchaseBill._id%>"><button
-                                        class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button></a>
+                                <a href="/purchase-bills/<%= purchaseBill._id %>/print" class="btn-sm btn-info"><i
+                                        class="fas fa-eye"></i></a>
+                                <a href="/purchase-bills/edit/<%=purchaseBill._id%>" class="btn-sm btn-warning"><i
+                                        class="fas fa-edit"></i></a>
 
                             </td>
                         </tr>
@@ -226,238 +147,5 @@
             </table>
         </div>
     </div>
-    <script>
-        // Function to handle search input changes
-        document.getElementById('searchInput').addEventListener('input', function () {
-            filterBills();
-        });
-
-        // Function to handle payment mode filter changes
-        document.getElementById('paymentModeFilter').addEventListener('change', function () {
-            filterBills();
-        });
-
-        // Function to filter bills based on search input and payment mode filter
-        function filterBills() {
-            const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
-            const selectedPaymentMode = document.getElementById('paymentModeFilter').value.trim().toLowerCase();
-            const billsList = document.getElementById('billsList');
-            const rows = billsList.querySelectorAll('tbody tr.searchClass');
-
-            rows.forEach(row => {
-                const billNumber = row.cells[0].textContent.trim().toLowerCase();
-                const companyName = row.cells[2].textContent.trim().toLowerCase();
-                const paymentMode = row.cells[3].textContent.trim().toLowerCase();
-                const users = row.cells[10].textContent.trim().toLowerCase();
-
-                const matchesSearch = companyName.includes(searchQuery) || billNumber.includes(searchQuery) || users.includes(searchQuery);
-                const matchesPaymentMode = selectedPaymentMode === '' || paymentMode === selectedPaymentMode;
-
-                if (matchesSearch && matchesPaymentMode) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            // Update totals based on visible rows
-            updateTotals();
-        }
-
-        // Function to update totals based on visible rows
-        function updateTotals() {
-            let totalSubTotal = 0;
-            let totalDiscount = 0;
-            let totalTaxable = 0;
-            let totalVat = 0;
-            let totalRoundOff = 0;
-            let totalAmount = 0;
-
-            const visibleRows = document.querySelectorAll('#billsList tbody tr.searchClass:not([style*="display: none"])');
-
-            visibleRows.forEach(row => {
-                totalSubTotal += parseFloat(row.cells[4].textContent); // Sub Total
-                totalDiscount += parseFloat(row.cells[5].textContent.split(' - Rs.')[1]); // Discount
-                totalTaxable += parseFloat(row.cells[6].textContent); // Taxable
-                totalVat += parseFloat(row.cells[7].textContent.split(' - Rs.')[1]); // Vat
-                totalRoundOff += parseFloat(row.cells[8].textContent); // Round Off
-                totalAmount += parseFloat(row.cells[9].textContent); // Total
-            });
-
-            // Update totals row in the footer
-            document.getElementById('totalSubTotal').textContent = totalSubTotal.toFixed(2);
-            document.getElementById('totalDiscount').textContent = totalDiscount.toFixed(2);
-            document.getElementById('totalTaxable').textContent = totalTaxable.toFixed(2);
-            document.getElementById('totalVat').textContent = totalVat.toFixed(2);
-            document.getElementById('totalRoundOff').textContent = totalRoundOff.toFixed(2);
-            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
-        }
-
-        // Initial call to filterBills to apply any initial filters (if needed)
-        filterBills();
-
-        // //Handle scape buttons
-        // document.addEventListener('keydown', function (event) {
-        //     if (event.key === 'Escape') {
-        //         event.preventDefault(); // Prevent default escape behavior
-        //         var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
-        //         exitModal.show();
-        //     }
-        // });
-
-        // // Handle the exit confirmation
-        // document.getElementById('confirmExit').addEventListener('click', function () {
-        //     // Redirect to the home page
-        //     window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
-        // });
-
-        // Print all bills
-        document.getElementById('printAllBills').addEventListener('click', function () {
-            printBills(document.querySelectorAll('#billsList tbody tr.searchClass'));
-        });
-
-        // Print filtered bills
-        document.getElementById('printFilteredBills').addEventListener('click', function () {
-            printBills(document.querySelectorAll('#billsList tbody tr.searchClass:not([style*="display: none"])'));
-        });
-
-        // Function to print the selected bills
-        function printBills(billRows) {
-            const printWindow = window.open('', '_blank');
-
-            // Basic HTML and styling for the print view
-            const headerHTML = `
-        <html>
-            <head>
-                <title>Print Bills</title>
-                <style>
-                    table { width: 100%; border-collapse: collapse; }
-                    th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; }
-                    th { background-color: #f2f2f2; }
-                </style>
-            </head>
-            <body>
-                ${document.getElementById('printHeader').innerHTML}
-                <h1 style="text-align: center;">List of Purchase Vouchers</h1>
-    `;
-
-            // Table header for the printed bills
-            const tableHeaderHTML = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Bill no.</th>
-                    <th>Date</th>
-                    <th>Party Name</th>
-                    <th>Pay.Mode</th>
-                    <th>Sub Total</th>
-                    <th>Discount</th>
-                    <th>Taxable</th>
-                    <th>Vat</th>
-                    <th>Off(-/+)</th>
-                    <th>Total</th>
-                    <th>User</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-            // Initialize variables for totals
-            let totalSubTotal = 0;
-            let totalDiscount = 0;
-            let totalTaxable = 0;
-            let totalVat = 0;
-            let totalRoundOff = 0;
-            let totalAmount = 0;
-
-            // Construct table rows and calculate totals
-            let tableRowsHTML = '';
-            billRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                tableRowsHTML += '<tr>';
-
-                // Exclude the last cell (Actions) from printing
-                for (let i = 0; i < cells.length - 1; i++) {
-                    const cellText = cells[i]?.textContent || '';
-                    tableRowsHTML += `<td>${cellText}</td>`;
-
-                    // Calculate totals for visible rows
-                    if (row.style.display !== 'none') {
-                        switch (i) {
-                            case 4: // Sub Total
-                                totalSubTotal += parseFloat(cellText) || 0;
-                                break;
-                            case 5: // Discount
-                                totalDiscount += parseFloat(cellText.split(' - Rs.')[1]) || 0;
-                                break;
-                            case 6: // Taxable
-                                totalTaxable += parseFloat(cellText) || 0;
-                                break;
-                            case 7: // Vat
-                                totalVat += parseFloat(cellText.split(' - Rs.')[1]) || 0;
-                                break;
-                            case 8: // Round Off
-                                totalRoundOff += parseFloat(cellText) || 0;
-                                break;
-                            case 9: // Total Amount
-                                totalAmount += parseFloat(cellText) || 0;
-                                break;
-                        }
-                    }
-                }
-
-                tableRowsHTML += '</tr>';
-            });
-
-            // Add a totals row at the end of the table
-            const totalsRowHTML = `
-        <tr style="font-weight: bold; background-color: #f9f9f9;">
-            <td colspan="4">Totals</td>
-            <td>${totalSubTotal.toFixed(2)}</td>
-            <td>${totalDiscount.toFixed(2)}</td>
-            <td>${totalTaxable.toFixed(2)}</td>
-            <td>${totalVat.toFixed(2)}</td>
-            <td>${totalRoundOff.toFixed(2)}</td>
-            <td>${totalAmount.toFixed(2)}</td>
-            <td></td> <!-- Empty cell for the User column -->
-        </tr>
-    `;
-
-            // Construct the final HTML for printing
-            const finalHTML = `
-        ${headerHTML}
-        ${tableHeaderHTML}
-        ${tableRowsHTML}
-        ${totalsRowHTML}
-        </tbody></table>
-        </body></html>
-    `;
-
-            // Write to the print window and initiate print
-            printWindow.document.write(finalHTML);
-            printWindow.document.close();
-            printWindow.focus();
-            printWindow.print();
-        }
-
-        const panVatNo = '<%= currentCompany.pan %>';
-        const container = document.getElementById('pan-vat-container');
-
-        for (let i = 0; i < panVatNo.length; i++) {
-            const digit = document.createElement('span');
-            digit.className = 'bordered-digit';
-            digit.textContent = panVatNo[i];
-            container.appendChild(digit);
-        }
-
-        document.getElementById('clearSearch').addEventListener('click', () => {
-            const inputField = document.getElementById('searchInput');
-
-            // Check if the input field has a value
-            if (inputField.value !== '') {
-                inputField.value = ''; // Clear the input field
-            } else {
-                alert('Input field is already empty.');
-            }
-        });
-    </script>
+    
+<script src="/javascript/purchase/allbills.js"></script>

@@ -1,0 +1,200 @@
+.vatable-item {
+    background-color: lightgreen;
+}
+
+.non-vatable-item {
+    background-color: lightyellow;
+}
+
+.dropdown-menu {
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.dropdown-item {
+    cursor: pointer;
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+.dropdown-item:focus,
+.dropdown-item:hover {
+    background-color: #f1f1f1;
+}
+
+.item {
+    margin-bottom: 10px;
+}
+
+.last-transactions {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.credit-party {
+    display: none;
+    /* Hide credit party options by default */
+}
+
+.dropdown-menu {
+    display: none;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: bold;
+}
+
+.dropdown-item {
+    display: flex;
+    justify-content: space-around;
+    padding: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+/* Styling for Select2 dropdown */
+.select2-container .select2-selection--single {
+    height: 40px;
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 100%;
+    right: 10px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #495057;
+    font-size: 16px;
+}
+
+/* Focus state for the Select2 dropdown */
+.select2-container--default .select2-selection--single:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+
+/* Keep the header fixed at the top */
+.dropdown-header {
+    display: grid;
+    grid-template-columns: 2fr 2fr 5fr 2fr 2fr 2fr 1fr;
+    padding: 5px;
+    border-bottom: 1px solid #ccc;
+    top: 0;
+    /* Stick to the top of the dropdown */
+    background-color: #f0f0f0;
+    /* Optional: ensure background color to avoid transparency */
+    z-index: 1;
+    /* Ensure the header stays on top of other items */
+}
+
+/* Ensure the dropdown container is scrollable */
+#dropdownMenu {
+    /* Set a fixed height for the dropdown */
+    overflow-y: auto;
+    /* Enable vertical scrolling */
+    width: 100%;
+    /* Ensure the dropdown takes up full width */
+}
+
+/* Optional: style for the dropdown items */
+.dropdown-item {
+    display: grid;
+    grid-template-columns: 2fr 2fr 5fr 2fr 2fr 2fr 1fr;
+    padding: 5px;
+}
+
+/*Excel-style table*/
+#itemsTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif;
+}
+
+#itemsTable th,
+#itemsTable td {
+    padding: 8px 12px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+#itemsTable th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+}
+
+/* Hover effect for rows */
+#itemsTable tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Custom styles to resize the form */
+.expanded-container {
+    max-width: 90%;
+    /* Expand the container to 90% of the viewport width */
+}
+
+.expanded-card {
+    width: 100%;
+    /* Ensure the card takes full width of the container */
+}
+
+@media (min-width: 768px) {
+    .expanded-container {
+        max-width: 90%;
+        /* Adjust width for medium and larger screens */
+    }
+}
+
+/* Compact table styles */
+.compact-table {
+    font-size: 0.85rem;
+    /* Reduce font size (12px) */
+}
+
+.compact-table th,
+.compact-table td {
+    padding: 0.4rem 0.6rem;
+    /* Decrease padding for compact appearance */
+}
+
+.compact-table input.form-control {
+    font-size: 0.85rem;
+    /* Smaller text size for input fields */
+    padding: 0.3rem 0.5rem;
+    /* Adjust input padding */
+    height: auto;
+    /* Reduce input height */
+}
+
+.compact-table .btn-danger {
+    font-size: 0.85rem;
+    /* Reduce button text size */
+    padding: 0.3rem 0.5rem;
+    /* Compact button padding */
+}
+
+.compact-table input[type="date"] {
+    font-size: 0.85rem;
+    padding: 0.3rem;
+    height: auto;
+}

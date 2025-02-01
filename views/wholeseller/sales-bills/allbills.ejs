@@ -164,7 +164,7 @@
                     </thead>
                     <tbody>
                         <% bills.forEach(salesBill=> { %>
-                            <tr class="searchClass" data-payment-mode="<%= salesBill.paymentMode %>">
+                            <tr class="searchClass bill-row" data-payment-mode="<%= salesBill.paymentMode %>">
                                 <td>
                                     <%= salesBill.billNumber %>
                                 </td>
@@ -223,6 +223,75 @@
                         </tr>
                     </tfoot>
                 </table>
+
+                <script>
+                    document.addEventListener("DOMContentLoaded", function () {
+                        let billRows = document.querySelectorAll(".bill-row");
+                        let currentBillIndex = -1;
+    
+                        // Update rows highlighting and scroll to selected row
+                        function updateBillRowHighlight() {
+                            const visibleRows = getVisibleRows();
+                            visibleRows.forEach(row => row.classList.remove("selected-row"));
+                            if (currentBillIndex >= 0 && currentBillIndex < visibleRows.length) {
+                                visibleRows[currentBillIndex].classList.add("selected-row");
+                                visibleRows[currentBillIndex].scrollIntoView({ behavior: "smooth", block: "nearest" });
+                            }
+                        }
+    
+                        // Get only the visible rows after filtering
+                        function getVisibleRows() {
+                            return Array.from(document.querySelectorAll(".bill-row")).filter(row => row.style.display !== 'none');
+                        }
+    
+    
+                        document.addEventListener("keydown", function (event) {
+                            let visibleRows = getVisibleRows();
+    
+                            if (event.key === "ArrowDown") {
+                                if (currentBillIndex < visibleRows.length - 1) {
+                                    currentBillIndex++;
+                                    updateBillRowHighlight();
+                                }
+                            } else if (event.key === "ArrowUp") {
+                                if (currentBillIndex > 0) {
+                                    currentBillIndex--;
+                                    updateBillRowHighlight();
+                                }
+                            } else if (event.key === "Enter" && currentBillIndex >= 0) {
+                                window.location.href = visibleRows[currentBillIndex].getAttribute("data-url");
+                            }
+                        });
+    
+                        // Highlight row on mouse click
+                        billRows.forEach((row, index) => {
+                            row.addEventListener("click", function () {
+                                let visibleRows = getVisibleRows();
+                                currentBillIndex = visibleRows.indexOf(row);
+                                updateBillRowHighlight();
+                            });
+    
+                            row.addEventListener("dblclick", function () {
+                                window.location.href = row.getAttribute("data-url");
+                            });
+                        });
+                    });
+                </script>
+    
+                <style>
+                    /* Ensuring the background color remains even with Bootstrap styles */
+                    .selected-row {
+                        background-color: #007bff !important;
+                        /* Solid blue highlight */
+                        color: white !important;
+                    }
+    
+                    /* Ensuring text color is white for visibility */
+                    .selected-row td {
+                        background-color: #007bff !important;
+                        color: white !important;
+                    }
+                </style>
             </div>
         </div>
 

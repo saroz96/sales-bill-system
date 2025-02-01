@@ -1,263 +1,77 @@
 <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <link rel="stylesheet" href="/stylesheet/purchase/purchaseEntry.css">
     <style>
-        .vatable-item {
-            background-color: lightgreen;
+        select:invalid {
+            border-color: red;
         }
 
-        .non-vatable-item {
-            background-color: lightyellow;
-        }
-
-        .dropdown-menu {
-            width: 100%;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .dropdown-item {
-            cursor: pointer;
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .dropdown-item:focus,
-        .dropdown-item:hover {
-            background-color: #f1f1f1;
-        }
-
-        .item {
-            margin-bottom: 10px;
-        }
-
-        .last-transactions {
-            list-style-type: none;
-            padding-left: 0;
-        }
-
-        .credit-party {
-            display: none;
-            /* Hide credit party options by default */
-        }
-
-        .dropdown-menu {
-            display: none;
-        }
-
-        .dropdown-menu.show {
-            display: block;
-        }
-
-        .dropdown-header {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px;
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-            font-weight: bold;
-        }
-
-        .dropdown-item {
-            display: flex;
-            justify-content: space-around;
-            padding: 8px;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-
-        /* Styling for Select2 dropdown */
-        .select2-container .select2-selection--single {
-            height: 40px;
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            display: flex;
-            align-items: center;
-        }
-
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 100%;
-            right: 10px;
-        }
-
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
-            color: #495057;
-            font-size: 16px;
-        }
-
-        /* Focus state for the Select2 dropdown */
-        .select2-container--default .select2-selection--single:focus {
-            outline: none;
-            border-color: #80bdff;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-        }
-
-
-        /* Keep the header fixed at the top */
-        .dropdown-header {
-            display: grid;
-            grid-template-columns: 2fr 2fr 5fr 2fr 2fr 2fr 1fr;
-            padding: 5px;
-            border-bottom: 1px solid #ccc;
-            top: 0;
-            /* Stick to the top of the dropdown */
-            background-color: #f0f0f0;
-            /* Optional: ensure background color to avoid transparency */
-            z-index: 1;
-            /* Ensure the header stays on top of other items */
-        }
-
-        /* Ensure the dropdown container is scrollable */
-        #dropdownMenu {
-            /* Set a fixed height for the dropdown */
-            overflow-y: auto;
-            /* Enable vertical scrolling */
-            width: 100%;
-            /* Ensure the dropdown takes up full width */
-        }
-
-        /* Optional: style for the dropdown items */
-        .dropdown-item {
-            display: grid;
-            grid-template-columns: 2fr 2fr 5fr 2fr 2fr 2fr 1fr;
-            padding: 5px;
-        }
-
-        /*Excel-style table*/
-        #itemsTable {
-            width: 100%;
-            border-collapse: collapse;
-            font-family: Arial, sans-serif;
-        }
-
-        #itemsTable th,
-        #itemsTable td {
-            padding: 8px 12px;
-            text-align: left;
-            border: 1px solid #ddd;
-        }
-
-        #itemsTable th {
-            background-color: #f4f4f4;
-            font-weight: bold;
-        }
-
-        /* Hover effect for rows */
-        #itemsTable tr:hover {
-            background-color: #f1f1f1;
-        }
-
-        /* Custom styles to resize the form */
-        .expanded-container {
-            max-width: 90%;
-            /* Expand the container to 90% of the viewport width */
-        }
-
-        .expanded-card {
-            width: 100%;
-            /* Ensure the card takes full width of the container */
-        }
-
-        @media (min-width: 768px) {
-            .expanded-container {
-                max-width: 80%;
-                /* Adjust width for medium and larger screens */
-            }
-        }
-
-        /* Compact table styles */
-        .compact-table {
-            font-size: 0.85rem;
-            /* Reduce font size (12px) */
-        }
-
-        .compact-table th,
-        .compact-table td {
-            padding: 0.4rem 0.6rem;
-            /* Decrease padding for compact appearance */
-        }
-
-        .compact-table input.form-control {
-            font-size: 0.85rem;
-            /* Smaller text size for input fields */
-            padding: 0.3rem 0.5rem;
-            /* Adjust input padding */
-            height: auto;
-            /* Reduce input height */
-        }
-
-        .compact-table .btn-danger {
-            font-size: 0.85rem;
-            /* Reduce button text size */
-            padding: 0.3rem 0.5rem;
-            /* Compact button padding */
-        }
-
-        .compact-table input[type="date"] {
-            font-size: 0.85rem;
-            padding: 0.3rem;
-            height: auto;
+        select:valid {
+            border-color: green;
         }
     </style>
+
     <div class="container wow-form expanded-container">
         <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
             <div class="card-header">
                 Create New Purchase
             </div>
             <div class="card-body">
-                <form action="/purchase-bills" method="post" id="billForm" class="wow-form">
+                <form action="/purchase-bills" method="post" id="billForm" class="needs-validation" novalidate>
                     <div class="form-group row">
                         <% if (companyDateFormat==='nepali' ) { %>
                             <div class="col">
                                 <label for="transactionDateNepali">Transaction Date:</label>
                                 <input type="text" name="transactionDateNepali" id="transactionDateNepali"
-                                    class="form-control" value="<%= transactionDateNepali ||'' %>" autofocus required>
+                                    class="form-control" value="<%= transactionDateNepali ||'' %>"
+                                     autofocus required onfocus="selectValue(this)">
                             </div>
                             <div class="col">
                                 <label for="nepaliDate">Invoice Date:</label>
                                 <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
-                                    value="<%= nepaliDate || '' %>" autofocus>
-                            </div>
-                            <div class="col d-none">
-                                <label for="billDate">Invoice Date:</label>
-                                <input type="date" name="billDate" id="billDate" class="form-control"
-                                    value="<%= new Date().toISOString().split('T')[0] %>" disabled autoficeocus>
+                                    value="<%= nepaliDate || '' %>" onfocus="selectValue(this)" autofocus>
                             </div>
                             <% } else { %>
                                 <div class="col">
                                     <label for="transactionDateRoman">Transaction Date:</label>
                                     <input type="date" name="transactionDateRoman" id="transactionDateRoman"
                                         class="form-control" value="<%= new Date().toISOString().split('T')[0]%>"
-                                        autofocus required>
+                                        onfocus="selectValue(this)" autofocus required>
                                 </div>
                                 <div class="col">
                                     <label for="billDate">Invoice Date:</label>
                                     <input type="date" name="billDate" id="billDate" class="form-control" required
-                                        value="<%= new Date().toISOString().split('T')[0] %>" autofocus>
+                                        value="<%= new Date().toISOString().split('T')[0] %>"
+                                        onfocus="selectValue(this)" autofocus>
                                 </div>
-                                <div class="col d-none">
-                                    <label for="nepaliDate">Invoice Date:</label>
-                                    <input type="text" name="nepaliDate" id="nepaliDate" class="form-control"
-                                        value="<%= nepaliDate || '' %>" disabled autofocus>
-                                </div>
-
                                 <% } %>
                                     <div class="col">
-                                        <p id="billNumber">
-                                            <label for="billNumber">Vch. No:</label>
-                                            <input type="number" class="form-control"
-                                                value="<%=nextPurchaseBillNumber %>" disabled readonly>
-                                            <input type="hidden" name="billNumber" value="<%= nextPurchaseBillNumber %>"
-                                                readonly>
-                                        </p>
+                                        <label for="billNumber">Vch. No:</label>
+                                        <input type="number" name="billNumber" id="billNumber" class="form-control"
+                                            value="<%=nextPurchaseBillNumber %>" onfocus="selectValue(this)">
+                                        <div id="customAlertForBillNumber"
+                                            style="display:none; color: red; margin-top: 10px;">
+                                            This field is required.
+                                        </div>
                                     </div>
                                     <div class="col">
-                                        <label for="partyBillNumber">Purchase Bill No:</label>
-                                        <input type="text" class="form-control" name="partyBillNumber"
-                                            autocomplete="off">
+                                        <label for="paymentMode">Payment Mode:</label>
+                                        <select class="form-control" id="paymentMode" name="paymentMode" required>
+                                            <option value="" disabled selected>Select</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="credit">Credit</option>
+                                        </select>
+                                    </div>
+                                    <div class="col">
+                                        <label for="partyBillNumber" class="form-label">Suppliers Inv. No:</label>
+                                        <input type="text" class="form-control" id="partyBillNumber"
+                                            name="partyBillNumber" autocomplete="off" onfocus="selectValue(this)"
+                                            required>
+
+                                        <div id="customAlert" style="display:none; color: red; margin-top: 10px;">
+                                            This field is required.
+                                        </div>
                                     </div>
 
                                     <div class="col">
@@ -265,6 +79,7 @@
                                         <select name="isVatExempt" id="isVatExempt" class="form-control"
                                             onchange="toggleVatInputs()"
                                             onchange="filterItems(document.getElementById('itemSearch'))">
+                                            <option value="" disabled selected>Select</option>
                                             <% if (vatEnabled) {%>
                                                 <option value="all">All</option>
                                                 <option value="false">13%</option>
@@ -274,14 +89,6 @@
                                     </div>
                     </div>
                     <div class="form-group row">
-                        <div class="col-2">
-                            <label for="paymentMode">Payment Mode:</label>
-                            <select class="form-control" id="paymentMode" name="paymentMode">
-                                <option>Select</option>
-                                <option value="cash">Cash</option>
-                                <option value="credit">Credit</option>
-                            </select>
-                        </div>
                         <div class="col hidden">
                             <label for="purchaseSalesType">Type</label>
                             <select id="purchaseSalesType" name="purchaseSalesType" class="form-control" disabled>
@@ -307,34 +114,29 @@
                         <div class="col">
                             <!-- New field for the address -->
                             <label for="address">Party Address:</label>
-                            <input type="text" id="address" name="address" class="form-control" autocomplete="off">
+                            <input type="text" id="address" name="address" class="form-control" autocomplete="off"
+                                onfocus="selectValue(this)">
                         </div>
-                        <div class="col-2">
+                        <div class="col">
                             <!-- New field for the address -->
                             <label for="pan">Vat No:</label>
-                            <input type="text" id="pan" name="pan" class="form-control" autocomplete="off">
+                            <input type="text" id="pan" name="pan" class="form-control" autocomplete="off"
+                                onfocus="selectValue(this)">
                         </div>
                     </div>
                     <hr style="border: 1px solid gray;">
-                    <div class="form-group row">
-                        <div class="col">
-                            <label for="itemSearch">Search Item</label>
-                            <input type="text" id="itemSearch" class="form-control" placeholder="Search for an item"
-                                oninput="filterItems(this)" autocomplete="off"
-                                onkeydown="handleItemSearchKeydown(event)">
-                            <div id="dropdownMenu" class="dropdown-menu"></div>
-                        </div>
-                    </div>
+
                     <table class="table table-bordered compact-table" id="itemsTable">
                         <thead>
                             <tr>
                                 <th>S.No.</th>
-                                <th>Item Code</th>
-                                <th>Item Name</th>
-                                <th>H.S. Code</th>
+                                <th>#</th>
+                                <th>HSC</th>
+                                <th>Description of Goods</th>
                                 <th>Qty</th>
                                 <th>Unit</th>
-                                <th>Batch & Exp.Date</th>
+                                <th>Batch</th>
+                                <th>Exp. Date</th>
                                 <th>Price</th>
                                 <th>Amount</th>
                                 <th>Action</th>
@@ -345,11 +147,13 @@
                         </tbody>
                     </table>
 
-                    <div id="stockDetails" style="display: none;">
-                        <label for="stock">Stock</label>
-                        <select id="stock" name="stock" class="form-control">
-                            <!-- Stock details will be populated here via JavaScript -->
-                        </select>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label for="itemSearch">Search Item</label>
+                            <input type="text" id="itemSearch" class="form-control" placeholder="Search for an item"
+                                autocomplete="off" onkeydown="handleItemSearchKeydown(event)">
+                            <div id="dropdownMenu" class="dropdown-menu"></div>
+                        </div>
                     </div>
 
                     <hr style="border: 1px solid gray;">
@@ -376,12 +180,13 @@
                                     <td>
                                         <input type="number" step="any" name="discountPercentage"
                                             id="discountPercentage" class="form-control" value="0.00"
-                                            oninput="calculateTotal()">
+                                            onfocus="selectValue(this)" oninput="calculateTotal()">
                                     </td>
                                     <td><label for="discountAmount">Discount (Rs.):</label></td>
                                     <td>
                                         <input type="number" step="any" name="discountAmount" id="discountAmount"
-                                            value="0.00" class="form-control" oninput="calculateTotal()">
+                                            value="0.00" class="form-control" onfocus="selectValue(this)"
+                                            oninput="calculateTotal()">
                                     </td>
                                 </tr>
 
@@ -410,7 +215,8 @@
                                     <td><label for="roundOffAmount">Round Off:</label></td>
                                     <td colspan="2">
                                         <input type="number" class="form-control" step="any" id="roundOffAmount"
-                                            name="roundOffAmount" value="0.00" oninput="calculateTotal()">
+                                            name="roundOffAmount" value="0.00" onfocus="selectValue(this)"
+                                            oninput="calculateTotal()">
                                     </td>
                                 </tr>
 
@@ -444,7 +250,7 @@
         </div>
     </div>
 
-    <div id="printModal" class="modal fade" tabindex="-1" role="dialog">
+    <!-- <div id="printModal" class="modal fade" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -462,7 +268,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <!-- Transaction Modal -->
     <div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel"
@@ -471,7 +277,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="transactionModalLabel">Last Transactions</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close" data-bs-dismiss="modal">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
@@ -481,8 +287,9 @@
                     </ul>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal" id="closeModalButton"
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="closeModalButton"
                         onkeydown="handleCloseButtonKeydown(event)">Close</button>
+                        
                 </div>
             </div>
         </div>
@@ -495,7 +302,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="setSalesPriceModalLabel">Set Sales Price for New Batch</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
@@ -505,22 +312,24 @@
                     <div class="mb-3">
                         <label for="marginPercentage" class="form-label">Margin Percentage (%)</label>
                         <input type="number" class="form-control" id="marginPercentage" min="0" step="any"
-                            placeholder="Enter margin percentage">
+                            onfocus="selectValue(this)" placeholder="Enter margin percentage">
                     </div>
                     <div class="mb-3">
                         <label for="currency" class="form-label">Currency</label>
-                        <select class="form-select" id="currency">
+                        <select class="form-select" id="currency" onfocus="selectValue(this)">
                             <option value="NPR">NPR</option>
                             <option value="INR">INR</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label for="mrp" class="form-label">MRP</label>
-                        <input type="number" class="form-control" id="mrp" step="any" placeholder="Enter MRP">
+                        <input type="number" class="form-control" id="mrp" step="any" placeholder="Enter MRP"
+                            onfocus="selectValue(this)">
                     </div>
                     <div class="mb-3">
                         <label for="salesPrice" class="form-label">Sales Price</label>
-                        <input type="number" class="form-control" id="salesPrice" step="any" required>
+                        <input type="number" class="form-control" id="salesPrice" step="any" onfocus="selectValue(this)"
+                            required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -531,1078 +340,10 @@
         </div>
     </div>
 
+    <script src="/javascript/purchase/purchaseEntry.js"></script>
 
-
-
-    <!-- <script src="https://cdn.jsdelivr.net/npm/nepali-datepicker/js/nepali.datepicker.v4.0.min.js"></script> -->
     <script>
-        let itemIndex = 0;
-        let currentFocus = 0;
-        let isFirstLoad = true;
-
-        $(document).ready(function () {
-            // Initialize Select2 for searchable dropdown
-            $('#account').select2({
-                placeholder: "Select a party name",
-                allowClear: true,
-                width: '100%', // Ensure it takes the full width of the container
-            });
-
-            // Listen for the change event on the account dropdown
-            $('#account').on('change', function () {
-                const selectedOption = $(this).find('option:selected');
-                const address = selectedOption.data('address');
-
-                // Set the address field with the selected account's address
-                $('#address').val(address || 'Address not available');
-            });
-
-            // Listen for the change event on the account dropdown
-            $('#account').on('change', function () {
-                const selectedOption = $(this).find('option:selected');
-                const pan = selectedOption.data('pan');
-
-                // Set the address field with the selected account's address
-                $('#pan').val(pan || 'Pan no. not available');
-            });
-        });
-
-
-        async function fetchItems(query, vatStatus, existingItemIds) {
-            try {
-                const response = await fetch(`/items/search?q=${query}&isVatExempt=${vatStatus}&exclude=${existingItemIds.join(',')}`);
-                const data = await response.json();
-
-                console.log('Fetched items:', data);
-
-                if (!Array.isArray(data)) {
-                    throw new Error('Invalid response format');
-                }
-
-                return data;
-            } catch (error) {
-                console.error('Error fetching items:', error);
-                return [];
-            }
-        }
-
-
-        document.getElementById('itemSearch').addEventListener('keydown', function (event) {
-            const inputField = this;
-            const dropdownMenu = document.getElementById('dropdownMenu');
-            const items = dropdownMenu.getElementsByClassName('dropdown-item');
-
-            if (event.key === 'ArrowDown') {
-                // Navigate down the list
-                currentFocus++;
-                addActive(items);
-                scrollToItem(items);
-                updateInputWithHighlightedItem(items);
-            } else if (event.key === 'ArrowUp') {
-                // Navigate up the list
-                currentFocus--;
-                addActive(items);
-                scrollToItem(items);
-                updateInputWithHighlightedItem(items);
-            } else if (event.key === 'Enter') {
-                // Select the item
-                event.preventDefault();
-
-                if (currentFocus > -1) {
-                    if (items[currentFocus]) {
-                        items[currentFocus].click();
-
-
-                        // Clear the input field after selection
-                        inputField.value = '';
-                    }
-                }
-            }
-        });
-        function addActive(items) {
-            if (!items) return false;
-            removeActive(items);
-            if (currentFocus >= items.length) currentFocus = 0;
-            if (currentFocus < 0) currentFocus = items.length - 1;
-            items[currentFocus].classList.add('active');
-        }
-
-        function removeActive(items) {
-            for (let i = 0; i < items.length; i++) {
-                items[i].classList.remove('active');
-            }
-        }
-        function scrollToItem(items) {
-            if (currentFocus >= 0 && currentFocus < items.length) {
-                const item = items[currentFocus];
-                item.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'nearest' // Ensures the item is in view without scrolling too far
-                });
-            }
-        }
-
-        //     async function filterItems(input) {
-        //         const query = input.value.trim().toLowerCase();
-        //         const vatStatus = document.getElementById('isVatExempt').value; // Get the VAT status from the select input
-        //         const dropdownMenu = input.nextElementSibling;
-        //         //to exculde already present items from search
-        //         const existingItemIds = Array.from(document.querySelectorAll('input[name^="items["]'))
-        //             .filter(input => input.name.includes('[item]'))
-        //             .map(input => input.value);
-        //         //to exculde already present items from search
-
-
-        //         if (query.length === 0) {
-        //             dropdownMenu.innerHTML = '';
-        //             dropdownMenu.classList.remove('show'); // Hide the dropdown if input is blank
-        //             return;
-        //         }
-
-        //         const items = await fetchItems(query, vatStatus, existingItemIds);
-
-        //         console.log('Filtered items:', items);
-
-        //         // Clear existing dropdown items
-        //         dropdownMenu.innerHTML = '';
-
-        //         if (items.length === 0) {
-        //             // Display a "No items found" message
-        //             const noItemsMessage = document.createElement('div');
-        //             noItemsMessage.classList.add('dropdown-item');
-        //             noItemsMessage.textContent = 'No items found';
-        //             noItemsMessage.style.textAlign = 'center'; // Center-align the message
-        //             noItemsMessage.style.color = 'white';
-        //             noItemsMessage.style.backgroundColor = 'blue';
-        //             dropdownMenu.appendChild(noItemsMessage);
-        //             dropdownMenu.classList.add('show');
-        //         } else {
-
-        //             // Create and add table header
-        //             const header = document.createElement('div');
-        //             header.classList.add('dropdown-header');
-
-        //             header.innerHTML = `
-        //     <div><strong>Item Code</strong></div>
-        //     <div><strong>Item H.S. Code</strong></div>
-        //     <div><strong>Item Name</strong></div>
-        //     <div><strong>Category</strong></div>
-        //     <div><strong>Quantity</strong></div>
-        //     <div><strong>Unit</strong></div>
-        //     <div><strong>S.Price</strong></div>
-        //     <div><strong>Pu.Price</strong></div>
-
-        // `;
-        //             dropdownMenu.appendChild(header);
-
-        //             // Create and add dropdown items
-        //             items.forEach(item => {
-        //                 const dropdownItem = document.createElement('div');
-        //                 dropdownItem.classList.add('dropdown-item');
-        //                 dropdownItem.tabIndex = 0; // Make the item focusable
-
-        //                 // Add class based on VAT status
-        //                 if (item.vatStatus === 'vatable') {
-        //                     dropdownItem.classList.add('vatable-item');
-        //                 } else {
-        //                     dropdownItem.classList.add('non-vatable-item');
-        //                 }
-
-        //                 // Calculate the total available stock from stockEntries
-        //                 const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
-
-        //                 dropdownItem.innerHTML = `
-        //         <div>${item.uniqueNumber || 'N/A'}</div>
-        //         <div>${item.hscode || 'N/A'}</div>
-        //         <div>${item.name}</div>
-        //         <div>${item.category ? item.category.name : 'No Category'}</div>
-        //         <div>${totalStock}</div>
-        //         <div>${item.unit ? item.unit.name : ''}</div>
-        //         <div>Rs.${item.price.toFixed(2)}</div>
-        //         <div>Rs.${item.puPrice.toFixed(2)}</div>
-
-        //     `;
-        //                 dropdownItem.addEventListener('click', () => addItemToBill(item, dropdownMenu));
-        //                 dropdownMenu.appendChild(dropdownItem);
-        //             });
-
-        //             // Show or hide the dropdown menu based on the number of items
-        //             if (items.length > 0) {
-        //                 dropdownMenu.classList.add('show');
-        //             } else {
-        //                 dropdownMenu.classList.remove('show');
-        //             }
-        //         }
-        //     }
-
-        function updateInputWithHighlightedItem(items) {
-            const inputField = document.getElementById('itemSearch');
-            if (currentFocus > -1 && items[currentFocus]) {
-                const itemName = items[currentFocus].querySelector('div:nth-child(3)').textContent;
-                inputField.value = itemName; // Update the input field with the highlighted item's name
-            }
-        }
-
-        async function showAllItems(input) {
-            const dropdownMenu = input.nextElementSibling;
-            const vatStatus = document.getElementById('isVatExempt').value;
-            const existingItemIds = Array.from(document.querySelectorAll('input[name^="items["]'))
-                .filter(input => input.name.includes('[item]'))
-                .map(input => input.value);
-
-            // Fetch all items with an empty query
-            const items = await fetchItems('', vatStatus, existingItemIds);
-            console.log('All items:', items);
-
-            // Clear existing dropdown items
-            dropdownMenu.innerHTML = '';
-
-            if (items.length === 0) {
-                const noItemsMessage = document.createElement('div');
-                noItemsMessage.classList.add('dropdown-item');
-                noItemsMessage.textContent = 'No items found';
-                noItemsMessage.style.textAlign = 'center';
-                noItemsMessage.style.color = 'white';
-                noItemsMessage.style.backgroundColor = 'blue';
-                dropdownMenu.appendChild(noItemsMessage);
-                dropdownMenu.classList.add('show');
-            } else {
-                // Add header row
-                const headerRow = document.createElement('div');
-                headerRow.classList.add('dropdown-header');
-                headerRow.innerHTML = `
-            <div><strong>Item Code</strong></div>
-            <div><strong>HS Code</strong></div>
-            <div><strong>Name</strong></div>
-            <div><strong>Stock</strong></div>
-            <div><strong>Unit</strong></div>
-            <div><strong>P.Rate</strong></div>
-        `;
-                headerRow.style.backgroundColor = '#f0f0f0';
-                headerRow.style.fontWeight = 'bold';
-                dropdownMenu.appendChild(headerRow);
-
-                // Add item rows
-                items.forEach(item => {
-                    const dropdownItem = document.createElement('div');
-                    dropdownItem.classList.add('dropdown-item');
-                    dropdownItem.tabIndex = 0;
-
-                    if (item.vatStatus === 'vatable') {
-                        dropdownItem.classList.add('vatable-item');
-                    } else {
-                        dropdownItem.classList.add('non-vatable-item');
-                    }
-
-                    const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
-
-                    dropdownItem.innerHTML = `
-                <div>${item.uniqueNumber || 'N/A'}</div>
-                <div>${item.hscode || 'N/A'}</div>
-                <div>${item.name}</div>
-                <div>${totalStock}</div>
-                <div>${item.unit ? item.unit.name : ''}</div>
-                <div>Rs.${item.puPrice.toFixed()}</div>
-            `;
-
-                    dropdownItem.addEventListener('click', () => {
-                        addItemToBill(item, dropdownMenu);
-                        input.value = item.name;
-                        dropdownMenu.classList.remove('show');
-                    });
-                    dropdownMenu.appendChild(dropdownItem);
-                });
-
-                dropdownMenu.classList.add('show');
-                currentFocus = 0;
-                addActive(dropdownMenu.getElementsByClassName('dropdown-item'));
-
-                // Auto-fill and auto-select the input field with the first item name on the first load
-                if (isFirstLoad && items.length > 0) {
-                    input.value = items[0].name;
-                    input.select(); // Auto-select the input text
-                    isFirstLoad = false; // Set the flag to false after the first time
-                }
-            }
-
-        }
-
-
-        // Add event listener for focus to show all items
-        document.getElementById('itemSearch').addEventListener('focus', function () {
-            showAllItems(this);
-        });
-        // Add event listener for input to fetch items dynamically
-        document.getElementById('itemSearch').addEventListener('input', function () {
-            const query = this.value.trim().toLowerCase();
-            const vatStatus = document.getElementById('isVatExempt').value;
-            const dropdownMenu = this.nextElementSibling;
-
-            if (query.length === 0) {
-                showAllItems(this);
-                return;
-            }
-
-            const existingItemIds = Array.from(document.querySelectorAll('input[name^="items["]'))
-                .filter(input => input.name.includes('[item]'))
-                .map(input => input.value);
-
-            fetchItems(query, vatStatus, existingItemIds).then(items => {
-                dropdownMenu.innerHTML = '';
-
-                if (items.length === 0) {
-                    const noItemsMessage = document.createElement('div');
-                    noItemsMessage.classList.add('dropdown-item');
-                    noItemsMessage.textContent = 'No items found';
-                    noItemsMessage.style.textAlign = 'center';
-                    noItemsMessage.style.color = 'white';
-                    noItemsMessage.style.backgroundColor = 'blue';
-                    dropdownMenu.appendChild(noItemsMessage);
-                    dropdownMenu.classList.add('show');
-                } else {
-                    items.forEach(item => {
-                        const dropdownItem = document.createElement('div');
-                        dropdownItem.classList.add('dropdown-item');
-                        dropdownItem.tabIndex = 0;
-
-                        if (item.vatStatus === 'vatable') {
-                            dropdownItem.classList.add('vatable-item');
-                        } else {
-                            dropdownItem.classList.add('non-vatable-item');
-                        }
-
-                        const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
-
-                        dropdownItem.innerHTML = `
-                    <div>${item.uniqueNumber || 'N/A'}</div>
-                    <div>${item.hscode || 'N/A'}</div>
-                    <div>${item.name}</div>
-                    <div>${item.category ? item.category.name : 'No Category'}</div>
-                    <div>${totalStock}</div>
-                    <div>${item.unit ? item.unit.name : ''}</div>
-                    <div>Rs.${item.puPrice.toFixed()}</div>
-                `;
-
-                        dropdownItem.addEventListener('click', () => {
-                            addItemToBill(item, dropdownMenu);
-                            this.value = item.name;
-                            dropdownMenu.classList.remove('show'); // Close the dropdown after selection
-                        });
-                        dropdownMenu.appendChild(dropdownItem);
-                    });
-
-                    dropdownMenu.classList.add('show');
-                    currentFocus = 0;
-                    addActive(dropdownMenu.getElementsByClassName('dropdown-item'));
-                }
-            });
-        });
-
-        // Close dropdown when user clicks outside
-        document.addEventListener('click', function (event) {
-            const itemSearch = document.getElementById('itemSearch');
-            const dropdownMenu = itemSearch.nextElementSibling;
-
-            if (!itemSearch.contains(event.target) && !dropdownMenu.contains(event.target)) {
-                dropdownMenu.classList.remove('show'); // Close the dropdown if clicked outside
-            }
-        });
-
-
-        function addItemToBill(item, dropdownMenu) {
-            const tbody = document.getElementById('items');
-            const inputField = document.getElementById('itemSearch');
-
-            if (!inputField.value.trim()) {
-                return; // Do not add an item if the search field is blank
-            }
-
-            const tr = document.createElement('tr');
-            tr.classList.add('item', item.vatStatus ? 'vatable-item' : 'non-vatable-item');
-
-            // Calculate the serial number based on the number of rows already in the table
-            const serialNumber = tbody.rows.length + 1;
-
-            // Use the current itemIndex value in the name attributes
-            tr.innerHTML = `
-        <td>${serialNumber}</td>
-        <td>${item.uniqueNumber}</td>
-        <td class="col-3">
-            <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
-            ${item.name}
-        </td>
-        <td>
-            <input type="hidden" name="items[${itemIndex}][hscode]" value="${item.hscode}">
-            ${item.hscode}
-        </td>
-        <td>
-            <input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)">
-        </td>
-        <td>
-            ${item.unit ? item.unit.name : ''}
-            <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
-        </td>
-        <td>
-            <input type="text" name="items[${itemIndex}][batchNumber]" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" step="any" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)" value="XXX">
-            <input type="date" name="items[${itemIndex}][expiryDate]" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)" required>
-        </td>
-        <td>
-            <input type="number" name="items[${itemIndex}][puPrice]" value="${item.puPrice}" class="form-control item-puPrice" id="puPrice-${itemIndex}" step="any" onkeydown="handlePriceKeydown(event, ${itemIndex})" oninput="updateItemTotal(this)" onfocus="selectValue(this)">
-        </td>
-        <td class="item-amount">0.00</td>
-        <td>
-            <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </td>
-        <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
-    `;
-
-            tbody.appendChild(tr);
-
-            // Increment itemIndex after adding the new item
-            itemIndex++;
-            calculateTotal();
-
-            // Fetch and display last transactions for the added item
-            fetchLastTransactions(item._id);
-
-            // Hide the dropdown menu after selecting an item
-            dropdownMenu.classList.remove('show');
-
-            // Clear the input field
-            inputField.value = '';
-
-            // Focus on the quantity input field of the newly added row
-            document.getElementById(`quantity-${itemIndex - 1}`).focus();
-        }
-
-
-        function removeItem(button) {
-            const row = button.closest('tr');
-            row.remove();
-            calculateTotal();
-        }
-
-        function updateItemTotal(input) {
-            const row = input.closest('tr');
-            const quantity = parseFloat(row.querySelector('input.item-quantity').value) || 0;
-            const puPrice = parseFloat(row.querySelector('input.item-puPrice').value) || 0;
-            const amount = quantity * puPrice;
-            row.querySelector('.item-amount').textContent = amount.toFixed(2);
-            calculateTotal();
-        }
-
-        function updateDiscountFromPercentage() {
-            const subTotal = calculateSubTotal();
-            const discountPercentage = parseFloat(document.getElementById('discountPercentage').value) || 0;
-            const discountAmount = (subTotal * discountPercentage) / 100;
-            document.getElementById('discountAmount').value = discountAmount.toFixed(2);
-        }
-
-        function updateDiscountFromAmount() {
-            const subTotal = calculateSubTotal();
-            const discountAmount = parseFloat(document.getElementById('discountAmount').value) || 0;
-            const discountPercentage = (discountAmount / subTotal) * 100;
-            document.getElementById('discountPercentage').value = discountPercentage.toFixed(2);
-        }
-
-        function calculateSubTotal() {
-            const rows = document.querySelectorAll('#items tr.item');
-            let subTotal = 0;
-
-            rows.forEach(row => {
-                const amount = parseFloat(row.querySelector('.item-amount').textContent) || 0;
-                const vatStatus = row.querySelector('input[name$="[vatStatus]"]').value === 'true';
-
-                subTotal += amount;
-                if (vatStatus) {
-                    taxableAmount += amount;
-                    vatAmount += amount * 0.13; // VAT is 13%
-                }
-            });
-
-            return subTotal;
-        }
-
-        function calculateTotal() {
-            const rows = document.querySelectorAll('#items tr.item');
-            let subTotal = calculateSubTotal();
-            let vatAmount = 0;
-            let totalTaxableAmount = 0;
-            let totalNonTaxableAmount = 0;
-
-            // Separate amounts for vatable and non-vatable items
-            rows.forEach(row => {
-                const amount = parseFloat(row.querySelector('.item-amount').textContent) || 0;
-                const vatStatus = row.querySelector('input[name$="[vatStatus]"]').value;
-
-                if (vatStatus === 'vatable') {
-                    totalTaxableAmount += amount;
-                } else {
-                    totalNonTaxableAmount += amount;
-                }
-            });
-
-            const discountPercentage = parseFloat(document.getElementById('discountPercentage').value) || 0;
-            const discountAmount = parseFloat(document.getElementById('discountAmount').value) || 0;
-
-            // Calculate total amount before discount
-            const totalAmountBeforeDiscount = totalTaxableAmount + totalNonTaxableAmount;
-
-            // Apply discount proportionally to vatable and non-vatable items
-            // const totalDiscount = (totalAmountBeforeDiscount * discountPercentage / 100) + discountAmount;
-            const discountForTaxable = (totalTaxableAmount * discountPercentage / 100);
-            const discountForNonTaxable = (totalNonTaxableAmount * discountPercentage / 100)
-
-            const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
-            const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
-
-            // Calculate VAT only for vatable items
-            const vatSelection = document.getElementById('isVatExempt').value;
-            if (vatSelection === 'false' || vatSelection === 'all') {
-                vatAmount = finalTaxableAmount * 0.13; // VAT is 13%
-            } else {
-                vatAmount = 0;
-            }
-            const roundOffAmount = parseFloat(document.getElementById('roundOffAmount').value) || 0;
-            const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount + roundOffAmount;
-
-            document.getElementById('subTotal').textContent = subTotal.toFixed(2);
-            document.getElementById('taxableAmount').textContent = finalTaxableAmount.toFixed(2);
-            document.getElementById('vatAmount').textContent = vatAmount.toFixed(2);
-            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
-
-            const amountInWords = numberToWords(totalAmount) + ' Only.';
-            document.getElementById('amountInWords').textContent = amountInWords;
-        }
-
-
-        function toggleCreditPartyOptions() {
-            const paymentMode = document.getElementById('paymentMode').value;
-            const creditPartyOptions = document.querySelectorAll('.credit-party');
-            creditPartyOptions.forEach(option => {
-                option.style.display = paymentMode === 'credit' ? 'block' : 'none';
-            });
-        }
-
-        function toggleVatInputs() {
-            const isVatExempt = document.getElementById('isVatExempt').value === 'true';
-
-            // VAT-related fields
-            const vatInputs = document.getElementById('vatInputs'); // Group for VAT-related inputs
-            const taxableAmountRow = document.getElementById('taxableAmountRow');
-            const vatPercentageRow = document.getElementById('vatPercentageRow');
-            const vatAmountRow = document.getElementById('vatAmountRow');
-
-            // Toggle display based on VAT exemption
-            if (isVatExempt) {
-                taxableAmountRow.style.display = 'none';
-                vatPercentageRow.style.display = 'none';
-                vatAmountRow.style.display = 'none';
-            } else {
-                taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
-                vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
-                vatAmountRow.style.display = 'table-row'; // Show VAT amount row
-            }
-
-            // Recalculate total when toggling VAT
-            calculateTotal();
-        }
-
-        function showPrintModal() {
-            $('#printModal').modal('show');
-        }
-        function submitBillForm(print) {
-            shouldPrint = print;
-            const billForm = document.getElementById('billForm');
-            const saveButton = document.getElementById('saveBill');
-
-            // Change button text and disable it
-            saveButton.innerText = 'Saving...';
-            saveButton.disabled = true;
-
-            if (print) {
-                const url = new URL(billForm.action);
-                url.searchParams.append('print', 'true');
-                billForm.action = url.toString();
-            }
-
-            // Simulate form submission (replace this with actual form submission logic)
-            setTimeout(() => {
-                billForm.submit();
-
-                // Reset button text and enable it after submission
-                saveButton.innerText = 'Save Bill';
-                saveButton.disabled = false;
-            }, 2000); // Simulating a delay; adjust or remove as needed
-        }
-
-        document.getElementById('billForm').addEventListener('submit', function (event) {
-            if (!shouldPrint && event.submitter && event.submitter.innerText === 'Save & Print Bill') {
-                event.preventDefault();
-                showPrintModal();
-            }
-        });
-        function numberToWords(num) {
-            const ones = [
-                '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-                'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
-                'Seventeen', 'Eighteen', 'Nineteen'
-            ];
-
-            const tens = [
-                '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'
-            ];
-
-            const scales = ['', 'Thousand', 'Million', 'Billion'];
-
-            function convertHundreds(num) {
-                let words = '';
-
-                if (num > 99) {
-                    words += ones[Math.floor(num / 100)] + ' Hundred ';
-                    num %= 100;
-                }
-
-                if (num > 19) {
-                    words += tens[Math.floor(num / 10)] + ' ';
-                    num %= 10;
-                }
-
-                if (num > 0) {
-                    words += ones[num] + ' ';
-                }
-
-                return words.trim();
-            }
-
-            if (num === 0) return 'Zero';
-
-            if (num < 0) return 'Negative ' + numberToWords(Math.abs(num));
-
-            let words = '';
-
-            for (let i = 0; i < scales.length; i++) {
-                let unit = Math.pow(1000, scales.length - i - 1);
-                let currentNum = Math.floor(num / unit);
-
-                if (currentNum > 0) {
-                    words += convertHundreds(currentNum) + ' ' + scales[scales.length - i - 1] + ' ';
-                }
-
-                num %= unit;
-            }
-
-            return words.trim();
-        }
-        window.addEventListener('DOMContentLoaded', () => {
-            toggleVatInputs();
-            toggleCreditPartyOptions();
-        });
-
-        document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('discountPercentage').addEventListener('input', function () {
-                updateDiscountFromPercentage();
-                calculateTotal();
-            });
-
-            document.getElementById('discountAmount').addEventListener('input', function () {
-                updateDiscountFromAmount();
-                calculateTotal();
-            });
-
-            // document.querySelectorAll('.price-input, .quantity-input, .item-select').forEach(element => {
-            //     element.addEventListener('input', calculateTotal);
-            // });
-
-            document.getElementById('roundOffAmount').addEventListener('input', function () {
-                calculateTotal();
-            });
-
-            calculateTotal();
-        });
-
-        async function shouldDisplayTransactions() {
-            try {
-                const response = await fetch(`/settings/get-display-purchase-transactions`);
-                const { displayTransactionsForPurchase } = await response.json();
-                return displayTransactionsForPurchase;
-            } catch (error) {
-                console.error('Error fetching settings:', error);
-                return false;
-            }
-        }
-
-        async function fetchLastTransactions(itemId) {
-            // const itemId = select.value;
-            const accountId = document.getElementById('account').value;
-            const purchaseSalesType = document.getElementById('purchaseSalesType').value; // Ensure this element exists and has a value
-            const transactionList = document.getElementById('transactionList');
-
-            if (!purchaseSalesType) {
-                console.error('Account Type is undefined. Please ensure it is set.');
-                return;
-            }
-
-            try {
-
-                const response = await fetch(`/api/transactions/${itemId}/${accountId}/${purchaseSalesType}`);
-                const transactions = await response.json();
-                // const { transactions, companyDateFormat } = await response.json();
-
-                // Check if transactions are empty
-                if (transactions.length === 0) {
-                    transactionList.innerHTML = '<p>No transactions to display.</p>';
-                    // Do not show the modal if there are no transactions
-                    return;
-                }
-
-                // Create table header
-                let tableHtml = `
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Trans. Id</th>
-                        <th>Date</th>
-                        <th>Bill No.</th>
-                        <th>Type</th>
-                        <th>A/c Type</th>
-                        <th>Pay.Mode</th>
-                        <th>Qty.</th>
-                        <th>Unit</th>
-                        <th>Pu.price</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-                // Add table rows for each transaction
-                tableHtml += transactions.map(transaction => {
-
-                    // const isPurchase = transaction.type === 'Purc'; // Assuming 'Purc' indicates a purchase transaction
-                    // const billId = isPurchase ? transaction.purchaseBillId : transaction.billId;
-                    // const price = isPurchase ? transaction.puPrice : transaction.price;
-
-                    return `
-                <tr onclick="window.location.href='/bills/${transaction.purchaseBillId._id}/print'" style="cursor: pointer;">
-                    <td>${transaction._id}</td>
-                    <td>${new Date(transaction.date).toLocaleDateString()}</td>
-                    <td>${transaction.billNumber}</td>
-                    <td>${transaction.type}</td>
-                    <td>${transaction.purchaseSalesType}</td>
-                    <td>${transaction.paymentMode}</td>
-                    <td>${transaction.quantity}</td>
-                    <td>${transaction.unit ? transaction.unit.name : 'N/A'}</td>
-                    <td>Rs.${transaction.puPrice}</td>
-                </tr>
-            `;
-                }).join('');
-
-                // Close table
-                tableHtml += `
-                </tbody>
-            </table>
-        `;
-
-                // Set the innerHTML of the transaction list container
-                transactionList.innerHTML = tableHtml;
-
-                // Show the modal
-                $('#transactionModal').modal('show');
-            } catch (error) {
-                console.error('Error fetching transactions:', error);
-            }
-        }
-        async function handleFetchLastTransactions(itemId) {
-            const displayTransactions = await shouldDisplayTransactions();
-            if (displayTransactions) {
-                await fetchLastTransactions(itemId);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const itemSearchInput = document.getElementById('itemSearch'); // Initial focus on item search input
-        });
-
-        function openModalAndFocusCloseButton() {
-            // Open the modal
-            $('#transactionModal').modal('show');
-
-            // Wait until the modal is fully shown before focusing the close button
-            $('#transactionModal').on('shown.bs.modal', function () {
-                document.getElementById('closeModalButton').focus();
-            });
-        }
-
-        async function handleItemSearchKeydown(event) {
-            const itemSearchInput = document.getElementById('itemSearch');
-            const itemsTable = document.getElementById('itemsTable');
-            const itemsAvailable = itemsTable && itemsTable.querySelectorAll('.item').length > 0;
-
-            if (itemSearchInput.value.length > 0) {
-                if (event.key === 'Enter') {
-                    // Fetch and check if transactions should be displayed
-                    const displayTransactions = await shouldDisplayTransactions();
-
-                    // Only open the modal if displayTransactions is true
-                    if (displayTransactions) {
-                        openModalAndFocusCloseButton();
-                    } else {
-                        // document.getElementById('quantity').focus();
-                        // const lastRow = document.querySelectorAll('.item');
-                        // if (lastRow.length > 0) {
-                        //     const lastQuantityInput = lastRow[lastRow.length - 1].querySelector('.item-quantity');
-                        //     lastQuantityInput.focus();
-                        // }
-                        focusOnLastRow('item-quantity');
-                    }
-                }
-            } else if (itemSearchInput.value.length < 0 || itemsAvailable) {
-                if (event.key === 'Enter') {
-                    const submitBillForm = document.getElementById('saveBill')
-                    submitBillForm.focus();
-                }
-            }
-        }
-
-        function handleCloseButtonKeydown(event) {
-            if (event.key === 'Enter') {
-                // Close the modal (optional, depending on your implementation)
-                $('#transactionModal').modal('hide');
-
-                // Focus on the quantity input field
-                document.getElementById(`quantity-${itemIndex - 1}`).focus();
-                // focusOnLastRow('quantity');
-            }
-        }
-
-        function handleQuantityKeydown(event) {
-            if (event.key === 'Enter') {
-                // Focus on the price input field
-                // document.getElementById('price').focus();
-                // document.getElementById(`price-${itemIndex}`).focus();
-                const batchNumberInput = document.getElementById(`batchNumber-${itemIndex - 1}`);
-                batchNumberInput.focus();
-                batchNumberInput.select();
-
-            }
-        }
-        function handleBatchKeydown(event) {
-            if (event.key === 'Enter') {
-                const expDateInput = document.getElementById(`expiryDate-${itemIndex - 1}`);
-                expDateInput.focus();
-                expDateInput.select();
-            }
-        }
-
-        function handleExpDateKeydown(event) {
-            if (event.key === 'Enter') {
-                const priceInput = document.getElementById(`puPrice-${itemIndex - 1}`);
-                priceInput.focus();
-                priceInput.select();
-            }
-        }
-
-        // function handlePriceKeydown(event, itemIndex) {
-        //     if (event.key === 'Enter') {
-        //         const puPriceInput = document.getElementById(`puPrice-${itemIndex}`);
-
-        //         if (puPriceInput.value) {
-        //             // Set the puPrice in the modal
-        //             document.getElementById('puPrice').value = puPriceInput.value;
-
-        //             // Show the sales price modal
-        //             $('#setSalesPriceModal').modal('show');
-
-        //             // Handle modal shown event to focus on the margin percentage input
-        //             $('#setSalesPriceModal').on('shown.bs.modal', function () {
-        //                 document.getElementById('marginPercentage').focus();
-        //             });
-
-        //             // Handle sales price calculation
-        //             const marginPercentageInput = document.getElementById('marginPercentage');
-        //             marginPercentageInput.oninput = function () {
-        //                 const puPrice = parseFloat(puPriceInput.value);
-        //                 const marginPercentage = parseFloat(marginPercentageInput.value) || 0;
-        //                 const salesPrice = puPrice + (puPrice * marginPercentage / 100);
-        //                 document.getElementById('salesPrice').value = salesPrice.toFixed(2); // Set the calculated sales price
-        //             };
-
-        //             // Handle sales price save action
-        //             const saveSalesPriceButton = document.getElementById('saveSalesPrice');
-        //             saveSalesPriceButton.onclick = function () {
-        //                 const salesPrice = document.getElementById('salesPrice').value;
-        //                 if (salesPrice) {
-        //                     // Store sales price in a hidden input within the current row
-        //                     const tr = puPriceInput.closest('tr');
-        //                     const salesPriceInput = document.createElement('input');
-        //                     salesPriceInput.type = 'hidden';
-        //                     salesPriceInput.name = `items[${itemIndex}][price]`;
-        //                     salesPriceInput.value = salesPrice;
-        //                     tr.appendChild(salesPriceInput);
-
-        //                     // Close the modal
-        //                     $('#setSalesPriceModal').modal('hide');
-
-        //                     // Focus back on the item search input field
-        //                     const itemSearchInput = document.getElementById('itemSearch');
-        //                     itemSearchInput.focus();
-        //                 } else {
-        //                     alert('Please enter a valid sales price.');
-        //                 }
-        //             };
-        //         }
-        //     }
-        // }
-
-        function handlePriceKeydown(event, itemIndex) {
-            if (event.key === 'Enter') {
-                const puPriceInput = document.getElementById(`puPrice-${itemIndex}`);
-
-                if (puPriceInput.value) {
-                    // Set the PU Price in the modal
-                    document.getElementById('puPrice').value = puPriceInput.value;
-
-                    // Show the sales price modal
-                    $('#setSalesPriceModal').modal('show');
-
-                    // Handle modal shown event to focus on the margin percentage input
-                    $('#setSalesPriceModal').on('shown.bs.modal', function () {
-                        document.getElementById('marginPercentage').focus();
-                    });
-
-                    // Handle margin percentage input
-                    const marginPercentageInput = document.getElementById('marginPercentage');
-                    marginPercentageInput.oninput = function () {
-                        updateSalesPriceFromMargin(puPriceInput.value);
-                    };
-
-                    // Handle MRP input
-                    const mrpInput = document.getElementById('mrp');
-                    mrpInput.oninput = function () {
-                        updateSalesPriceFromMRP(mrpInput.value);
-                        updateMarginFromMRPAndSalesPrice(mrpInput.value, puPriceInput.value);
-                    };
-
-                    // Handle sales price input
-                    const salesPriceInput = document.getElementById('salesPrice');
-                    salesPriceInput.oninput = function () {
-                        updateMarginFromMRPAndSalesPrice(mrpInput.value, puPriceInput.value);
-                    };
-
-                    // Handle currency change
-                    const currencySelect = document.getElementById('currency');
-                    currencySelect.onchange = function () {
-                        updateSalesPriceFromMRP(mrpInput.value);
-                    };
-
-                    // Handle sales price save action
-                    const saveSalesPriceButton = document.getElementById('saveSalesPrice');
-                    saveSalesPriceButton.onclick = function () {
-                        const salesPrice = document.getElementById('salesPrice').value;
-                        const mrpValue = document.getElementById('mrp').value;
-                        const marginPercentage = document.getElementById('marginPercentage').value;
-
-                        if (salesPrice) {
-                            // Store sales price in a hidden input within the current row
-                            const tr = puPriceInput.closest('tr');
-                            const salesPriceInput = document.createElement('input');
-                            salesPriceInput.type = 'hidden';
-                            salesPriceInput.name = `items[${itemIndex}][price]`;
-                            salesPriceInput.value = salesPrice;
-                            tr.appendChild(salesPriceInput);
-
-                            // Store MRP in a hidden input within the current row
-                            const mrpInputHidden = document.createElement('input');
-                            mrpInputHidden.type = 'hidden';
-                            mrpInputHidden.name = `items[${itemIndex}][mrp]`; // Ensure this matches your schema
-                            mrpInputHidden.value = mrpValue;
-                            tr.appendChild(mrpInputHidden);
-
-                            // Store marginPercentage in a hidden input within the current row
-                            const marginPercentageInputHidden = document.createElement('input');
-                            marginPercentageInputHidden.type = 'hidden';
-                            marginPercentageInputHidden.name = `items[${itemIndex}][marginPercentage]`; // Ensure this matches your schema
-                            marginPercentageInputHidden.value = marginPercentage;
-                            tr.appendChild(marginPercentageInputHidden);
-
-                            // Close the modal
-                            $('#setSalesPriceModal').modal('hide');
-
-                            // Focus back on the item search input field
-                            const itemSearchInput = document.getElementById('itemSearch');
-                            itemSearchInput.focus();
-                        } else {
-                            alert('Please enter a valid sales price.');
-                        }
-                    };
-                }
-            }
-        }
-
-
-        function updateSalesPriceFromMargin(puPrice) {
-            const marginPercentage = parseFloat(document.getElementById('marginPercentage').value) || 0;
-            const salesPriceFromMargin = parseFloat(puPrice) + (parseFloat(puPrice) * marginPercentage / 100);
-            document.getElementById('salesPrice').value = salesPriceFromMargin.toFixed(2); // Set calculated sales price from margin
-        }
-
-        function updateSalesPriceFromMRP(mrpValue) {
-            const currency = document.getElementById('currency').value;
-            let salesPriceFromMRP;
-            if (currency === 'INR') {
-                salesPriceFromMRP = parseFloat(mrpValue) * 1.60; // Convert MRP to sales price for INR
-            } else {
-                salesPriceFromMRP = parseFloat(mrpValue); // Use MRP directly for NPR
-            }
-            document.getElementById('salesPrice').value = salesPriceFromMRP.toFixed(2); // Set calculated sales price from MRP
-        }
-
-        function updateMarginFromMRPAndSalesPrice(mrpValue, puPriceValue) {
-            const salesPrice = parseFloat(document.getElementById('salesPrice').value) || 0;
-            const puPrice = parseFloat(puPriceValue) || 0;
-            const marginPercentageInput = document.getElementById('marginPercentage');
-
-            // Calculate margin percentage based on (Sales Price - PU Price) / PU Price * 100
-            const marginPercentage = ((salesPrice - puPrice) / puPrice) * 100;
-
-            if (!isNaN(marginPercentage) && puPrice > 0) {
-                marginPercentageInput.value = marginPercentage.toFixed(2); // Update margin percentage
-            } else {
-                marginPercentageInput.value = ''; // Reset if the calculation fails or PU Price is 0
-            }
-        }
-
-
         function selectValue(input) {
-            input.select(); // Select the value of the input field when it is focused
-        }
-
-        function focusOnLastRow(fieldClass) {
-            const rows = document.querySelectorAll('.item');
-            if (rows.length > 0) {
-                const lastRow = rows[rows.length - 1];
-                const inputField = lastRow.querySelector(`.${fieldClass}`);
-                if (inputField) {
-                    inputField.focus();
-                    inputField.select();
-                }
-            }
-        }
-
-        //Handle scape buttons
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') {
-                event.preventDefault(); // Prevent default escape behavior
-                var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
-                exitModal.show();
-            }
-        });
-
-        // Handle the exit confirmation
-        document.getElementById('confirmExit').addEventListener('click', function () {
-            // Redirect to the home page
-            window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
-        });
+input.select(); // Select the value of the input field when it is focused
+}
     </script>

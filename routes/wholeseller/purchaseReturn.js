@@ -10,7 +10,7 @@ const ObjectId = mongoose.Types.ObjectId;
 const Item = require('../../models/wholeseller/Item');
 const PurchaseReturn = require('../../models/wholeseller/PurchaseReturns');
 const Transaction = require('../../models/wholeseller/Transaction');
-const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware/auth');
+const { ensureAuthenticated, ensureCompanySelected, isLoggedIn } = require('../../middleware/auth');
 // const BillCounter = require('../../models/wholeseller/purchaseReturnBillCounter');
 const Account = require('../../models/wholeseller/Account');
 const Settings = require('../../models/wholeseller/Settings');
@@ -23,9 +23,11 @@ const BillCounter = require('../../models/wholeseller/billCounter');
 const { getNextBillNumber } = require('../../middleware/getNextBillNumber');
 const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
 const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRange');
+const CompanyGroup = require('../../models/wholeseller/CompanyGroup');
+const PurchaseReturns = require('../../models/wholeseller/PurchaseReturns');
 
 // Fetch all purchase bills
-router.get('/purchase-return/list', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+router.get('/purchase-return/list', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
 
         const companyId = req.session.currentCompany;
@@ -82,7 +84,7 @@ router.get('/purchase-return/list', ensureAuthenticated, ensureCompanySelected, 
 });
 
 // Purchase Return Bill routes
-router.get('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+router.get('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
         const items = await Item.find({ company: companyId }).populate('category').populate('unit');
@@ -125,8 +127,23 @@ router.get('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensur
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
 
-        const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear });
+        // const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear });
 
+        // Fetch only the required company groups: Cash in Hand, Sundry Debtors, Sundry Creditors
+        const relevantGroups = await CompanyGroup.find({
+            name: { $in: ['Cash in Hand', 'Sundry Debtors', 'Sundry Creditors'] }
+        }).exec();
+
+        // Convert relevant group IDs to an array of ObjectIds
+        const relevantGroupIds = relevantGroups.map(group => group._id);
+
+        // Fetch accounts that belong only to the specified groups
+        const accounts = await Account.find({
+            company: companyId,
+            fiscalYear: fiscalYear,
+            isActive: true,
+            companyGroups: { $in: relevantGroupIds }
+        }).exec();
         // Get the next bill number
         // const billCounter = await BillCounter.findOne({ company: companyId });
         // const nextBillNumber = billCounter ? billCounter.count + 1 : 1;
@@ -158,11 +175,155 @@ router.get('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensur
 });
 
 
+router.get('/purchase-return/finds', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        const companyId = req.session.currentCompany;
+        const today = new Date();
+        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format Nepali date if necessary
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+
+        res.render('wholeseller/purchaseReturn/billNumberForm', {
+            company,
+            currentFiscalYear,
+            currentCompanyName: req.session.currentCompanyName,
+            date: new Date().toISOString().split('T')[0], // Today's date in ISO format
+            title: '',
+            body: '',
+            user: req.user,
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+        })
+    }
+});
+
+
+
+router.get('/purchase-return/edit/billNumber', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        const { billNumber } = req.query;
+        const companyId = req.session.currentCompany;
+        const currentCompanyName = req.session.currentCompanyName;
+        const today = new Date();
+        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format Nepali date if necessary
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
+        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+
+        // Fetch only the required company groups: Cash in Hand, Sundry Debtors, Sundry Creditors
+        const relevantGroups = await CompanyGroup.find({
+            name: { $in: ['Cash in Hand', 'Sundry Debtors', 'Sundry Creditors'] }
+        }).exec();
+
+        // Convert relevant group IDs to an array of ObjectIds
+        const relevantGroupIds = relevantGroups.map(group => group._id);
+
+        // Fetch accounts that belong only to the specified groups
+        const accounts = await Account.find({
+            company: companyId,
+            fiscalYear: fiscalYear,
+            isActive: true,
+            companyGroups: { $in: relevantGroupIds }
+        }).exec();
+
+
+        const purchaseReturn = await PurchaseReturns.findOne({ billNumber: billNumber, company: companyId, fiscalYear: fiscalYear })
+            .populate('items.item')
+            .populate('items.unit')
+            .populate('account')
+            .populate('company') // Populate company details
+            .populate('user') // Populate user details
+            .populate('fiscalYear'); // Populate fiscal year details
+
+        if (!purchaseReturn || !purchaseReturn.items) {
+            req.flash('error', 'Purchase return voucher not found!');
+            return res.redirect('/purchase-return/finds')
+        }
+
+        res.render('wholeseller/purchaseReturn/edit', {
+            purchaseReturn,
+            accounts,
+            items: purchaseReturn.items,
+            company,
+            vatEnabled: company.vatEnabled,
+            currentFiscalYear,
+            fiscalYear,
+            currentCompanyName,
+            companyDateFormat,
+            title: '',
+            body: '',
+            user: req.user,
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+        })
+    }
+})
+
+
 // POST route to handle sales bill creation
-router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
-            const { account, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount, } = req.body;
+            const { account, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate,partyBillNumber, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount, } = req.body;
             const companyId = req.session.currentCompany;
             const currentFiscalYear = req.session.currentFiscalYear.id
             const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -185,6 +346,13 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
                 return res.status(400).json({ error: 'Company ID is required' });
             }
 
+            if (!isVatExempt) {
+                return res.status(400).json({ error: 'Invalid vat selection.' });
+            }
+            if (!paymentMode) {
+                return res.status(400).json({ error: 'Invalid payment mode.' });
+            }
+
             const accounts = await Account.findOne({ _id: account, company: companyId });
             if (!accounts) {
                 return res.status(400).json({ error: 'Invalid account for this company' });
@@ -197,7 +365,7 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
 
                 if (!product) {
                     req.flash('error', `Item with id ${item.item} not found`);
-                    return res.redirect('/bills');
+                    return res.redirect('/purchase-return');
                 }
 
                 const itemTotal = parseFloat(item.puPrice) * parseFloat(item.quantity, 10);
@@ -215,7 +383,7 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
                 const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
                 if (availableStock < item.quantity) {
                     req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
-                    return res.redirect('/bills');
+                    return res.redirect('/purchase-return');
                 }
             }
 
@@ -223,12 +391,12 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
             if (isVatExempt !== 'all') {
                 if (isVatExemptBool && hasVatableItems) {
                     req.flash('error', 'Cannot save VAT exempt bill with vatable items');
-                    return res.redirect('/bills');
+                    return res.redirect('/purchase-return');
                 }
 
                 if (!isVatExemptBool && hasNonVatableItems) {
                     req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
-                    return res.redirect('/bills');
+                    return res.redirect('/purchase-return');
                 }
             }
 
@@ -272,6 +440,7 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
             const newBill = new PurchaseReturn({
                 // billNumber: billCounter.count,
                 billNumber: billNumber,
+                partyBillNumber:partyBillNumber,
                 account,
                 purchaseSalesReturnType: 'Purchase Return',
                 items: [], // We'll update this later
@@ -340,6 +509,7 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
                     account: account,
                     // billNumber: billCounter.count,
                     billNumber: billNumber,
+                    partyBillNumber:partyBillNumber,
                     quantity: item.quantity,
                     puPrice: item.puPrice,
                     unit: item.unit,  // Include the unit field                    type: 'Sale',
@@ -393,6 +563,7 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
                         account: cashAccount._id,
                         // billNumber: billCounter.count,
                         billNumber: billNumber,
+                        partyBillNumber:partyBillNumber,
                         type: 'PrRt',
                         purchaseReturnBillId: newBill._id,  // Set billId to the new bill's ID
                         purchaseSalesReturnType: 'Purchase Return',
@@ -427,7 +598,7 @@ router.post('/purchase-return', ensureAuthenticated, ensureCompanySelected, ensu
 
 
 // GET route to render the edit page for a purchase return
-router.get('/purchase-return/edit/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const billId = req.params.id;
@@ -472,11 +643,21 @@ router.get('/purchase-return/edit/:id', ensureAuthenticated, ensureCompanySelect
             if (!fiscalYear) {
                 return res.status(400).json({ error: 'No fiscal year found in session or company.' });
             }
+                    // Fetch only the required company groups: Cash in Hand, Sundry Debtors, Sundry Creditors
+        const relevantGroups = await CompanyGroup.find({
+            name: { $in: ['Cash in Hand', 'Sundry Debtors', 'Sundry Creditors'] }
+        }).exec();
 
-            const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear })
-                .populate('transactions')
-                .populate('companyGroups');
-            console.log('Accounts:', accounts);
+        // Convert relevant group IDs to an array of ObjectIds
+        const relevantGroupIds = relevantGroups.map(group => group._id);
+
+        // Fetch accounts that belong only to the specified groups
+        const accounts = await Account.find({
+            company: companyId,
+            fiscalYear: fiscalYear,
+            isActive: true,
+            companyGroups: { $in: relevantGroupIds }
+        }).exec();
 
             // Find the bill by ID and populate relevant data
             const purchaseReturn = await PurchaseReturn.findById({ _id: billId, company: companyId, fiscalYear: fiscalYear })
@@ -543,11 +724,11 @@ router.get('/purchase-return/edit/:id', ensureAuthenticated, ensureCompanySelect
     }
 });
 
-router.put('/purchase-return/edit/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const billId = req.params.id;
-            const { account, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount, } = req.body;
+            const { account, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, nepaliDate, isVatExempt, discountPercentage, paymentMode,partyBillNumber, roundOffAmount: manualRoundOffAmount, } = req.body;
 
             const companyId = req.session.currentCompany;
             const currentFiscalYear = req.session.currentFiscalYear.id;
@@ -557,28 +738,66 @@ router.put('/purchase-return/edit/:id', ensureAuthenticated, ensureCompanySelect
                 return res.status(400).json({ error: 'Company ID is required' });
             }
 
+            if (!isVatExempt) {
+                return res.status(400).json({ error: 'Invalid vat selection.' });
+            }
+            if (!paymentMode) {
+                return res.status(400).json({ error: 'Invalid payment mode.' });
+            }
+
+            const accounts = await Account.findOne({ _id: account, company: companyId });
+            if (!accounts) {
+                return res.status(400).json({ error: 'Invalid account for this company' });
+            }
+
             const existingBill = await PurchaseReturn.findOne({ _id: billId, company: companyId });
             if (!existingBill) {
                 req.flash('error', 'Purchase return not found!');
                 return res.redirect('/purchase-return');
             }
 
-            //Reverse stock from existing bill items
-            for (const existingItem of existingBill.items) {
-                const product = await Item.findById(existingItem.item);
+            // Step 1: Validate New Quantities BEFORE Reversing Old Stock
+        for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const product = await Item.findById(item.item);
 
-                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === existingItem.batchNumber);
+    if (!product) {
+        req.flash('error', `Item with ID ${item.item} not found`);
+        return res.redirect('/purchase-return/list');
+    }
 
-                if (batchEntry) {
-                    batchEntry.quantity += existingItem.quantity; // Restore stock
-                } else {
-                    console.warn(`Batch number ${existingItem.batchNumber} not found for product: ${product.name}`);
-                }
+    // Calculate current stock availability
+    const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+    
+    // Find the existing item from the bill
+    const existingItem = existingBill.items.find(existing => existing.item.toString() === item.item.toString());
 
-                await product.save(); // Save the updated product
-            }
+    let previousQuantity = existingItem ? existingItem.quantity : 0; // Stock being reversed
+    let potentialStockAfterReversal = availableStock + previousQuantity; // Simulated stock after reversal
 
-            console.log('Stock successfully reversed for existing bill items.');
+    // If the new requested quantity is more than what would be available, do NOT allow reversal
+    if (potentialStockAfterReversal < item.quantity) {
+        req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
+        return res.redirect('/purchase-return/list');
+    }
+}
+
+// Step 2: Reverse stock for existing bill items (Only if all validations pass)
+for (const existingItem of existingBill.items) {
+    const product = await Item.findById(existingItem.item);
+    const batchEntry = product.stockEntries.find(entry => entry.batchNumber === existingItem.batchNumber);
+
+    if (batchEntry) {
+        batchEntry.quantity += existingItem.quantity; // Restore stock
+    } else {
+        console.warn(`Batch number ${existingItem.batchNumber} not found for product: ${product.name}`);
+    }
+
+    await product.save(); // Save updated stock
+}
+
+console.log('Stock successfully reversed for existing bill items.');
+
 
             // Delete all associated transactions
             await Transaction.deleteMany({ purchaseReturnBillId: billId });
@@ -633,6 +852,7 @@ router.put('/purchase-return/edit/:id', ensureAuthenticated, ensureCompanySelect
 
             // Update existing bill
             existingBill.account = account;
+            existingBill.partyBillNumber=partyBillNumber;
             existingBill.isVatExempt = isVatExemptBool;
             existingBill.vatPercentage = isVatExemptBool ? 0 : vatPercentage;
             existingBill.subTotal = totalTaxableAmount + totalNonTaxableAmount;
@@ -709,6 +929,7 @@ router.put('/purchase-return/edit/:id', ensureAuthenticated, ensureCompanySelect
                     item: product._id,
                     account: account,
                     billNumber: existingBill.billNumber,
+                    partyBillNumber:existingBill.partyBillNumber,
                     quantity: item.quantity,
                     puPrice: item.puPrice,
                     unit: item.unit,  // Include the unit field                    type: 'Sale',
@@ -744,6 +965,7 @@ router.put('/purchase-return/edit/:id', ensureAuthenticated, ensureCompanySelect
                         account: cashAccount._id,
                         // billNumber: billCounter.count,
                         billNumber: existingBill.billNumber,
+                        partyBillNumber:existingBill.partyBillNumber,
                         type: 'PrRt',
                         purchaseReturnBillId: existingBill._id,  // Set billId to the new bill's ID
                         purchaseSalesReturnType: 'Purchase Return',
@@ -763,10 +985,10 @@ router.put('/purchase-return/edit/:id', ensureAuthenticated, ensureCompanySelect
 
             if (req.query.print === 'true') {
                 // Redirect to the print route
-                res.redirect(`/purchase-return/${newBill._id}/direct-print`);
+                res.redirect(`/purchase-return/${existingBill._id}/edit/direct-print`);
             } else {
                 // Redirect to the bills list or another appropriate page
-                req.flash('success', 'Purchase return saved successfully!');
+                req.flash('success', 'Purchase return updated successfully.');
                 res.redirect(`/purchase-return/edit/${billId}`);
             }
         } catch (error) {
@@ -777,7 +999,7 @@ router.put('/purchase-return/edit/:id', ensureAuthenticated, ensureCompanySelect
     }
 });
 
-router.get('/purchase-return/:id/print', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+router.get('/purchase-return/:id/print', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
 
         const currentCompanyName = req.session.currentCompanyName;
@@ -919,8 +1141,8 @@ router.get('/purchase-return/:id/print', ensureAuthenticated, ensureCompanySelec
     }
 });
 
-//for direct print purchase
-router.get('/purchase-return/:id/direct-print', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+//direct print for purchase return
+router.get('/purchase-return/:id/direct-print', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
 
         const currentCompanyName = req.session.currentCompanyName;
@@ -1060,7 +1282,149 @@ router.get('/purchase-return/:id/direct-print', ensureAuthenticated, ensureCompa
     }
 });
 
-router.get('/purchaseReturn-vat-report', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+
+//direct print purchase return for edit
+router.get('/purchase-return/:id/edit/direct-print', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+
+        const currentCompanyName = req.session.currentCompanyName;
+        const companyId = req.session.currentCompany;
+        console.log("Company ID from session:", companyId); // Debugging line
+
+        const today = new Date();
+        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+        // Validate the selectedDate
+        if (!nepaliDate || isNaN(new Date(nepaliDate).getTime())) {
+            throw new Error('Invalid date provided');
+        }
+
+        try {
+            const currentCompany = await Company.findById(new ObjectId(companyId));
+            console.log("Current Company:", currentCompany); // Debugging line
+
+            if (!currentCompany) {
+                req.flash('error', 'Company not found');
+                return res.redirect('/bills');
+            }
+
+            const purchaseReturnBillId = req.params.id;
+            const bill = await PurchaseReturn.findById(purchaseReturnBillId)
+                .populate({ path: 'account', select: 'name pan address email phone openingBalance' }) // Populate account and only select openingBalance
+                .populate('items.item')
+                .populate('user');
+
+            if (!bill) {
+                req.flash('error', 'Bill not found');
+                return res.redirect('/purchase-return/list');
+            }
+
+            // Populate unit for each item in the bill
+            for (const item of bill.items) {
+                await item.item.populate('unit');
+            }
+
+            const firstBill = !bill.firstPrinted; // Inverse logic based on your implementation
+
+            if (firstBill) {
+                bill.firstPrinted = true;
+                await bill.save();
+            }
+            let finalBalance = null;
+            let balanceLabel = '';
+
+            // Fetch the latest transaction for the current company and bill
+            if (bill.paymentMode === 'credit') {
+                const latestTransaction = await Transaction.findOne({
+                    company: new ObjectId(companyId),
+                    purchaseReturnBillId: new ObjectId(purchaseReturnBillId)
+                }).sort({ transactionDate: -1 });
+
+                let lastBalance = 0;
+
+                // Calculate the last balance based on the latest transaction
+                if (latestTransaction) {
+                    lastBalance = Math.abs(latestTransaction.balance || 0); // Ensure balance is positive
+
+                    // Determine if the amount is receivable (dr) or payable (cr)
+                    if (latestTransaction.debit) {
+                        balanceLabel = 'Dr'; // Receivable amount
+                    } else if (latestTransaction.credit) {
+                        balanceLabel = 'Cr'; // Payable amount
+                    }
+                }
+
+                // Retrieve the opening balance from the account
+                const openingBalance = bill.account ? bill.account.openingBalance : null;
+
+                // Add opening balance if it exists
+                if (openingBalance) {
+                    lastBalance += (openingBalance.type === 'Dr' ? openingBalance.amount : -openingBalance.amount);
+                    balanceLabel = openingBalance.type;
+                }
+
+                finalBalance = lastBalance;
+            }
+
+            res.render('wholeseller/purchaseReturn/directPrintEdit', {
+                company,
+                currentFiscalYear,
+                bill,
+                currentCompanyName,
+                currentCompany,
+                firstBill,
+                lastBalance: finalBalance,
+                balanceLabel,
+                paymentMode: bill.paymentMode, // Pass paymentMode to the view if needed
+                nepaliDate,
+                englishDate: bill.englishDate,
+                companyDateFormat,
+                user: req.user,
+                title: '',
+                body: '',
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            });
+        } catch (error) {
+            console.error("Error fetching bill for printing:", error);
+            req.flash('error', 'Error fetching bill for printing');
+            res.redirect('/purchase-bills-list');
+        }
+    }
+});
+
+router.get('/purchaseReturn-vat-report', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
         const currentCompanyName = req.session.currentCompanyName;

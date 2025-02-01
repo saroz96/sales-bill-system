@@ -1,0 +1,2 @@
+problem in purchase:
+should be view problem in purchase field of console

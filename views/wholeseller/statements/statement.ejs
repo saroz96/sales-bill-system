@@ -202,7 +202,7 @@
                             </div>
                         </div>
 
-                        <table class="table table-stripped table-hover">
+                        <table class="table table-stripped table-hover" id="ledgerTable">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -220,7 +220,7 @@
                                     <% statement.forEach(entry=> { totalDebit += entry.debit || 0; totalCredit +=
                                         entry.credit || 0; %>
                                         <tr ondblclick="window.location.href='/bills/<%= entry.billId %>/print'"
-                                            style="cursor: pointer;">
+                                             class="table-row">
                                             <td>
                                                 <%= new Date(entry.date).toLocaleDateString() %>
                                             </td>
@@ -238,6 +238,7 @@
                                                     entry.journalAccountType || entry.purchaseSalesReturnType ||
                                                     entry.drCrNoteAccountType ||
                                                     entry.paymentReceiptAccountType|| 'Opening' %>
+                                                    <%=entry.partyBillNumber%>
                                             </td>
                                             <td>
                                                 <%= entry.debit ? entry.debit.toFixed(2) : '-' %>
@@ -265,9 +266,68 @@
                             </tbody>
                         </table>
                     </div>
-                    <% } else { %>
-                        <div class="alert alert-info">Please select a company.</div>
-                        <% } %>
+                    
+                    <script>
+                        document.addEventListener("DOMContentLoaded", function () {
+                            let tableRows = document.querySelectorAll(".table-row");
+                            let currentIndex = -1;
+                
+                            function updateRowHighlight() {
+                                tableRows.forEach(row => row.classList.remove("selected-row"));
+                                if (currentIndex >= 0 && currentIndex < tableRows.length) {
+                                    tableRows[currentIndex].classList.add("selected-row");
+                                }
+                            }
+                
+                            document.addEventListener("keydown", function (event) {
+                                if (event.key === "ArrowDown") {
+                                    if (currentIndex < tableRows.length - 1) {
+                                        currentIndex++;
+                                        updateRowHighlight();
+                                        tableRows[currentIndex].scrollIntoView({ behavior: "smooth", block: "nearest" });
+                                    }
+                                } else if (event.key === "ArrowUp") {
+                                    if (currentIndex > 0) {
+                                        currentIndex--;
+                                        updateRowHighlight();
+                                        tableRows[currentIndex].scrollIntoView({ behavior: "smooth", block: "nearest" });
+                                    }
+                                } else if (event.key === "Enter" && currentIndex >= 0) {
+                                    window.location.href = tableRows[currentIndex].getAttribute("data-url");
+                                }
+                            });
+                
+                            // Highlight row on mouse click
+                            tableRows.forEach((row, index) => {
+                                row.addEventListener("click", function () {
+                                    currentIndex = index;
+                                    updateRowHighlight();
+                                });
+                
+                                row.addEventListener("dblclick", function () {
+                                    window.location.href = row.getAttribute("data-url");
+                                });
+                            });
+                        });
+                    </script>
+                
+                    <style>
+                        /* Ensuring the background color remains even with Bootstrap styles */
+                        .selected-row {
+                            background-color: #007bff !important; /* Solid blue highlight */
+                            color: white !important;
+                            font-weight: bold;
+                        }
+                
+                        /* Ensuring text color is white for visibility */
+                        .selected-row td {
+                            background-color: #007bff !important;
+                            color: white;
+                        }
+                    </style>
+                <% } else { %>
+                    <div class="alert alert-info">Please select a company.</div>
+                <% } %>
             </div>
         </div>
     </div>
@@ -286,22 +346,4 @@
             });
         });
 
-        document.addEventListener("DOMContentLoaded", function () {
-            const companyDateFormat = "<%= companyDateFormat %>";
-            if (companyDateFormat === "nepali") {
-                const fromDateInput = document.getElementById('fromDate');
-                const toDateInput = document.getElementById('toDate');
-
-                // Convert English dates to Nepali dates on load
-                if (fromDateInput.value) {
-                    const nepaliFromDate = new NepaliDate(new Date(fromDateInput.value)).format('YYYY-MM-DD');
-                    fromDateInput.value = nepaliFromDate;
-                }
-
-                if (toDateInput.value) {
-                    const nepaliToDate = new NepaliDate(new Date(toDateInput.value)).format('YYYY-MM-DD');
-                    toDateInput.value = nepaliToDate;
-                }
-            }
-        });
     </script>

@@ -19,6 +19,7 @@ const PurchaseReturnSchema = new Schema({
     originalCopies: { type: Number, default: 1 },
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     billNumber: { type: Number, required: true },
+    partyBillNumber: { type: String},
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     settings: { type: mongoose.Schema.Types.ObjectId, ref: 'Settings' },
     fiscalYear: {

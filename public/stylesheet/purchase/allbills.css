@@ -1,0 +1,91 @@
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  /* Let columns size automatically based on content */
+}
+
+th,
+td {
+  padding: 8px;
+  text-align: left;
+  border: 1px solid black;
+  white-space: nowrap;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+
+@media print {
+  /* @page {
+                size: A4 landscape;
+                margin: 10mm;
+            } */
+
+  body {
+    font-size: 12px;
+    margin: 10mm;
+  }
+
+  #printHeader {
+    display: block;
+    /* Show header when printing */
+  }
+
+  /* Ensure no text wrapping when printing */
+  th,
+  td {
+    white-space: nowrap;
+  }
+
+  /* Hide unnecessary elements during printing */
+  #filterForm,
+  #searchInput,
+  #billsList .searchClass td:last-child {
+    display: none;
+  }
+
+  /* Adjust the container width to fit landscape */
+  #mainContainer {
+    width: 100%;
+  }
+}
+
+@media screen {
+  #printHeader {
+    display: none;
+    /* Hide header when on screen */
+  }
+}
+
+/* Custom styles to resize the form */
+.expanded-container {
+  max-width: 90%;
+  /* Expand the container to 90% of the viewport width */
+}
+
+.expanded-card {
+  width: 100%;
+  /* Ensure the card takes full width of the container */
+}
+
+@media (min-width: 768px) {
+  .expanded-container {
+    max-width: 90%;
+    /* Adjust width for medium and larger screens */
+  }
+}
+
+/* Ensuring the background color remains even with Bootstrap styles */
+.selected-row {
+  background-color: #007bff !important;
+  /* Solid blue highlight */
+  color: white !important;
+}
+
+/* Ensuring text color is white for visibility */
+.selected-row td {
+  background-color: #007bff !important;
+  color: white !important;
+}
