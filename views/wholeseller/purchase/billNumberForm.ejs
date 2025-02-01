@@ -3,39 +3,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css"
         rel="stylesheet">
 
-    <style>
-        /* Additional styling for enhanced UX */
-        .btn-primary {
-            transition: background-color 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            background-color: #0056b3;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        @media screen {
-            #printHeader {
-                display: none;
-            }
-        }
-
-        /* Custom styles to center the form */
-        .centered-container {
-            display: flex;
-            justify-content: center;
-            /* align-items: center; */
-            /* height: 100vh; */
-        }
-
-        .expanded-card {
-            width: 100%;
-            max-width: 500px;
-        }
-    </style>
+    <link rel="stylesheet" href="/stylesheet/purchase/billNumberForm.css">
 
     <div class="container centered-container">
         <div class="card shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
@@ -57,24 +25,4 @@
         </div>
     </div>
 
-    <script>
-        // Form validation script
-        (function () {
-            'use strict';
-            window.addEventListener('load', function () {
-                const forms = document.getElementsByClassName('needs-validation');
-                for (let i = 0; i < forms.length; i++) {
-                    forms[i].addEventListener('submit', function (event) {
-                        if (forms[i].checkValidity() === false) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }
-                        forms[i].classList.add('was-validated');
-                    }, false);
-                }
-            }, false);
-        })();
-
-        // Automatically focus on the voucher number input
-        document.getElementById('billNumber').focus();
-    </script>
+    <script src="/javascript/purchase/billNumberForm.js"></script>

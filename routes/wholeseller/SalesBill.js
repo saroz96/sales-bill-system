@@ -963,15 +963,6 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
 router.get('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
-        // const items = await Item.find({ company: companyId })
-        //     .populate('category')
-        //     .populate('unit')
-        //     .populate({
-        //         path: 'stockEntries',
-        //         match: { quantity: { $gt: 0 } },//Only fetch stock entries with remaining quantity
-        //         select: 'batchNumber expiryDate quantity', // Select only necessary fields
-        //     });
-
         const bills = await SalesBill.find({ company: companyId }).populate('account').populate('items.item');
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
@@ -2548,6 +2539,7 @@ function prepareStatementWithOpeningBalanceAndTotals(openingBalance, transaction
                 type: tx.type,
                 billNumber: tx.billNumber,
                 paymentMode: tx.paymentMode,
+                partyBillNumber: tx.partyBillNumber,
                 paymentAccount: tx.paymentAccount,
                 receiptAccount: tx.receiptAccount,
                 debitAccount: tx.debitAccount,
@@ -2579,6 +2571,7 @@ function prepareStatementWithOpeningBalanceAndTotals(openingBalance, transaction
             type: tx.type,
             billNumber: tx.billNumber,
             paymentMode: tx.paymentMode,
+            partyBillNumber:tx.partyBillNumber,
             paymentAccount: tx.paymentAccount,
             receiptAccount: tx.receiptAccount,
             debitAccount: tx.debitAccount,

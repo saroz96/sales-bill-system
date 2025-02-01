@@ -45,7 +45,7 @@ const itemSchema = new mongoose.Schema({
         required: true
     },
     price: Number,
-    puPrice: Number,
+    puPrice: String,
     unit: {
         type: mongoose.Schema.Types.ObjectId, ref: 'Unit',
         required: true
@@ -69,11 +69,11 @@ const itemSchema = new mongoose.Schema({
             default: 0
         },
         openingStockBalance: {
-            type: Number,
+            type: String,
             default: 0
         },
         purchasePrice: {
-            type: Number,
+            type: String,
             default: 0
         },
         salesPrice: {

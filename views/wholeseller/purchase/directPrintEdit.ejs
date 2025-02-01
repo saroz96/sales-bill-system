@@ -222,7 +222,7 @@
                 <div class="header">
                     <h1 class="card-title">
                         <!-- <%= firstBill ? 'Tax-Invoice' : 'Invoice' %> -->
-                        Purchase Return
+                        Purchase Invoice
                     </h1>
                     <!-- <h2 class="card-subtitle mb-2"> -->
                     <!-- </h2> -->
@@ -353,19 +353,20 @@
                     <table style="float: right;">
                         <tbody>
                             <tr>
-                                <td colspan="7" class="text-right"><strong>Sub Total :</strong></td>
+                                <td colspan="7" class="text-right"><strong>Sub-Total:</strong></td>
                                 <td class="text-right">
                                     <%= bill.subTotal.toFixed(2) %>
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="7" class="text-right"><strong>Discount :</strong></td>
+                                <td colspan="7" class="text-right"><strong>Discount (<%= bill.discountPercentage %>
+                                            %):</strong></td>
                                 <td class="text-right">
                                     <%= bill.discountAmount.toFixed(2) %>
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="7" class="text-right"><strong>Taxable Amount :</strong></td>
+                                <td colspan="7" class="text-right"><strong>Taxable Amount:</strong></td>
                                 <td class="text-right">
                                     <%= bill.taxableAmount.toFixed(2) %>
                                 </td>
@@ -373,7 +374,7 @@
                             <% if (!bill.isVatExempt) { %>
                                 <tr>
                                     <td colspan="7" class="text-right"><strong>VAT (<%= bill.vatPercentage %>
-                                                %) :</strong>
+                                                %):</strong>
                                     </td>
                                     <td class="text-right">
                                         <%= (bill.taxableAmount * bill.vatPercentage / 100).toFixed(2) %>
@@ -381,13 +382,13 @@
                                 </tr>
                                 <% } %>
                                     <tr>
-                                        <td colspan="7" class="text-right"><strong>Round Off :</strong></td>
+                                        <td colspan="7" class="text-right"><strong>Round Off:</strong></td>
                                         <td class="text-right">
                                             <%= bill.roundOffAmount.toFixed(2) %>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td colspan="7" class="text-right"><strong>Grand Total :</strong></td>
+                                        <td colspan="7" class="text-right"><strong>Grand Total:</strong></td>
                                         <td class="text-right">
                                             <%= bill.totalAmount.toFixed(2) %>
                                         </td>
@@ -395,7 +396,7 @@
                         </tbody>
                         <hr style="border: 0.5px solid;">
                     </table>
-                    <td class="text-left"><strong>In Words :</strong>
+                    <td class="text-left"><strong>In Words:</strong>
                         <span id="amountInWords"></span> Only.
                     </td>
                 </div>
@@ -429,7 +430,7 @@
         // Check if the user has canceled the print dialog
         setTimeout(function () {
             // Redirect if print dialog is canceled or print is done
-            window.location.href = '/purchase-return'; // Redirect to the purchase entry page
+            window.location.href =  `/purchase-bills-list`; // Redirect to the purchase entry page
         }, 1000); // Adjust time as needed
     }
 
