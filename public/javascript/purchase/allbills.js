@@ -258,7 +258,7 @@ document.getElementById("clearSearch").addEventListener("click", () => {
 //to make scrolling by arrow key
 document.addEventListener("DOMContentLoaded", function () {
   let billRows = document.querySelectorAll(".bill-row");
-  let currentBillIndex = -1;
+  let currentBillIndex = 0;
 
   // Update rows highlighting and scroll to selected row
   function updateBillRowHighlight() {
@@ -272,6 +272,9 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
   }
+
+// Highlight the first row initially
+updateBillRowHighlight();
 
   // Get only the visible rows after filtering
   function getVisibleRows() {

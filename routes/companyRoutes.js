@@ -162,9 +162,55 @@ const defaultCashAccount = {
     name: 'Cash in Hand',
     groupName: 'Cash in Hand',
     groupType: 'Current Assets', // Assuming Cash falls under Current Assets
-    openingBalance: { amount: 0, type: 'Dr' },
-
+    openingBalance: { amount: 0, type: 'Dr' }
 };
+
+const defaultVatAccount={
+    name:'VAT',
+    groupName:'Duties & Taxes',
+    groupType: 'Current Liabilities',
+    openingBalance: {amount:0,type:'Dr'}
+}
+
+const otherDefaultAccounts=[
+    {name: 'Advertisement & Publicity', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Bad Debts Written Off', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Bank Charges', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Books & Periodicals', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Capital Equipments', groupName:'Fixed Assets', groupType:'Fixed Assets', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Charity & Donations', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Commission on Sales', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Computers', groupName:'Fixed Assets', groupType:'Fixed Assets', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Conveyance Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Customer Entertainment Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Depreciation A/c', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Earnest Money', groupName:'Securities & Deposits', groupType:'Current Assets', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Freight & Forwarding Charges', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Furniture & Fixture', groupName:'Fixed Assets', groupType:'Fixed Assets', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Legal Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Miscellaneous Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Office Equipments', groupName:'Fixed Assets', groupType:'Fixed Assets', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Office Maintenance Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Office Rent', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Plant & Machinery', groupName:'Fixed Assets', groupType:'Fixed Assets', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Postal Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Printing & Stationery', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Profit & Loss', groupName:'Profit & Loss', groupType:'Primary', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Purchase', groupName:'Purchase', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Rounded Off', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Salary', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Salary & Bonus Payable', groupName:'Provisions/Expenses Payable', groupType:'Current Liabilities', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Sales', groupName:'Sale', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Sales Promotion Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Service Charges Paid', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Service Charges Receipts', groupName:'Income (Indirect)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Staff Welfare Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Telephone Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Travelling Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'VAT Refund A/c', groupName:'Income (Direct/Opr.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'VAT Refundable From Govt.', groupName:'Current Assets', groupType:'Primary', openingBalance: {amount:0,type:'Dr'}},
+    {name: 'Water & Electricity Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+];
 
 // Default account groups
 const defaultAccountGroups = [
@@ -186,6 +232,10 @@ const defaultAccountGroups = [
     { name: 'Income (Indirect)', type: 'Revenue Accounts' },
     { name: 'Loans & Advances', type: 'Current Assets' },
     { name: 'Provisions/Expenses Payable', type: 'Current Liabilities' },
+    { name: 'Profit & Loss', type: 'Primary' },
+    { name: 'Purchase', type: 'Revenue Accounts' },
+    { name: 'Sale', type: 'Revenue Accounts' },
+    { name: 'Current Assets', type: 'Primary' },
     // Add more default groups as needed
 ];
 
@@ -237,6 +287,156 @@ async function addDefaultCashAccount(companyId) {
     }
 }
 
+// //function to add default vat accounts
+// async function addOtherDefaultAccounts(companyId) {
+//     try{
+//  // Find the company by ID and populate its fiscalYear
+//  const company = await Company.findById(companyId).populate('fiscalYear');
+
+//  if (!company) {
+//      throw new Error('Company not found');
+//  }
+
+//  // Fetch the fiscal year directly from the newly created company
+//  let currentFiscalYear = company.fiscalYear;
+
+//  // Ensure that the fiscal year exists
+//  if (!currentFiscalYear) {
+//      throw new Error('No fiscal year found for the newly created company.');
+//  }
+
+//  const otherDefaultAccountGroup = await AccountGroup.findOne({
+//     name: otherDefaultAccounts.groupName,
+//     type: otherDefaultAccounts.groupType,
+//     company: companyId,
+// });
+
+// if (otherDefaultAccountGroup) {
+//     const otherAccount = new Account({
+//         _id: new mongoose.Types.ObjectId(),
+//         name: otherDefaultAccounts.name,
+//         companyGroups: otherDefaultAccountGroup._id, // Correct field for group reference
+//         openingBalance: {
+//             amount: otherDefaultAccounts.openingBalance.amount,
+//             type: otherDefaultAccounts.openingBalance.type
+//         },
+//         company: companyId,
+//         fiscalYear: currentFiscalYear._id, // Associate the fiscal year directly from company
+//         otherDefaultAccounts: true,
+//     });
+
+//     await otherAccount.save();
+//     console.log(`Default other accounts "${otherAccount.name}" added successfully.`);
+// } else {
+//     console.error('Error: "other default account" group not found for the company.');
+// }
+//     }catch (error) {
+//         console.error('Error adding default other account:', error);
+//     }
+// }
+
+// Function to add default other accounts
+async function addOtherDefaultAccounts(companyId) {
+    try {
+        // Find the company by ID and populate its fiscalYear
+        const company = await Company.findById(companyId).populate('fiscalYear');
+
+        if (!company) {
+            throw new Error('Company not found');
+        }
+
+        // Fetch the fiscal year directly from the newly created company
+        let currentFiscalYear = company.fiscalYear;
+
+        // Ensure that the fiscal year exists
+        if (!currentFiscalYear) {
+            throw new Error('No fiscal year found for the newly created company.');
+        }
+
+        // Iterate over each account in the otherDefaultAccounts array
+        for (const accountData of otherDefaultAccounts) {
+            // Find the account group for the current account
+            const otherDefaultAccountGroup = await AccountGroup.findOne({
+                name: accountData.groupName,
+                type: accountData.groupType,
+                company: companyId,
+            });
+
+            if (otherDefaultAccountGroup) {
+                // Create the account
+                const otherAccount = new Account({
+                    _id: new mongoose.Types.ObjectId(),
+                    name: accountData.name,
+                    companyGroups: otherDefaultAccountGroup._id, // Correct field for group reference
+                    openingBalance: {
+                        amount: accountData.openingBalance.amount,
+                        type: accountData.openingBalance.type,
+                    },
+                    company: companyId,
+                    fiscalYear: currentFiscalYear._id, // Associate the fiscal year directly from company
+                    isDefaultAccount: true, // Optional: Mark as a default account
+                });
+
+                await otherAccount.save();
+                console.log(`Default account "${otherAccount.name}" added successfully.`);
+            } else {
+                console.error(`Error: Account group "${accountData.groupName}" not found for the company.`);
+            }
+        }
+    } catch (error) {
+        console.error('Error adding default other accounts:', error);
+    }
+}
+
+//function to add other default accounts:
+async function addDefaultVatAccount(companyId) {
+    try{
+ // Find the company by ID and populate its fiscalYear
+ const company = await Company.findById(companyId).populate('fiscalYear');
+
+ if (!company) {
+     throw new Error('Company not found');
+ }
+
+ // Fetch the fiscal year directly from the newly created company
+ let currentFiscalYear = company.fiscalYear;
+
+ // Ensure that the fiscal year exists
+ if (!currentFiscalYear) {
+     throw new Error('No fiscal year found for the newly created company.');
+ }
+
+ const dutiesAndTaxGroup = await AccountGroup.findOne({
+    name: defaultVatAccount.groupName,
+    type: defaultVatAccount.groupType,
+    company: companyId,
+});
+
+if (dutiesAndTaxGroup) {
+    const vatAccount = new Account({
+        _id: new mongoose.Types.ObjectId(),
+        name: defaultVatAccount.name,
+        companyGroups: dutiesAndTaxGroup._id, // Correct field for group reference
+        openingBalance: {
+            amount: defaultVatAccount.openingBalance.amount,
+            type: defaultVatAccount.openingBalance.type
+        },
+        company: companyId,
+        fiscalYear: currentFiscalYear._id, // Associate the fiscal year directly from company
+        defaultVatAccount: true,
+    });
+
+    await vatAccount.save();
+    console.log(`Default VAT account "${defaultVatAccount.name}" added successfully.`);
+} else {
+    console.error('Error: "Duties & Taxes" group not found for the company.');
+}
+    }catch (error) {
+        console.error('Error adding default VAT account:', error);
+    }
+}
+
+
 // Function to add default account groups associated with the company
 async function addDefaultAccountGroups(companyId) {
     try {
@@ -250,6 +450,12 @@ async function addDefaultAccountGroups(companyId) {
 
         // After adding groups, add the default Cash account under the "Cash in Hand" group
         await addDefaultCashAccount(companyId);
+
+        // After adding groups, add the default VAT account under the "Duties & Taxes" group
+        await addDefaultVatAccount(companyId);
+
+        // After adding groups, add the default other account under the "other default" group
+        await addOtherDefaultAccounts(companyId);
     } catch (error) {
         console.error('Error adding default account groups:', error);
     }
@@ -287,22 +493,22 @@ const defaultItemUnit = [
     { name: 'Units' }
 ];
 
-async function addDefaultAccountGroups(companyId) {
-    try {
-        const accountGroups = defaultAccountGroups.map(group => ({
-            ...group,
-            company: companyId // Associate with the newly created company
-        }));
+// async function addDefaultAccountGroups(companyId) {
+//     try {
+//         const accountGroups = defaultAccountGroups.map(group => ({
+//             ...group,
+//             company: companyId // Associate with the newly created company
+//         }));
 
-        await AccountGroup.insertMany(accountGroups);
-        console.log('Default account groups added successfully.');
+//         await AccountGroup.insertMany(accountGroups);
+//         console.log('Default account groups added successfully.');
 
-        // After adding groups, add the default Cash account under the "Cash in Hand" group
-        await addDefaultCashAccount(companyId);
-    } catch (error) {
-        console.error('Error adding default account groups:', error);
-    }
-}
+//         // After adding groups, add the default Cash account under the "Cash in Hand" group
+//         await addDefaultCashAccount(companyId);
+//     } catch (error) {
+//         console.error('Error adding default account groups:', error);
+//     }
+// }
 async function addDefaultItemUnit(companyId) {
     try {
         const units = defaultItemUnit.map(unit => ({

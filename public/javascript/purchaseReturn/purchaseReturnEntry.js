@@ -1168,6 +1168,13 @@ function showCustomAlertForBillNumber() {
     billNumber.focus(); // Focus on the input field
 }
 
+// Function to hide the custom alert when the user types
+function hideCustomAlertOnInput() {
+    if (billNumber.value.trim() !== '') {
+        customAlertForBillNumber.style.display = 'none'; // Hide the alert
+    }
+}
+
 // Function to hide the custom alert if Enter key is pressed
 function hideCustomAlertForBillNumber(event) {
     if (event.key === 'Enter') {
@@ -1191,6 +1198,10 @@ billNumber.addEventListener('blur', function (event) {
         showCustomAlertForBillNumber();
     }
 });
+
+
+// Add an input event listener to hide the alert when the user starts typing
+billNumber.addEventListener('input', hideCustomAlertOnInput);
 
 // Add a keypress event listener to detect Enter key
 billNumber.addEventListener('keypress', hideCustomAlertForBillNumber);

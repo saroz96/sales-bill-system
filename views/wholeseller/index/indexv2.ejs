@@ -358,25 +358,25 @@
                     <li class="nav-item">
                       <a href="/bills" class="nav-link">
                         <i class="nav-icon bi bi-circle"></i>
-                        <p>Sales</p>
+                        <p>Add Sales</p>
                       </a>
                     </li>
                     <li class="nav-item">
                       <a href="/billsTrackBatchOpen" class="nav-link">
                         <i class="nav-icon bi bi-circle"></i>
-                        <p>Sales Open</p>
+                        <p>Add Sales Open</p>
                       </a>
                     </li>
                     <li class="nav-item">
                       <a href="/sales-bills/finds" class="nav-link">
                         <i class="nav-icon bi bi-circle"></i>
-                        <p>Edit</p>
+                        <p>Edit Sales</p>
                       </a>
                     </li>
                     <li class="nav-item">
                       <a href="/bills-list" class="nav-link">
                         <i class="nav-icon bi bi-circle"></i>
-                        <p>List</p>
+                        <p>List Sales</p>
                       </a>
                     </li>
                   </ul>
@@ -393,7 +393,7 @@
                     <li class="nav-item">
                       <a href="/sales-return" class="nav-link">
                         <i class="nav-icon bi bi-circle"></i>
-                        <p>Sales Return</p>
+                        <p>Add</p>
                       </a>
                     </li>
                     <li class="nav-item">
@@ -423,7 +423,7 @@
                     <li class="nav-item">
                       <a href="/purchase-bills" class="nav-link">
                         <i class="nav-icon bi bi-circle"></i>
-                        <p>Purchase</p>
+                        <p>Add</p>
                       </a>
                     </li>
                     <li class="nav-item">
@@ -452,7 +452,7 @@
                     <li class="nav-item">
                       <a href="/purchase-return" class="nav-link">
                         <i class="nav-icon bi bi-circle"></i>
-                        <p>Purchase Return</p>
+                        <p>Add</p>
                       </a>
                     </li>
                     <li class="nav-item">
@@ -1345,28 +1345,28 @@
                   <div class="row">
                     <div class="col-md-3 col-6">
                       <div class="text-center border-end">
-                        <span class="text-success">
-                          <i class="bi bi-caret-up-fill"></i> 17%
+                        <span class="<%= salesPercentageChange >= 0 ? 'text-success' : 'text-danger' %>">
+                          <i class="bi bi-caret-up-fill"></i> <%= Math.abs(salesPercentageChange.toFixed(2)) %>%
                         </span>
-                        <h5 class="fw-bold mb-0">$35,210.43</h5>
+                        <h5 class="fw-bold mb-0">Rs.<%= netSales.toFixed(2) %></h5>
                         <span class="text-uppercase">TOTAL REVENUE</span>
                       </div>
                     </div>
                     <!-- /.col -->
                     <div class="col-md-3 col-6">
                       <div class="text-center border-end">
-                        <span class="text-info"> <i class="bi bi-caret-left-fill"></i> 0% </span>
-                        <h5 class="fw-bold mb-0">$10,390.90</h5>
+                        <span class="<%= purchasePercentageChange >= 0 ? 'text-info' : 'text-danger' %>"> <i class="bi bi-caret-left-fill"></i> <%= Math.abs(purchasePercentageChange.toFixed(2)) %>% </span>
+                        <h5 class="fw-bold mb-0">Rs.<%= netPurchase.toFixed(2) %></h5>
                         <span class="text-uppercase">TOTAL COST</span>
                       </div>
                     </div>
                     <!-- /.col -->
                     <div class="col-md-3 col-6">
                       <div class="text-center border-end">
-                        <span class="text-success">
-                          <i class="bi bi-caret-up-fill"></i> 20%
+                        <span class="<%= totalProfitPercentage >= 0 ? 'text-success' : 'text-danger' %>">
+                          <i class="bi bi-caret-up-fill"></i> <%= Math.abs(totalProfitPercentage.toFixed(2)) %>%
                         </span>
-                        <h5 class="fw-bold mb-0">$24,813.53</h5>
+                        <h5 class="fw-bold mb-0">Rs.<%=totalProfit.toFixed(2) %></h5>
                         <span class="text-uppercase">TOTAL PROFIT</span>
                       </div>
                     </div>
@@ -1374,10 +1374,10 @@
                     <div class="col-md-3 col-6">
                       <div class="text-center">
                         <span class="text-danger">
-                          <i class="bi bi-caret-down-fill"></i> 18%
+                          <i class="bi bi-caret-down-fill"></i>
                         </span>
-                        <h5 class="fw-bold mb-0">1200</h5>
-                        <span class="text-uppercase">GOAL COMPLETIONS</span>
+                        <h5 class="fw-bold mb-0">Rs.<%=totalStockValue.toFixed(2) %></h5>
+                        <span class="text-uppercase">STOCK VALUE</span>
                       </div>
                     </div>
                   </div>

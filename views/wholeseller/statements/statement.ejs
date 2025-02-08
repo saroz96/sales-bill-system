@@ -270,7 +270,7 @@
                     <script>
                         document.addEventListener("DOMContentLoaded", function () {
                             let tableRows = document.querySelectorAll(".table-row");
-                            let currentIndex = -1;
+                            let currentIndex = 0;
                 
                             function updateRowHighlight() {
                                 tableRows.forEach(row => row.classList.remove("selected-row"));
@@ -278,6 +278,9 @@
                                     tableRows[currentIndex].classList.add("selected-row");
                                 }
                             }
+
+                            // Highlight the first row initially
+                            updateRowHighlight();
                 
                             document.addEventListener("keydown", function (event) {
                                 if (event.key === "ArrowDown") {
@@ -314,14 +317,14 @@
                     <style>
                         /* Ensuring the background color remains even with Bootstrap styles */
                         .selected-row {
-                            background-color: #007bff !important; /* Solid blue highlight */
+                            background-color: #5897FB !important; /* Solid blue highlight */
                             color: white !important;
                             font-weight: bold;
                         }
                 
                         /* Ensuring text color is white for visibility */
                         .selected-row td {
-                            background-color: #007bff !important;
+                            background-color: #5897FB !important;
                             color: white;
                         }
                     </style>

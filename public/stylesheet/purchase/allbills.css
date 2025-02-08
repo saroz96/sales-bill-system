@@ -79,13 +79,13 @@ th {
 
 /* Ensuring the background color remains even with Bootstrap styles */
 .selected-row {
-  background-color: #007bff !important;
+  background-color: #5897FB !important;
   /* Solid blue highlight */
   color: white !important;
 }
 
 /* Ensuring text color is white for visibility */
 .selected-row td {
-  background-color: #007bff !important;
+  background-color: #5897FB !important;
   color: white !important;
 }
