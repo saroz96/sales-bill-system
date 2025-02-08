@@ -322,14 +322,24 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
                             totalDebits += transaction.debit; // Sales should be recorded as debits
                             break;
                         case 'Purc':
-                            totalCredits += transaction.credit; // Purchases should be recorded as credits
-                            break;
+                            if (transaction.debit > 0 && transaction.isType==='VAT') {
+                                totalDebits += transaction.debit; // Add to total debits if there's a debit value
+                            }
+                            if (transaction.credit > 0 && transaction.isType==='Purc') {
+                                totalCredits += transaction.credit; // Add to total credits if there's a credit value
+                            }
+                             break;
                         case 'Slrt': // Sales Return
                             totalCredits += transaction.credit; // Sales return should be recorded as credits
                             break;
                         case 'PrRt': // Purchase Return
-                            totalDebits += transaction.debit; // Purchase return should be recorded as debits
-                            break;
+                            if (transaction.debit > 0 && transaction.isType==='PrRt') {
+                                totalDebits += transaction.debit; // Add to total debits if there's a debit value
+                            }
+                            if (transaction.credit > 0 && transaction.isType==='VAT') {
+                                totalCredits += transaction.credit; // Add to total credits if there's a credit value
+                            }
+                             break;
                         // Handle other types as needed
                         case 'Pymt': //Party Payment
                             if (transaction.debit > 0) {

@@ -9,8 +9,9 @@ const companygroupSchema = new mongoose.Schema({
             'Fixed Assets',
             'Loans(Liability)',
             'Capital Account',
-            'Revenue Accounts'],
-        required: true
+            'Revenue Accounts',
+            'Primary',
+        ],
     },
     company: {
         type: mongoose.Schema.Types.ObjectId,

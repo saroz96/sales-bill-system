@@ -126,7 +126,8 @@ const itemSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now()
-    } // Field to track item creation time
+    }, // Field to track item creation time
+    date: { type: Date, default: Date.now() },
 });
 
 // Ensure unique item names within a company and fiscal year

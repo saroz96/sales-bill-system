@@ -10,12 +10,20 @@
         select:valid {
             border-color: green;
         }
+        
     </style>
+
+    <!-- Nepali Datepicker -->
+    <link href="https://nepalidatepicker.sajanmaharjan.com.np/nepali.datepicker/css/nepali.datepicker.v4.0.7.min.css"
+        rel="stylesheet" type="text/css" />
 
     <div class="container wow-form expanded-container">
         <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
             <div class="card-header">
-                Create New Purchase
+                Purchase Entry<span id="customAlertForBillNumber" style="color: red; display: none;">Invoice is required!</span>
+                <span id="customAlert" style="color: red; display: none;">Suppliers invoice is required!</span>
+                <span id="transactionDateError" style="color: red; display: none;">Invalid date!</span>
+                <span id="nepaliDateError" style="color: red; display: none;">Invalid date!</span>    
             </div>
             <div class="card-body">
                 <form action="/purchase-bills" method="post" id="billForm" class="needs-validation" novalidate>
@@ -24,8 +32,8 @@
                             <div class="col">
                                 <label for="transactionDateNepali">Transaction Date:</label>
                                 <input type="text" name="transactionDateNepali" id="transactionDateNepali"
-                                    class="form-control" value="<%= transactionDateNepali ||'' %>"
-                                     autofocus required onfocus="selectValue(this)">
+                                    class="form-control" value="<%= transactionDateNepali ||'' %>" autofocus required
+                                    onfocus="selectValue(this)">
                             </div>
                             <div class="col">
                                 <label for="nepaliDate">Invoice Date:</label>
@@ -50,10 +58,6 @@
                                         <label for="billNumber">Vch. No:</label>
                                         <input type="number" name="billNumber" id="billNumber" class="form-control"
                                             value="<%=nextPurchaseBillNumber %>" onfocus="selectValue(this)">
-                                        <div id="customAlertForBillNumber"
-                                            style="display:none; color: red; margin-top: 10px;">
-                                            This field is required.
-                                        </div>
                                     </div>
                                     <div class="col">
                                         <label for="paymentMode">Payment Mode:</label>
@@ -68,10 +72,6 @@
                                         <input type="text" class="form-control" id="partyBillNumber"
                                             name="partyBillNumber" autocomplete="off" onfocus="selectValue(this)"
                                             required>
-
-                                        <div id="customAlert" style="display:none; color: red; margin-top: 10px;">
-                                            This field is required.
-                                        </div>
                                     </div>
 
                                     <div class="col">
@@ -289,7 +289,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="closeModalButton"
                         onkeydown="handleCloseButtonKeydown(event)">Close</button>
-                        
+
                 </div>
             </div>
         </div>
@@ -344,6 +344,85 @@
 
     <script>
         function selectValue(input) {
-input.select(); // Select the value of the input field when it is focused
-}
+            input.select(); // Select the value of the input field when it is focused
+        }
+    </script>
+
+    <script src="https://nepalidatepicker.sajanmaharjan.com.np/nepali.datepicker/js/nepali.datepicker.v4.0.7.min.js"
+        type="text/javascript"></script>
+
+    <script type="text/javascript">
+        window.onload = function () {
+            var transactionDateNepali = document.getElementById("transactionDateNepali");
+            var nepaliDate = document.getElementById("nepaliDate");
+
+            transactionDateNepali.nepaliDatePicker();
+            nepaliDate.nepaliDatePicker();
+
+            // Add validation for Transaction Date
+            transactionDateNepali.addEventListener("blur", function () {
+                validateNepaliDate(this, "transactionDateError");
+            });
+
+            // Add validation for Invoice Date
+            nepaliDate.addEventListener("blur", function () {
+                validateNepaliDate(this, "nepaliDateError");
+            });
+        };
+
+        // Function to validate Nepali date
+        function validateNepaliDate(inputField, errorSpanId) {
+            var errorSpan = document.getElementById(errorSpanId);
+            var dateString = inputField.value.trim();
+
+            // Check if the date is valid
+            if (dateString && !isValidNepaliDate(dateString)) {
+                errorSpan.style.display = "inline"; // Show error message
+                // Prevent focus from moving to the next field
+                event.preventDefault();
+                inputField.focus(); // Keep focus on the current input field
+            } else {
+                errorSpan.style.display = "none"; // Hide error message
+            }
+        }
+
+
+        // Function to check if the Nepali date is valid
+        function isValidNepaliDate(dateString) {
+            // Regular expression to match the Nepali date format (YYYY-MM-DD)
+            var datePattern = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+            if (!datePattern.test(dateString)) return false;
+
+            // Split the date string into year, month, and day
+            var parts = dateString.split("-");
+            var year = parseInt(parts[0], 10);
+            var month = parseInt(parts[1], 10);
+            var day = parseInt(parts[2], 10);
+
+            // Check if the month and day are valid
+            if (isNaN(year) || isNaN(month) || isNaN(day)) return false;
+            if (month < 1 || month > 12 || day < 1 || day > 32) return false;
+
+            // Manually validate the number of days in the month
+            var maxDays = getMaxDaysInNepaliMonth(year, month);
+            if (day > maxDays) return false;
+
+            return true;
+        }
+
+        // Function to get the maximum number of days in a Nepali month
+        function getMaxDaysInNepaliMonth(year, month) {
+            // Define the number of days in each month for a given year
+            // This is a simplified example and may not cover all edge cases
+            var nepaliMonths = [
+                31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 30 // Example for year 2080
+            ];
+
+            // Adjust for leap years if necessary
+            if (year % 4 === 0 && month === 1) { // Check if it's a leap year and the month is Baisakh
+                nepaliMonths[0] = 31; // Baisakh has 31 days in a leap year
+            }
+
+            return nepaliMonths[month - 1]; // Return the number of days for the given month
+        }
     </script>

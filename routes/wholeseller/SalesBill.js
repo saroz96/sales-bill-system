@@ -2325,7 +2325,7 @@ router.get('/sales-vat-report', ensureAuthenticated, ensureCompanySelected, ensu
 });
 
 
-router.get('/statement', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+router.get('/statement',isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const companyId = req.session.currentCompany;

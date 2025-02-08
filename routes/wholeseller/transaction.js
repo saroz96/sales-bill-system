@@ -63,7 +63,7 @@ router.get('/transactions/:itemId/:accountId/:purchaseSalesType', ensureAuthenti
             .sort({ billNumber: -1 })
             .limit(20); // Limit to last 20 transactions, adjust as needed
 
-            res.json({transactions, companyDateFormat, nepaliDate});
+            res.json(transactions, companyDateFormat, nepaliDate);
         } catch (err) {
             console.error('Error fetching transactions:', err);
             res.status(500).json({ error: 'Internal server error' });

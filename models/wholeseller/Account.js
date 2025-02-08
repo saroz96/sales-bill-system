@@ -59,7 +59,6 @@ const accountSchema = new mongoose.Schema({
     companyGroups: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'CompanyGroup',
-        required: true
     },
     date: {
         type: Date,

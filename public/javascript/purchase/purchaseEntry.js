@@ -1013,7 +1013,6 @@ inputs.forEach(input => {
     input.addEventListener('keydown', moveToNextInput);
 });
 
-
 // Get the input field and the custom alert div
 const billNumber = document.getElementById('billNumber');
 const customAlertForBillNumber = document.getElementById('customAlertForBillNumber');
@@ -1021,32 +1020,36 @@ const customAlertForBillNumber = document.getElementById('customAlertForBillNumb
 // Function to show the custom alert and focus on the input field
 function showCustomAlertForBillNumber() {
     customAlertForBillNumber.style.display = 'block'; // Show the custom alert
-    billNumber.focus(); // Focus on the input field
+    billNumber.focus(); // Keep focus on the input field
+}
+
+// Function to hide the custom alert when the user types
+function hideCustomAlertOnInput() {
+    if (billNumber.value.trim() !== '') {
+        customAlertForBillNumber.style.display = 'none'; // Hide the alert
+    }
 }
 
 // Function to hide the custom alert if Enter key is pressed
 function hideCustomAlertForBillNumber(event) {
     if (event.key === 'Enter') {
-        // If the input is valid, hide the custom alert
         if (billNumber.value.trim() !== '') {
-            customAlertForBillNumber.style.display = 'none';
+            customAlertForBillNumber.style.display = 'none'; // Hide alert if valid
         } else {
-            // Show the alert again if the field is still empty
-            showCustomAlertForBillNumber();
+            showCustomAlertForBillNumber(); // Show alert again if still empty
         }
     }
 }
 
 // Add a blur event listener to the input field
 billNumber.addEventListener('blur', function (event) {
-    const input = event.target;
-
-    // Check if the field is empty
-    if (input.value.trim() === '') {
-        // Show the custom alert
-        showCustomAlertForBillNumber();
+    if (event.target.value.trim() === '') {
+        showCustomAlertForBillNumber(); // Show alert if empty
     }
 });
+
+// Add an input event listener to hide the alert when the user starts typing
+billNumber.addEventListener('input', hideCustomAlertOnInput);
 
 // Add a keypress event listener to detect Enter key
 billNumber.addEventListener('keypress', hideCustomAlertForBillNumber);
@@ -1061,6 +1064,13 @@ const customAlertForPartyBillInput = document.getElementById('customAlert');
 function showCustomAlertForPartyBillInput() {
     customAlertForPartyBillInput.style.display = 'block'; // Show the custom alert
     partyBillInput.focus(); // Focus on the input field
+}
+
+// Function to hide the custom alert when the user types
+function hideCustomAlertOnInputForPartyBillInput() {
+    if (partyBillInput.value.trim() !== '') {
+        customAlertForPartyBillInput.style.display = 'none'; // Hide the alert
+    }
 }
 
 // Function to hide the custom alert if Enter key is pressed
@@ -1086,6 +1096,11 @@ partyBillInput.addEventListener('blur', function (event) {
         showCustomAlertForPartyBillInput();
     }
 });
+
+
+// Add an input event listener to hide the alert when the user starts typing
+partyBillInput.addEventListener('input', hideCustomAlertOnInputForPartyBillInput);
+
 
 // Add a keypress event listener to detect Enter key
 partyBillInput.addEventListener('keypress', hideCustomAlertForPartyBillInput);
