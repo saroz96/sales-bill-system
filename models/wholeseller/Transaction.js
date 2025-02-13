@@ -63,11 +63,11 @@ const transactionSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['Purc', 'PrRt', 'Sale', 'Slrt', 'stockAdjustment', 'Pymt', 'Rcpt', 'Jrnl', 'DrNt', 'CrNt', 'Opening Balance'],
+        enum: ['Purc', 'PrRt', 'Sale', 'SlRt', 'stockAdjustment', 'Pymt', 'Rcpt', 'Jrnl', 'DrNt', 'CrNt', 'Opening Balance'],
     },
     isType: {
         type: String,
-        enum: ['VAT', 'RoundOff', 'Purc', 'PrRt']
+        enum: ['VAT', 'RoundOff', 'Purc', 'PrRt', 'Sale']
     },
     billNumber: {
         type: Number,

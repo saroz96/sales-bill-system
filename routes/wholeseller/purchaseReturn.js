@@ -84,6 +84,63 @@ router.get('/purchase-return/list', isLoggedIn, ensureAuthenticated, ensureCompa
     }
 });
 
+
+router.get("/api/accounts", async (req, res) => {
+    try {
+        const companyId = req.session.currentCompany;
+
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+
+        // Fetch only the required company groups: Cash in Hand, Sundry Debtors, Sundry Creditors
+        const relevantGroups = await CompanyGroup.find({
+            name: { $in: ['Cash in Hand', 'Sundry Debtors', 'Sundry Creditors'] }
+        }).exec();
+
+        // Convert relevant group IDs to an array of ObjectIds
+        const relevantGroupIds = relevantGroups.map(group => group._id);
+
+        const accounts = await Account.find({ 
+            company: companyId,
+            fiscalYear: fiscalYear,
+            isActive: true,
+            companyGroups: { $in: relevantGroupIds } });
+        res.json(accounts);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch accounts" });
+    }
+});
+
+
 // Purchase Return Bill routes
 router.get('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
@@ -324,7 +381,7 @@ router.get('/purchase-return/edit/billNumber', isLoggedIn, ensureAuthenticated, 
 router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
-            const { account, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, partyBillNumber, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount, } = req.body;
+            const { accountId, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, partyBillNumber, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount, } = req.body;
             const companyId = req.session.currentCompany;
             const currentFiscalYear = req.session.currentFiscalYear.id
             const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -354,7 +411,7 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                 return res.status(400).json({ error: 'Invalid payment mode.' });
             }
 
-            const accounts = await Account.findOne({ _id: account, company: companyId });
+            const accounts = await Account.findOne({ _id: accountId, company: companyId });
             if (!accounts) {
                 return res.status(400).json({ error: 'Invalid account for this company' });
             }
@@ -442,7 +499,7 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                 // billNumber: billCounter.count,
                 billNumber: billNumber,
                 partyBillNumber: partyBillNumber,
-                account,
+                account:accountId,
                 purchaseSalesReturnType: 'Purchase Return',
                 items: [], // We'll update this later
                 isVatExempt: isVatExemptBool,
@@ -467,7 +524,7 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
 
             // Create transactions
             let previousBalance = 0;
-            const accountTransaction = await Transaction.findOne({ account: account }).sort({ transactionDate: -1 });
+            const accountTransaction = await Transaction.findOne({ account: accountId }).sort({ transactionDate: -1 });
             if (accountTransaction) {
                 previousBalance = accountTransaction.balance;
             }
@@ -507,7 +564,7 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                 // Create the transaction for this item
                 const transaction = new Transaction({
                     item: product._id,
-                    account: account,
+                    account: accountId,
                     // billNumber: billCounter.count,
                     billNumber: billNumber,
                     partyBillNumber: partyBillNumber,
@@ -562,7 +619,7 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
             if (purchaseRtnAmount > 0) {
                 const purchaseRtnAccount = await Account.findOne({ name: 'Purchase', company: companyId });
                 if (purchaseRtnAccount) {
-                    const partyAccount = await Account.findById(account); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
@@ -591,7 +648,7 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
             if (vatAmount > 0) {
                 const vatAccount = await Account.findOne({ name: 'VAT', company: companyId });
                 if (vatAccount) {
-                    const partyAccount = await Account.findById(account); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
@@ -621,7 +678,7 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
             if (roundOffAmount > 0) {
                 const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
                 if (roundOffAccount) {
-                    const partyAccount = await Account.findById(account); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
@@ -650,7 +707,7 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
             if (roundOffAmount < 0) {
                 const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
                 if (roundOffAccount) {
-                    const partyAccount = await Account.findById(account); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
@@ -850,7 +907,7 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
     if (req.tradeType === 'Wholeseller') {
         try {
             const billId = req.params.id;
-            const { account, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, nepaliDate, isVatExempt, discountPercentage, paymentMode, partyBillNumber, roundOffAmount: manualRoundOffAmount, } = req.body;
+            const { accountId, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, nepaliDate, isVatExempt, discountPercentage, paymentMode, partyBillNumber, roundOffAmount: manualRoundOffAmount, } = req.body;
 
             const companyId = req.session.currentCompany;
             const currentFiscalYear = req.session.currentFiscalYear.id;
@@ -867,7 +924,7 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
                 return res.status(400).json({ error: 'Invalid payment mode.' });
             }
 
-            const accounts = await Account.findOne({ _id: account, company: companyId });
+            const accounts = await Account.findOne({ _id: accountId, company: companyId });
             if (!accounts) {
                 return res.status(400).json({ error: 'Invalid account for this company' });
             }
@@ -973,7 +1030,7 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
 
 
             // Update existing bill
-            existingBill.account = account;
+            existingBill.account = accountId;
             existingBill.partyBillNumber = partyBillNumber;
             existingBill.isVatExempt = isVatExemptBool;
             existingBill.vatPercentage = isVatExemptBool ? 0 : vatPercentage;
@@ -1049,7 +1106,7 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
                 // Create the transaction for this item
                 const transaction = new Transaction({
                     item: product._id,
-                    account: account,
+                    account: accountId,
                     billNumber: existingBill.billNumber,
                     partyBillNumber: existingBill.partyBillNumber,
                     quantity: item.quantity,
@@ -1082,7 +1139,7 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
             if (purchaseRtnAmount > 0) {
                 const purchaseRtnAccount = await Account.findOne({ name: 'Purchase', company: companyId });
                 if (purchaseRtnAccount) {
-                    const partyAccount = await Account.findById(account); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
@@ -1111,7 +1168,7 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
             if (vatAmount > 0) {
                 const vatAccount = await Account.findOne({ name: 'VAT', company: companyId });
                 if (vatAccount) {
-                    const partyAccount = await Account.findById(account); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
@@ -1141,7 +1198,7 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
             if (roundOffAmount > 0) {
                 const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
                 if (roundOffAccount) {
-                    const partyAccount = await Account.findById(account); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
@@ -1170,7 +1227,7 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
             if (roundOffAmount < 0) {
                 const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
                 if (roundOffAccount) {
-                    const partyAccount = await Account.findById(account); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
                         return res.status(400).json({ error: 'Party account not found.' });
                     }

@@ -54,7 +54,7 @@ const accountSchema = new mongoose.Schema({
     },
     openingBalanceDate: {
         type: Date,
-        default: new Date('2023-07-17')
+        default: Date.now()
     },
     companyGroups: {
         type: mongoose.Schema.Types.ObjectId,

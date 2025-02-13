@@ -465,7 +465,7 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
                     purchaseSalesReturnType: 'Sales Return',
                     quantity: item.quantity,
                     price: item.price,
-                    type: 'Slrt',
+                    type: 'SlRt',
                     salesReturnBillId: newBill._id,  // Set billId to the new bill's ID
                     debit: 0,             // Debit is 0 for purchase transactions
                     credit: finalAmount,    // Set credit to the item's total amount
@@ -508,7 +508,7 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
                     const cashTransaction = new Transaction({
                         account: cashAccount._id,
                         billNumber: billNumber,
-                        type: 'Slrt',
+                        type: 'SlRt',
                         salesReturnBillId: newBill._id,  // Set billId to the new bill's ID
                         purchaseSalesReturnType: 'Sales Return',
                         debit: 0,  // Debit is 0 for cash-in-hand as we're receiving cash
@@ -844,7 +844,7 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
                 quantity: item.quantity,
                 price: item.price,
                 unit: item.unit,
-                type: 'Slrt',
+                type: 'SlRt',
                 salesReturnBillId: existingBill._id,
                 purchaseSalesReturnType: 'Sales Return',
                 debit: 0, // Update as per your logic
@@ -874,7 +874,7 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
                 const cashTransaction = new Transaction({
                     account: cashAccount._id,
                     billNumber: existingBill.billNumber,
-                    type: 'Slrt',
+                    type: 'SlRt',
                     salesReturnBillId: existingBill._id,
                     purchaseSalesReturnType: 'Sales Return',
                     debit: finalAmount, // The cash amount received

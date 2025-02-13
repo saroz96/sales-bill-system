@@ -161,7 +161,7 @@
 
  @media (min-width: 768px) {
      .expanded-container {
-         max-width: 80%;
+         max-width: 90%;
          /* Adjust width for medium and larger screens */
      }
  }
