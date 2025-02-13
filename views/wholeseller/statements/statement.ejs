@@ -219,37 +219,17 @@
                                 <% let totalDebit=0; let totalCredit=0; %>
                                     <% statement.forEach(entry=> { totalDebit += entry.debit || 0; totalCredit +=
                                         entry.credit || 0; %>
-                                        <tr ondblclick="window.location.href='/bills/<%= entry.billId %>/print'"
-                                             class="table-row">
-                                            <td>
-                                                <%= new Date(entry.date).toLocaleDateString() %>
-                                            </td>
-                                            <td>
-                                                <%= entry.type %>
-                                            </td>
-                                            <td>
-                                                <%= entry.billNumber %>
-                                            </td>
-                                            <td>
-                                                <%= entry.paymentMode %>
-                                            </td>
-                                            <td>
-                                                <%= entry.accountType?.name || entry.purchaseSalesType ||
-                                                    entry.journalAccountType || entry.purchaseSalesReturnType ||
-                                                    entry.drCrNoteAccountType ||
-                                                    entry.paymentReceiptAccountType|| 'Opening' %>
-                                                    <%=entry.partyBillNumber%>
-                                            </td>
-                                            <td>
-                                                <%= entry.debit ? entry.debit.toFixed(2) : '-' %>
-                                            </td>
-                                            <td>
-                                                <%= entry.credit ? entry.credit.toFixed(2) : '-' %>
-                                            </td>
-                                            <td>
-                                                <%= entry.balance %>
-                                            </td>
+                                        <tr ondblclick="window.location.href='/bills/<%= entry.billId %>/print'" class="table-row">
+                                            <td><%= new Date(entry.date).toLocaleDateString() %></td>
+                                            <td><%= entry.type %></td>
+                                            <td><%= entry.billNumber %></td>
+                                            <td><%= entry.paymentMode %></td>
+                                            <td><%= entry.accountType?.name || entry.purchaseSalesType || entry.journalAccountType || entry.purchaseSalesReturnType || entry.drCrNoteAccountType || entry.paymentReceiptAccountType || 'Opening' %> <%=entry.partyBillNumber%></td>
+                                            <td><%= entry.debit ? entry.debit.toFixed(2) : '-' %></td>
+                                            <td><%= entry.credit ? entry.credit.toFixed(2) : '-' %></td>
+                                            <td><%= entry.balance %></td>
                                         </tr>
+                                        
                                         <% }) %>
                                             <tr class="table-secondary">
                                                 <td colspan="5" class="text-end"><strong>Total:</strong></td>
@@ -270,7 +250,7 @@
                     <script>
                         document.addEventListener("DOMContentLoaded", function () {
                             let tableRows = document.querySelectorAll(".table-row");
-                            let currentIndex = 0;
+                            let currentIndex = -1;
                 
                             function updateRowHighlight() {
                                 tableRows.forEach(row => row.classList.remove("selected-row"));
@@ -296,7 +276,8 @@
                                         tableRows[currentIndex].scrollIntoView({ behavior: "smooth", block: "nearest" });
                                     }
                                 } else if (event.key === "Enter" && currentIndex >= 0) {
-                                    window.location.href = tableRows[currentIndex].getAttribute("data-url");
+
+                                    // window.location.href = tableRows[currentIndex].getAttribute("data-url");
                                 }
                             });
                 

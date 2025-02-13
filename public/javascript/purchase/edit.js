@@ -2,44 +2,6 @@ let itemIndex = 0;
 let currentFocus = 0;
 let isFirstLoad = true;
 
-$(document).ready(function () {
-    // Initialize Select2 for searchable dropdown
-    $('#account').select2({
-        placeholder: "Select a party name",
-        allowClear: true,
-        width: '100%', // Ensure it takes the full width of the container
-    });
-
-    $('#paymentMode').select2({
-        placeholder: "Payment mode",
-        allowClear: true,
-        width: '100%', // Ensure it takes the full width of the container
-    });
-    $('#isVatExempt').select2({
-        placeholder: "Vat",
-        allowClear: true,
-        width: '100%', // Ensure it takes the full width of the container
-    });
-
-    // Listen for the change event on the account dropdown
-    $('#account').on('change', function () {
-        const selectedOption = $(this).find('option:selected');
-        const address = selectedOption.data('address');
-
-        // Set the address field with the selected account's address
-        $('#address').val(address || 'Address not available');
-    });
-
-    // Listen for the change event on the account dropdown
-    $('#account').on('change', function () {
-        const selectedOption = $(this).find('option:selected');
-        const pan = selectedOption.data('pan');
-
-        // Set the address field with the selected account's address
-        $('#pan').val(pan || 'Pan no. not available');
-    });
-});
-
 
 async function fetchItems(query, vatStatus, existingItemIds) {
     try {
@@ -591,16 +553,16 @@ function toggleVatInputs() {
     const isVatExempt = document.getElementById('isVatExempt').value === 'true';
 
     // VAT-related fields
-    const vatInputs = document.getElementById('vatInputs'); // Group for VAT-related inputs
     const taxableAmountRow = document.getElementById('taxableAmountRow');
     const vatPercentageRow = document.getElementById('vatPercentageRow');
-    const vatAmountRow = document.getElementById('vatAmountRow');
 
     // Toggle display based on VAT exemption
     if (isVatExempt) {
         taxableAmountRow.style.display = 'none';
         vatPercentageRow.style.display = 'none';
         // vatAmountRow.style.display = 'none';
+         // Move focus to the next available input field
+         moveToNextVisibleInput(document.getElementById('isVatExempt'));
     } else {
         taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
         vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
@@ -610,6 +572,21 @@ function toggleVatInputs() {
 
     // Recalculate total when toggling VAT
     calculateTotal();
+}
+
+function moveToNextVisibleInput(currentElement) {
+    const formElements = Array.from(document.querySelectorAll('input, select, textarea, button'));
+
+    // Find the current element's index in the form
+    const currentIndex = formElements.indexOf(currentElement);
+
+    // Iterate through the remaining elements to find the next visible one
+    for (let i = currentIndex + 1; i < formElements.length; i++) {
+        if (formElements[i].offsetParent !== null) { // Check if the element is visible
+            formElements[i].focus();
+            break;
+        }
+    }
 }
 
 
@@ -1038,12 +1015,21 @@ function focusOnLastRow(fieldClass) {
 }
 
 // Function to move focus to the next input field
+// function moveToNextInput(event) {
+//     if (event.key === 'Enter') {
+//         event.preventDefault(); // Prevent form submission
+//         const form = event.target.form;
+//         const index = Array.prototype.indexOf.call(form, event.target);
+//         form.elements[index + 1].focus();
+//     }
+// }
+
 function moveToNextInput(event) {
     if (event.key === 'Enter') {
         event.preventDefault(); // Prevent form submission
-        const form = event.target.form;
-        const index = Array.prototype.indexOf.call(form, event.target);
-        form.elements[index + 1].focus();
+
+        // Move to the next visible input
+        moveToNextVisibleInput(event.target);
     }
 }
 
@@ -1098,55 +1084,6 @@ billNumber.addEventListener('input', hideCustomAlertOnInput);
 billNumber.addEventListener('keypress', hideCustomAlertForBillNumber);
 
 //----------------------------------------------------------------------
-
-// Get the input field and the custom alert div
-const partyBillInput = document.getElementById('partyBillNumber');
-const customAlertForPartyBillInput = document.getElementById('customAlert');
-
-// Function to show the custom alert and focus on the input field
-function showCustomAlertForPartyBillInput() {
-    customAlertForPartyBillInput.style.display = 'block'; // Show the custom alert
-    partyBillInput.focus(); // Focus on the input field
-}
-
-// Function to hide the custom alert when the user types
-function hideCustomAlertOnInputForPartyBillInput() {
-    if (partyBillInput.value.trim() !== '') {
-        customAlertForPartyBillInput.style.display = 'none'; // Hide the alert
-    }
-}
-
-// Function to hide the custom alert if Enter key is pressed
-function hideCustomAlertForPartyBillInput(event) {
-    if (event.key === 'Enter') {
-        // If the input is valid, hide the custom alert
-        if (partyBillInput.value.trim() !== '') {
-            customAlertForPartyBillInput.style.display = 'none';
-        } else {
-            // Show the alert again if the field is still empty
-            showCustomAlertForPartyBillInput();
-        }
-    }
-}
-
-// Add a blur event listener to the input field
-partyBillInput.addEventListener('blur', function (event) {
-    const input = event.target;
-
-    // Check if the field is empty
-    if (input.value.trim() === '') {
-        // Show the custom alert
-        showCustomAlertForPartyBillInput();
-    }
-});
-
-
-// Add an input event listener to hide the alert when the user starts typing
-partyBillInput.addEventListener('input', hideCustomAlertOnInputForPartyBillInput);
-
-
-// Add a keypress event listener to detect Enter key
-partyBillInput.addEventListener('keypress', hideCustomAlertForPartyBillInput);
 
 // Function to handle Enter key press for moving to the next input field for setSalesPrice model
 function moveToNextField(event, nextFieldId) {
