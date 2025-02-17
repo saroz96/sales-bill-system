@@ -11,72 +11,55 @@ const ensureAdminOrSupervisor = require('../middleware/isAdminMiddleware');
 
 //register Page
 router.get('/register', forwardAuthenticated, (req, res) => res.render('register'));
-
 // Register
 router.post('/register', forwardAuthenticated, async (req, res) => {
     const { name, email, password, password2 } = req.body;
-    let errors = [];
 
+    // Check if all fields are filled
     if (!name || !email || !password || !password2) {
-        errors.push({ msg: 'Please enter all fields' });
+        req.flash('error', 'Please enter all fields');
+        return res.redirect('/register'); // Redirect back to registration form
     }
 
+    // Check if passwords match
     if (password !== password2) {
-        errors.push({ msg: 'Passwords do not match' });
+        req.flash('error', 'Passwords do not match');
+        return res.redirect('/register'); // Redirect back to registration form
     }
 
+    // Check if password is long enough
     if (password.length < 5) {
-        errors.push({ msg: 'Password must be at least 5 characters' });
+        req.flash('error', 'Password must be at least 5 characters');
+        return res.redirect('/register'); // Redirect back to registration form
     }
 
-    if (errors.length > 0) {
-        res.render('register', {
-            errors,
+    try {
+        // Check if user already exists
+        const existingUser = await User.findOne({ email }); // Ensure you are checking by email
+        if (existingUser) {
+            req.flash('error', 'Email already exists');
+            return res.redirect('/register'); // Redirect back to registration form
+        }
+
+        // Proceed with registration
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newUser = new User({
             name,
             email,
-            password,
-            password2,
-            isAdmin,
-            role
+            password: hashedPassword,
+            isAdmin: true,
+            role: 'Admin'  // Assign the "Admin" role
         });
-    } else {
-        try {
-            const existingUser = await User.findOne({ name });
-            if (existingUser) {
-                errors.push({ msg: 'Email already exists' });
-                res.render('register', {
-                    errors,
-                    name,
-                    email,
-                    password,
-                    password2
-                });
-            } else {
-                const hashedPassword = await bcrypt.hash(password, 10);
 
-                const newUser = new User({
-                    name,
-                    email,
-                    password: hashedPassword,
-                    isAdmin: true,
-                    role: 'Admin'  // Assign the "Admin" role
-                });
-
-                await newUser.save();
-                console.log(newUser);
-                req.flash('success', 'You are now registered and can log in');
-                res.redirect('/login');
-            }
-        } catch (err) {
-            console.error(err);
-            res.render('register', {
-                errors: [{ msg: 'An error occurred during registration' }],
-                name,
-                email,
-                password,
-                password2
-            });
-        }
+        await newUser.save();
+        console.log(newUser);
+        req.flash('success', 'You are now registered and can log in');
+        res.redirect('/login');
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'An error occurred during registration');
+        res.redirect('/register'); // Redirect back to registration form on error
     }
 });
 

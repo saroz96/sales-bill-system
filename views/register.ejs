@@ -2,94 +2,228 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f8f9fa;
-            font-family: Arial, sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    .gradient-custom-3 {
+      /* fallback for old browsers */
+      background: #84fab0;
 
-        .container {
-            max-width: 400px;
-            width: 100%;
-            background: #ffffff;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
+      /* Chrome 10-25, Safari 5.1-6 */
+      background: -webkit-linear-gradient(to right, rgba(132, 250, 176, 0.5), rgba(143, 211, 244, 0.5));
 
-        h1 {
-            color: #007bff;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
+      /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+      background: linear-gradient(to right, rgba(132, 250, 176, 0.5), rgba(143, 211, 244, 0.5))
+    }
 
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
+    .gradient-custom-4 {
+      /* fallback for old browsers */
+      background: #84fab0;
 
-        .btn {
-            width: 100%;
-        }
+      /* Chrome 10-25, Safari 5.1-6 */
+      background: -webkit-linear-gradient(to right, rgba(132, 250, 176, 1), rgba(143, 211, 244, 1));
 
-        .link-container {
-            text-align: center;
-            margin-top: 1rem;
-        }
-    </style>
+      /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+      background: linear-gradient(to right, rgba(132, 250, 176, 1), rgba(143, 211, 244, 1))
+    }
+
+    /*for loader*/
+
+    *#loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.7);
+      display: flex;
+      flex-direction: column;
+      /* Stack spinner and percentage */
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    #loader {
+      margin-top: 1rem;
+      font-size: 1.2rem;
+      color: #007bff;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-top-color: #007bff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    #loader-percentage {
+      margin-top: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #007bff;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
+  <section class="vh-100 bg-image"
+    style="background-image: url('https://mdbcdn.b-cdn.net/img/Photos/new-templates/search-box/img4.webp');">
+    <div class="mask d-flex align-items-center h-100 gradient-custom-3">
+      <div class="container h-100">
+        <div class="row d-flex justify-content-center align-items-center h-100">
+          <div class="col-12 col-md-9 col-lg-7 col-xl-6">
+            <div class="card" style="border-radius: 15px;">
+              <div class="card-body p-5">
+                <h2 class="text-uppercase text-center mb-5">Create an account</h2>
 
-        <% if(messages && messages.length) {%>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <%= messages %>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            <%}%>
+                <div id="loader" style="display: none;">
+                  <div class="spinner"></div>
+                  <p id="loader-percentage-text">Loading... <span id="loader-percentage">0%</span></p>
+                </div>
 
-                <% if(error && error.length) {%>
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <% if(messages && messages.length) {%>
+                  <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <%= messages %>
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                  <%}%>
+
+                    <% if(error && error.length) {%>
+                      <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <%= error %>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    <%}%>
-                        <h1>Register</h1>
+                          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                      </div>
+                      <%}%>
                         <form action="/register" method="POST">
-                            <div class="form-group">
-                                <label for="name">Name:</label>
-                                <input type="text" class="form-control" name="name" id="name" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="email">Email:</label>
-                                <input type="email" class="form-control" name="email" id="email" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="password">Password:</label>
-                                <input type="password" class="form-control" name="password" id="password" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="password2">Confirm Password:</label>
-                                <input type="password" class="form-control" name="password2" id="password2" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Register</button>
-                        </form>
-                        <div class="link-container">
-                            <p>Already have an account? <a href="/login">Login here</a></p>
-                        </div>
-    </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+                          <div data-mdb-input-init class="form-outline mb-4">
+                            <input type="text" id="name" name="name" class="form-control form-control-lg" required />
+                            <label class="form-label" for="name">Your Name</label>
+                          </div>
+
+                          <div data-mdb-input-init class="form-outline mb-4">
+                            <input type="email" id="email" name="email" class="form-control form-control-lg" required />
+                            <label class="form-label" for="email">Your Email</label>
+                          </div>
+
+                          <div data-mdb-input-init class="form-outline mb-4">
+                            <input type="password" id="password" name="password" class="form-control form-control-lg"
+                              required />
+                            <label class="form-label" for="password">Password</label>
+                          </div>
+
+                          <div data-mdb-input-init class="form-outline mb-4">
+                            <input type="password" id="password2" name="password2" class="form-control form-control-lg"
+                              required />
+                            <label class="form-label" for="password2">Repeat your password</label>
+                          </div>
+
+                          <div class="form-check d-flex justify-content-start mb-5">
+                            <input class="form-check-input me-2" type="checkbox" value="" id="form2Example3cg" />
+                            <label class="form-check-label" for="form2Example3g">
+                              I agree all statements in <a href="#!" class="text-body"><u>Terms of service</u></a>
+                            </label>
+                          </div>
+
+
+                          <div class="d-flex justify-content-center">
+                            <button type="submit" data-mdb-button-init data-mdb-ripple-init
+                              class="btn btn-success btn-block btn-lg gradient-custom-4 text-body">Register</button>
+                          </div>
+
+                          <p class="text-center text-muted mt-5 mb-0">Have already an account? <a href="/login"
+                              class="fw-bold text-body"><u>Login here</u></a></p>
+
+                        </form>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+
+  <script>
+    function showLoader() {
+      document.getElementById("loader").style.display = "flex";
+      updateLoaderPercentage();
+    }
+
+    function hideLoader() {
+      document.getElementById("loader").style.display = "none";
+    }
+
+    function updateLoaderPercentage() {
+      let percentage = 0;
+      const loaderPercentage = document.getElementById("loader-percentage");
+
+      // Simulate loading progress
+      const interval = setInterval(() => {
+        percentage += 10; // Increment by 10%
+        loaderPercentage.textContent = `${percentage}%`;
+
+        if (percentage >= 100) {
+          clearInterval(interval); // Stop when 100% is reached
+        }
+      }, 100); // Update every 100ms
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      // Handle form submissions
+      const forms = document.querySelectorAll("form");
+      forms.forEach(function (form) {
+        form.addEventListener("submit", function () {
+          showLoader();
+        });
+      });
+
+      // Handle link clicks
+      const links = document.querySelectorAll("a[href]");
+      links.forEach(function (link) {
+        link.addEventListener("click", function (event) {
+          const href = link.getAttribute("href");
+
+          // Show loader only for valid links
+          if (
+            href !== "#" &&
+            href !== "#!" &&
+            (!link.hasAttribute("target") || link.getAttribute("target") !== "_blank") &&
+            link.hostname === window.location.hostname
+          ) {
+            showLoader();
+          }
+        });
+      });
+    });
+
+    // Hide loader if user navigates back or the page is restored from cache
+    window.onpageshow = function (event) {
+      if (event.persisted) {
+        hideLoader();  // Hide the loader when coming from cache (back button or forward)
+      }
+    };
+    // Show loader on page navigation (e.g., reload or back/forward)
+    window.addEventListener("beforeunload", function () {
+      showLoader();
+    });
+  </script>
 </body>
 
 </html>

@@ -234,16 +234,6 @@ ${totalsRowHTML}
   printWindow.print();
 }
 
-const panVatNo = "<%= currentCompany.pan %>";
-const container = document.getElementById("pan-vat-container");
-
-for (let i = 0; i < panVatNo.length; i++) {
-  const digit = document.createElement("span");
-  digit.className = "bordered-digit";
-  digit.textContent = panVatNo[i];
-  container.appendChild(digit);
-}
-
 document.getElementById("clearSearch").addEventListener("click", () => {
   const inputField = document.getElementById("searchInput");
 
