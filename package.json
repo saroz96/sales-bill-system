@@ -43,7 +43,7 @@
   },
   "build": {
     "appId": "com.yourname.sales-bill-system",
-    "productName": "Sarathi",
+    "productName": "sales-bill-system",
     "directories": {
       "output": "dist"
     },
