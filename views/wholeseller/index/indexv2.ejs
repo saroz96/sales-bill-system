@@ -32,9 +32,60 @@
   <!-- apexcharts -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.37.1/dist/apexcharts.css"
     integrity="sha256-4MX+61mt9NVvvuPjUWdUdyfZfxSB1/Rf9WtqRHgG5S0=" crossorigin="anonymous" />
+
+
+  <style>
+    *#loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.7);
+      display: flex;
+      flex-direction: column;
+      /* Stack spinner and percentage */
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    #loader {
+      margin-top: 1rem;
+      font-size: 1.2rem;
+      color: #007bff;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-top-color: #007bff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    #loader-percentage {
+      margin-top: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #007bff;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
 </head>
 
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+
+  <div id="loader" style="display: none;">
+    <div class="spinner"></div>
+    <p id="loader-percentage-text">Loading... <span id="loader-percentage">0%</span></p>
+  </div>
   <!--begin::App Wrapper-->
   <div class="app-wrapper">
     <!--begin::Header-->
@@ -1346,17 +1397,23 @@
                     <div class="col-md-3 col-6">
                       <div class="text-center border-end">
                         <span class="<%= salesPercentageChange >= 0 ? 'text-success' : 'text-danger' %>">
-                          <i class="bi bi-caret-up-fill"></i> <%= Math.abs(salesPercentageChange.toFixed(2)) %>%
+                          <i class="bi bi-caret-up-fill"></i>
+                          <%= Math.abs(salesPercentageChange.toFixed(2)) %>%
                         </span>
-                        <h5 class="fw-bold mb-0">Rs.<%= netSales.toFixed(2) %></h5>
+                        <h5 class="fw-bold mb-0">Rs.<%= netSales.toFixed(2) %>
+                        </h5>
                         <span class="text-uppercase">TOTAL REVENUE</span>
                       </div>
                     </div>
                     <!-- /.col -->
                     <div class="col-md-3 col-6">
                       <div class="text-center border-end">
-                        <span class="<%= purchasePercentageChange >= 0 ? 'text-info' : 'text-danger' %>"> <i class="bi bi-caret-left-fill"></i> <%= Math.abs(purchasePercentageChange.toFixed(2)) %>% </span>
-                        <h5 class="fw-bold mb-0">Rs.<%= netPurchase.toFixed(2) %></h5>
+                        <span class="<%= purchasePercentageChange >= 0 ? 'text-info' : 'text-danger' %>"> <i
+                            class="bi bi-caret-left-fill"></i>
+                          <%= Math.abs(purchasePercentageChange.toFixed(2)) %>%
+                        </span>
+                        <h5 class="fw-bold mb-0">Rs.<%= netPurchase.toFixed(2) %>
+                        </h5>
                         <span class="text-uppercase">TOTAL COST</span>
                       </div>
                     </div>
@@ -1364,9 +1421,11 @@
                     <div class="col-md-3 col-6">
                       <div class="text-center border-end">
                         <span class="<%= totalProfitPercentage >= 0 ? 'text-success' : 'text-danger' %>">
-                          <i class="bi bi-caret-up-fill"></i> <%= Math.abs(totalProfitPercentage.toFixed(2)) %>%
+                          <i class="bi bi-caret-up-fill"></i>
+                          <%= Math.abs(totalProfitPercentage.toFixed(2)) %>%
                         </span>
-                        <h5 class="fw-bold mb-0">Rs.<%=totalProfit.toFixed(2) %></h5>
+                        <h5 class="fw-bold mb-0">Rs.<%=totalProfit.toFixed(2) %>
+                        </h5>
                         <span class="text-uppercase">TOTAL PROFIT</span>
                       </div>
                     </div>
@@ -1376,7 +1435,8 @@
                         <span class="text-danger">
                           <i class="bi bi-caret-down-fill"></i>
                         </span>
-                        <h5 class="fw-bold mb-0">Rs.<%=totalStockValue.toFixed(2) %></h5>
+                        <h5 class="fw-bold mb-0">Rs.<%=totalStockValue.toFixed(2) %>
+                        </h5>
                         <span class="text-uppercase">STOCK VALUE</span>
                       </div>
                     </div>
@@ -2198,6 +2258,73 @@
     //-----------------
   </script>
   <!--end::Script-->
+
+
+  <script>
+    function showLoader() {
+      document.getElementById("loader").style.display = "flex";
+      updateLoaderPercentage();
+    }
+
+    function hideLoader() {
+      document.getElementById("loader").style.display = "none";
+    }
+
+    function updateLoaderPercentage() {
+      let percentage = 0;
+      const loaderPercentage = document.getElementById("loader-percentage");
+
+      // Simulate loading progress
+      const interval = setInterval(() => {
+        percentage += 10; // Increment by 10%
+        loaderPercentage.textContent = `${percentage}%`;
+
+        if (percentage >= 100) {
+          clearInterval(interval); // Stop when 100% is reached
+        }
+      }, 100); // Update every 100ms
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      // Handle form submissions
+      const forms = document.querySelectorAll("form");
+      forms.forEach(function (form) {
+        form.addEventListener("submit", function () {
+          showLoader();
+        });
+      });
+
+      // Handle link clicks
+      const links = document.querySelectorAll("a[href]");
+      links.forEach(function (link) {
+        link.addEventListener("click", function (event) {
+          const href = link.getAttribute("href");
+
+          // Show loader only for valid links
+          if (
+            href !== "#" &&
+            href !== "#!" &&
+            (!link.hasAttribute("target") || link.getAttribute("target") !== "_blank") &&
+            link.hostname === window.location.hostname
+          ) {
+            showLoader();
+          }
+        });
+      });
+    });
+
+    // Hide loader if user navigates back or the page is restored from cache
+    window.onpageshow = function (event) {
+      if (event.persisted) {
+        hideLoader();  // Hide the loader when coming from cache (back button or forward)
+      }
+    };
+    // Show loader on page navigation (e.g., reload or back/forward)
+    window.addEventListener("beforeunload", function () {
+      showLoader();
+    });
+  </script>
+
 </body>
 <!--end::Body-->
 

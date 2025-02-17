@@ -550,11 +550,11 @@ router.post('/company', ensureAuthenticated, async (req, res) => {
         }
 
         // Check the number of companies already created by the owner
-        const companyCount = await Company.countDocuments({ owner });
-        if (companyCount >= 3) {
-            req.flash('error', 'You have reached the maximum limit of 3 companies.');
-            return res.redirect('/company/new');
-        }
+        // const companyCount = await Company.countDocuments({ owner });
+        // if (companyCount >= 3) {
+        //     req.flash('error', 'You have reached the maximum limit of 3 companies.');
+        //     return res.redirect('/company/new');
+        // }
 
         // Determine the start and end dates based on dateFormat
         let startDate, endDate;
