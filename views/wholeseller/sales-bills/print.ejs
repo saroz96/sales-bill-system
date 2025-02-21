@@ -245,19 +245,18 @@
                 <div class="details-container">
                     <div class="left">
                         <h6>
-                            M/S: <%= bill.account.name %>
+                            M/S: <%= bill.account && bill.account.name ? bill.account.name : (bill.cashAccount || 'Account Not Found') %>
                         </h6>
                         <strong>Address:</strong>
-                        <%= bill.account.address ? bill.account.address : 'Null' %>&nbsp;
+                        <%= bill.account && bill.account.address ? bill.account.address :(bill.cashAccountAddress || 'Null') %>&nbsp;
+                        <br>
+                        <strong>Pan no.:</strong>
+                        <%= bill.account && bill.account.pan ? bill.account.pan :(bill.cashAccountPan || 'Null') %>&nbsp;
                             <br>
-                            <strong>Pan no.:</strong>
-                            <%= bill.account.pan ? bill.account.pan : 'Null' %>
-                                <br>
-                                <strong>Email:</strong>
-                                <%= bill.account.email ? bill.account.email : 'Null' %>&nbsp;
-                                    <strong>Tel.:</strong>
-                                    <%= bill.account.phone ? bill.account.phone : 'Null' %>&nbsp;
-
+                            <strong>Email:</strong>
+                            <%= bill.account && bill.account.email ? bill.account.email :(bill.cashAccountEmail || 'Null') %>&nbsp;
+                                <strong>Tel.:</strong>
+                                <%= bill.account && bill.account.phone ? bill.account.phone :(bill.cashAccountPhone || 'Null') %>&nbsp;
 
                     </div>
 

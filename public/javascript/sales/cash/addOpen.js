@@ -11,39 +11,65 @@ $(document).ready(function () {
     // });
 
     // Listen for the change event on the account dropdown
-    //     $('#account').on('change', function () {
-    //         const selectedOption = $(this).find('option:selected');
-    //         const address = selectedOption.data('address');
+    // $('#account').on('change', function () {
+    //     const selectedOption = $(this).find('option:selected');
+    //     const address = selectedOption.data('address');
 
-    //         // Set the address field with the selected account's address
-    //         $('#address').val(address || 'Address not available');
-    //     });
-
-    //     // Listen for the change event on the account dropdown
-    //     $('#account').on('change', function () {
-    //         const selectedOption = $(this).find('option:selected');
-    //         const pan = selectedOption.data('pan');
-
-    //         // Set the address field with the selected account's address
-    //         $('#pan').val(pan || 'Pan no. not available');
-    //     });
-
-    //     // Initialize Select2 for searchable dropdown
-    //     $('#isVatExempt').select2({
-    //         placeholder: "Select a vat",
-    //         allowClear: true,
-    //         width: '100%', // Ensure it takes the full width of the container
-    //     });
+    //     // Set the address field with the selected account's address
+    //     $('#address').val(address || 'Address not available');
     // });
 
 
-    // $(document).ready(function () {
-    //     // Initialize Select2 for searchable dropdown
-    //     $('#paymentMode').select2({
-    //         placeholder: "Select mode",
-    //         allowClear: true,
-    //         width: '100%', // Ensure it takes the full width of the container
-    //     });
+    // Initialize Select2 for searchable dropdown
+    $('#companyGroup').select2({
+        placeholder: "Select a account group",
+        allowClear: true,
+        width: '100%', // Ensure it takes the full width of the container
+    });
+
+    // Initialize Select2 for searchable dropdown
+    $('#category').select2({
+        placeholder: "Select a category",
+        allowClear: true,
+        width: '100%', // Ensure it takes the full width of the container
+    });
+    // Initialize Select2 for searchable dropdown
+    $('#unit').select2({
+        placeholder: "Select a unit",
+        allowClear: true,
+        width: '100%', // Ensure it takes the full width of the container
+    });
+    // Initialize Select2 for searchable dropdown
+    $('#vatStatus').select2({
+        placeholder: "Select a vat status",
+        allowClear: true,
+        width: '100%', // Ensure it takes the full width of the container
+    });
+
+    // Listen for the change event on the account dropdown
+    $('#account').on('change', function () {
+        const selectedOption = $(this).find('option:selected');
+        const pan = selectedOption.data('pan');
+
+        // Set the address field with the selected account's address
+        $('#pan').val(pan || 'Pan no. not available');
+    });
+
+    // Initialize Select2 for searchable dropdown
+    $('#isVatExempt').select2({
+        placeholder: "Select a vat",
+        allowClear: true,
+        width: '100%', // Ensure it takes the full width of the container
+    });
+});
+
+$(document).ready(function () {
+    // Initialize Select2 for searchable dropdown
+    $('#paymentMode').select2({
+        placeholder: "Select mode",
+        allowClear: true,
+        width: '100%', // Ensure it takes the full width of the container
+    });
 });
 
 async function fetchItems(query, vatStatus, existingItemIds) {
@@ -130,7 +156,6 @@ function updateInputWithHighlightedItem(items) {
     }
 }
 
-
 async function showAllItems(input) {
     const dropdownMenu = input.nextElementSibling;
     const vatStatus = document.getElementById('isVatExempt').value;
@@ -159,13 +184,13 @@ async function showAllItems(input) {
         const headerRow = document.createElement('div');
         headerRow.classList.add('dropdown-header');
         headerRow.innerHTML = `
-            <div><strong>Item Code</strong></div>
-            <div><strong>HS Code</strong></div>
-            <div><strong>Name</strong></div>
-            <div><strong>Stock</strong></div>
-            <div><strong>Unit</strong></div>
-            <div><strong>S.Rate</strong></div>
-        `;
+    <div><strong>Item Code</strong></div>
+    <div><strong>HS Code</strong></div>
+    <div><strong>Name</strong></div>
+    <div><strong>Stock</strong></div>
+    <div><strong>Unit</strong></div>
+    <div><strong>S.Rate</strong></div>
+    `;
         headerRow.style.backgroundColor = '#f0f0f0';
         headerRow.style.fontWeight = 'bold';
         dropdownMenu.appendChild(headerRow);
@@ -182,19 +207,16 @@ async function showAllItems(input) {
                 dropdownItem.classList.add('non-vatable-item');
             }
 
-            // Calculate total stock and fetch price from stock entries
             const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
-            const latestStockEntry = item.stockEntries[item.stockEntries.length - 1];
-            const price = latestStockEntry ? latestStockEntry.price : 0;
 
             dropdownItem.innerHTML = `
-                <div>${item.uniqueNumber || 'N/A'}</div>
-                <div>${item.hscode || 'N/A'}</div>
-                <div>${item.name}</div>
-                <div>${totalStock}</div>
-                <div>${item.unit ? item.unit.name : ''}</div>
-                <div>Rs.${price.toFixed(2)}</div>
-            `;
+    <div>${item.uniqueNumber || 'N/A'}</div>
+    <div>${item.hscode || 'N/A'}</div>
+    <div>${item.name}</div>
+    <div>${totalStock}</div>
+    <div>${item.unit ? item.unit.name : ''}</div>
+    <div>Rs.${item.price.toFixed()}</div>
+    `;
 
             dropdownItem.addEventListener('click', () => {
                 addItemToBill(item, dropdownMenu);
@@ -215,9 +237,8 @@ async function showAllItems(input) {
             isFirstLoad = false; // Set the flag to false after the first time
         }
     }
+
 }
-
-
 
 
 
@@ -303,6 +324,98 @@ document.addEventListener('click', function (event) {
     }
 });
 
+
+
+//     async function filterItems(input) {
+//         const query = input.value.trim().toLowerCase();
+//         const vatStatus = document.getElementById('isVatExempt').value; // Get the VAT status from the select input
+//         const dropdownMenu = input.nextElementSibling;
+
+//         // To exclude already present items from search
+//         const existingItemIds = Array.from(document.querySelectorAll('input[name^="items["]'))
+//             .filter(input => input.name.includes('[item]'))
+//             .map(input => input.value);
+
+//         // To exclude already present items from search
+//         if (query.length === 0) {
+//             dropdownMenu.innerHTML = '';
+//             dropdownMenu.classList.remove('show'); // Hide the dropdown if input is blank
+//             return;
+//         }
+
+//         const items = await fetchItems(query, vatStatus, existingItemIds);
+//         console.log('Filtered items:', items);
+
+//         // Clear existing dropdown items
+//         dropdownMenu.innerHTML = '';
+
+//         if (items.length === 0) {
+//             // Display a "No items found" message
+//             const noItemsMessage = document.createElement('div');
+//             noItemsMessage.classList.add('dropdown-item');
+//             noItemsMessage.textContent = 'No items found';
+//             noItemsMessage.style.textAlign = 'center'; // Center-align the message
+//             noItemsMessage.style.color = 'white';
+//             noItemsMessage.style.backgroundColor = 'blue';
+//             dropdownMenu.appendChild(noItemsMessage);
+//             dropdownMenu.classList.add('show');
+//         } else {
+
+//             // Create and add table header
+//             const header = document.createElement('div');
+//             header.classList.add('dropdown-header');
+//             header.innerHTML = `
+//     <div><strong>Item Code</strong></div>
+//     <div><strong>H.S. Code</strong></div>
+//     <div><strong>Item Name</strong></div>
+//     <div><strong>Category</strong></div>
+//     <div><strong>Quantity</strong></div>
+//     <div><strong>Unit</strong></div>
+//     <div><strong>S.Price</strong></div>
+//     <div><strong>Pu.Price</strong></div>
+// `;
+//             dropdownMenu.appendChild(header);
+
+//             // Create and add dropdown items
+//             items.forEach(item => {
+//                 const dropdownItem = document.createElement('div');
+//                 dropdownItem.classList.add('dropdown-item');
+//                 dropdownItem.tabIndex = 0; // Make the item focusable
+
+//                 // Add class based on VAT status
+//                 if (item.vatStatus === 'vatable') {
+//                     dropdownItem.classList.add('vatable-item');
+//                 } else {
+//                     dropdownItem.classList.add('non-vatable-item');
+//                 }
+
+//                 // Calculate the total available stock from stockEntries
+//                 const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+
+//                 dropdownItem.innerHTML = `
+//         <div>${item.uniqueNumber || 'N/A'}</div>
+//         <div>${item.hscode || 'N/A'}</div>
+//         <div>${item.name}</div>
+//         <div>${item.category ? item.category.name : 'No Category'}</div>
+//         <div>${totalStock}</div> <!-- Display total available stock -->
+//         <div>${item.unit ? item.unit.name : ''}</div>
+//         <div>Rs.${item.price.toFixed()}</div>
+//         <div>Rs.${item.puPrice.toFixed()}</div>
+//     `;
+
+//                 dropdownItem.addEventListener('click', () => addItemToBill(item, dropdownMenu));
+//                 dropdownMenu.appendChild(dropdownItem);
+//             });
+
+//             // Show or hide the dropdown menu based on the number of items
+//             if (items.length > 0) {
+//                 dropdownMenu.classList.add('show');
+//             } else {
+//                 dropdownMenu.classList.remove('show');
+//             }
+//         }
+//     }
+
 let selectedBatch = {}; // Store the selected batch information
 
 function addItemToBill(item, dropdownMenu) {
@@ -316,67 +429,67 @@ function addItemToBill(item, dropdownMenu) {
     // Clear the item search field immediately after showing the modal
     inputField.value = '';
 
-    // First, check if we should display last transactions
-    shouldDisplayTransactions().then((displayTransactions) => {
-        // If displayTransactions is true, fetch the last transactions
-        if (displayTransactions) {
-            handleFetchLastTransactions(item._id).then(() => {
-                // Show batch modal after the transaction modal is closed
-                $('#transactionModal').on('hidden.bs.modal', function () {
-                    // Trigger the batch modal with batch details
-                    showBatchModal(item, (batchInfo) => {
-                        // This callback will be triggered when the user selects a batch from the modal
-                        selectedBatch = batchInfo;
+    // // First, check if we should display last transactions
+    // shouldDisplayTransactions().then((displayTransactions) => {
+    //     // If displayTransactions is true, fetch the last transactions
+    //     if (displayTransactions) {
+    //         handleFetchLastTransactions(item._id).then(() => {
+    //             // Show batch modal after the transaction modal is closed
+    //             $('#transactionModal').on('hidden.bs.modal', function () {
+    //                 // Trigger the batch modal with batch details
+    //                 showBatchModal(item, (batchInfo) => {
+    //                     // This callback will be triggered when the user selects a batch from the modal
+    //                     selectedBatch = batchInfo;
 
-                        const tr = document.createElement('tr');
-                        tr.classList.add('item', item.vatStatus ? 'vatable-item' : 'non-vatable-item');
+    //                     const tr = document.createElement('tr');
+    //                     tr.classList.add('item', item.vatStatus ? 'vatable-item' : 'non-vatable-item');
 
-                        const serialNumber = tbody.rows.length + 1;  // Calculate the serial number based on the number of rows already in the table
-                        tr.innerHTML = `
-            <td>${serialNumber}</td>
-            <td>${item.uniqueNumber}</td>
-             <td>
-            <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
-            ${item.hscode}
-        </td>
-        <td class="col-3">
-            <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
-            ${item.name}
-        </td>
-        <td><input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)"></td>
-        <td>
-            ${item.unit ? item.unit.name : ''}
-            <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
-        </td>
-             <td>
-                    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
-                </td>
-                  <td>
-                    <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
-                </td>
-        <td><input type="number" name="items[${itemIndex}][price]" value="${selectedBatch.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
-        <td class="item-amount">0.00</td>
-        <td>
-             <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </td>
-        <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
-    `;
+    //                     const serialNumber = tbody.rows.length + 1;  // Calculate the serial number based on the number of rows already in the table
+    //                     tr.innerHTML = `
+    //         <td>${serialNumber}</td>
+    //         <td>${item.uniqueNumber}</td>
+    //     <td>
+    //         <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
+    //         ${item.hscode}
+    //     </td>
+    //      <td class="col-3">
+    //         <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
+    //         ${item.name}
+    //     </td>
+    //     <td><input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)"></td>
+    //     <td>
+    //         ${item.unit ? item.unit.name : ''}
+    //         <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
+    //     </td>
+    //          <td>
+    //                 <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+    //             </td>
+    //             <td>
+    //         <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+    //     </td>
+    //     <td><input type="number" name="items[${itemIndex}][price]" value="${selectedBatch.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
+    //     <td class="item-amount">0.00</td>
+    //     <td>
+    //          <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
+    //             <span aria-hidden="true">&times;</span>
+    //         </button>
+    //     </td>
+    //     <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
+    // `;
 
-                        tbody.appendChild(tr);
-                        itemIndex++;
-                        calculateTotal();
+    //                     tbody.appendChild(tr);
+    //                     itemIndex++;
+    //                     calculateTotal();
 
-                        // Focus on the newly added row's quantity input
-                        document.getElementById(`quantity-${itemIndex - 1}`).focus();
+    //                     // Focus on the newly added row's quantity input
+    //                     document.getElementById(`quantity-${itemIndex - 1}`).focus();
 
-                        // Hide the dropdown menu after selecting an item
-                        dropdownMenu.classList.remove('show');
-                    });
-                });
-            });
-        } else {
+    //                     // Hide the dropdown menu after selecting an item
+    //                     dropdownMenu.classList.remove('show');
+    //                 });
+    //             });
+    //         });
+    //     } else {
             // Directly show the batch modal without fetching transactions
             showBatchModal(item, (batchInfo) => {
                 // This callback will be triggered when the user selects a batch from the modal
@@ -389,7 +502,7 @@ function addItemToBill(item, dropdownMenu) {
                 tr.innerHTML = `
             <td>${serialNumber}</td>
             <td>${item.uniqueNumber}</td>
-            <td>
+        <td>
             <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
             ${item.hscode}
         </td>
@@ -403,12 +516,12 @@ function addItemToBill(item, dropdownMenu) {
             <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
         </td>
         <!-- Hidden fields for batch and expiry -->
-             <td>
-                    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
-                </td>
-                   <td>
-                    <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
-                </td>
+        <td>
+            <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+        </td>
+        <td>
+            <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+        </td>
         <td><input type="number" name="items[${itemIndex}][price]" value="${selectedBatch.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
         <td class="item-amount">0.00</td>
         <td>
@@ -430,8 +543,8 @@ function addItemToBill(item, dropdownMenu) {
                 dropdownMenu.classList.remove('show');
             });
         }
-    });
-}
+//     });
+// }
 
 function showBatchModal(item, callback) {
     const modal = document.getElementById('batchModal');
@@ -479,7 +592,7 @@ function showBatchModal(item, callback) {
             }
         });
 
-        modalContent += '</tbody></table>';
+        modalContent += '</tbody></table > ';
     }
 
     modalBody.innerHTML = modalContent;
@@ -574,18 +687,141 @@ function calculateSubTotal() {
     return subTotal;
 }
 
-function calculateSubTotal() {
-    const rows = document.querySelectorAll('#items tr.item');
-    let subTotal = 0;
 
+function calculateTotal() {
+    const rows = document.querySelectorAll('#items tr.item');
+    let subTotal = calculateSubTotal();
+    let vatAmount = 0;
+    let totalTaxableAmount = 0;
+    let totalNonTaxableAmount = 0;
+
+    // Separate amounts for vatable and non-vatable items
     rows.forEach(row => {
         const amount = parseFloat(row.querySelector('.item-amount').textContent) || 0;
-        subTotal += amount;
+        const vatStatus = row.querySelector('input[name$="[vatStatus]"]').value;
+
+        if (vatStatus === 'vatable') {
+            totalTaxableAmount += amount;
+        } else {
+            totalNonTaxableAmount += amount;
+        }
     });
 
-    return subTotal;
+    const discountPercentage = parseFloat(document.getElementById('discountPercentage').value) || 0;
+    const discountAmount = parseFloat(document.getElementById('discountAmount').value) || 0;
+
+    // Calculate total amount before discount
+    const totalAmountBeforeDiscount = totalTaxableAmount + totalNonTaxableAmount;
+
+    // Apply discount proportionally to vatable and non-vatable items
+    // const totalDiscount = (totalAmountBeforeDiscount * discountPercentage / 100) + discountAmount;
+    const discountForTaxable = (totalTaxableAmount * discountPercentage / 100);
+    const discountForNonTaxable = (totalNonTaxableAmount * discountPercentage / 100)
+
+    const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
+    const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
+
+    // Calculate VAT only for vatable items
+    const vatSelection = document.getElementById('isVatExempt').value;
+    if (vatSelection === 'false' || vatSelection === 'all') {
+        vatAmount = finalTaxableAmount * 0.13; // VAT is 13%
+    } else {
+        vatAmount = 0;
+    }
+    const roundOffAmount = parseFloat(document.getElementById('roundOffAmount').value) || 0;
+    const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount + roundOffAmount;
+
+    document.getElementById('subTotal').textContent = subTotal.toFixed(2);
+    document.getElementById('taxableAmount').textContent = finalTaxableAmount.toFixed(2);
+    document.getElementById('vatAmount').textContent = vatAmount.toFixed(2);
+    document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
+
+    const amountInWords = numberToWords(totalAmount) + ' Only.';
+    document.getElementById('amountInWords').textContent = amountInWords;
 }
 
+
+function toggleCreditPartyOptions() {
+    const paymentMode = document.getElementById('paymentMode').value;
+    const creditPartyOptions = document.querySelectorAll('.credit-party');
+    creditPartyOptions.forEach(option => {
+        option.style.display = paymentMode === 'credit' ? 'block' : 'none';
+    });
+}
+
+function toggleVatInputs() {
+    const isVatExempt = document.getElementById('isVatExempt').value === 'true';
+
+    // VAT-related fields
+    const taxableAmountRow = document.getElementById('taxableAmountRow');
+    const vatPercentageRow = document.getElementById('vatPercentageRow');
+
+    // Toggle display based on VAT exemption
+    if (isVatExempt) {
+        taxableAmountRow.style.display = 'none';
+        vatPercentageRow.style.display = 'none';
+        // Move focus to the next available input field
+        moveToNextVisibleInput(document.getElementById('isVatExempt'));
+    } else {
+        taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
+        vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
+    }
+
+    // Recalculate total when toggling VAT
+    calculateTotal();
+}
+
+function moveToNextVisibleInput(currentElement) {
+    const formElements = Array.from(document.querySelectorAll('input, select, textarea, button'));
+
+    // Find the current element's index in the form
+    const currentIndex = formElements.indexOf(currentElement);
+
+    // Iterate through the remaining elements to find the next visible one
+    for (let i = currentIndex + 1; i < formElements.length; i++) {
+        if (formElements[i].offsetParent !== null) { // Check if the element is visible
+            formElements[i].focus();
+            break;
+        }
+    }
+}
+
+function showPrintModal() {
+    $('#printModal').modal('show');
+}
+
+function submitBillForm(print) {
+    shouldPrint = print;
+    const billForm = document.getElementById('billForm');
+    const saveButton = document.getElementById('saveBill');
+
+    // Change button text and disable it
+    saveButton.innerText = 'Saving...';
+    saveButton.disabled = true;
+
+    if (print) {
+        const url = new URL(billForm.action);
+        url.searchParams.append('print', 'true');
+        billForm.action = url.toString();
+    }
+
+    // Simulate form submission (replace this with actual form submission logic)
+    setTimeout(() => {
+        billForm.submit();
+
+        // Reset button text and enable it after submission
+        saveButton.innerText = 'Save Bill';
+        saveButton.disabled = false;
+    }, 2000); // Simulating a delay; adjust or remove as needed
+}
+
+
+document.getElementById('billForm').addEventListener('submit', function (event) {
+    if (!shouldPrint && event.submitter && event.submitter.innerText === 'Save & Print Bill') {
+        event.preventDefault();
+        // showPrintModal();
+    }
+});
 function numberToWords(num) {
     const ones = [
         '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
@@ -638,237 +874,6 @@ function numberToWords(num) {
 
     return words.trim();
 }
-
-function convertToRupeesAndPaisa(amount) {
-    const rupees = Math.floor(amount); // Integer part (Rupees)
-    const paisa = Math.round((amount - rupees) * 100); // Fractional part (Paisa)
-
-    let words = '';
-
-    if (rupees > 0) {
-        words += numberToWords(rupees) + ' Rupees';
-    }
-
-    if (paisa > 0) {
-        words += (rupees > 0 ? ' and ' : '') + numberToWords(paisa) + ' Paisa';
-    }
-
-    return words || 'Zero Rupees';
-}
-
-
-// Updated DOM manipulation for displaying total amount in words
-function calculateTotal() {
-    const rows = document.querySelectorAll('#items tr.item');
-    let subTotal = calculateSubTotal();
-    let totalTaxableAmount = 0;
-    let totalNonTaxableAmount = 0;
-    let vatAmount = 0;
-
-    const vatPercentage = parseFloat(document.getElementById('vatPercentage').value) || 13;
-    const vatSelection = document.getElementById('isVatExempt').value; // 'all', 'false', or 'true'
-
-    // Separate taxable and non-taxable items
-    rows.forEach(row => {
-        const amount = parseFloat(row.querySelector('.item-amount').textContent) || 0;
-        const vatStatus = row.querySelector('input[name$="[vatStatus]"]');
-        const isVatable = vatStatus && vatStatus.value === 'vatable';
-
-        if (isVatable) {
-            totalTaxableAmount += amount;
-        } else {
-            totalNonTaxableAmount += amount;
-        }
-    });
-
-    // Apply discounts
-    const discountPercentage = parseFloat(document.getElementById('discountPercentage').value) || 0;
-    const discountForTaxable = (totalTaxableAmount * discountPercentage) / 100;
-    const discountForNonTaxable = (totalNonTaxableAmount * discountPercentage) / 100;
-
-    const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
-    const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
-
-    // Calculate VAT only for vatable items
-    if (vatSelection === 'false' || vatSelection === 'all') {
-        vatAmount = (finalTaxableAmount * vatPercentage) / 100;
-    } else {
-        vatAmount = 0;
-    }
-
-    const roundOffAmount = parseFloat(document.getElementById('roundOffAmount').value) || 0;
-    const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount + roundOffAmount;
-
-    // Update the DOM with calculated values
-    document.getElementById('subTotal').textContent = subTotal.toFixed(2);
-    document.getElementById('taxableAmount').textContent = finalTaxableAmount.toFixed(2);
-    document.getElementById('vatAmount').textContent = vatAmount.toFixed(2);
-    document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
-
-    // Convert total amount to words including paisa
-    const amountInWords = convertToRupeesAndPaisa(totalAmount) + ' Only.';
-    document.getElementById('amountInWords').textContent = amountInWords;
-}
-
-
-// Attach event listeners for live updates
-document.addEventListener('DOMContentLoaded', () => {
-    // Update discount fields dynamically
-    document.getElementById('discountPercentage').addEventListener('input', updateDiscountFromPercentage);
-    document.getElementById('discountAmount').addEventListener('input', updateDiscountFromAmount);
-
-    // Ensure item inputs update totals live
-    document.querySelectorAll('input.item-quantity, input.item-puPrice').forEach(input => {
-        input.addEventListener('input', () => updateItemTotal(input));
-    });
-});
-
-
-
-
-function toggleCreditPartyOptions() {
-    const paymentMode = document.getElementById('paymentMode').value;
-    const creditPartyOptions = document.querySelectorAll('.credit-party');
-    creditPartyOptions.forEach(option => {
-        option.style.display = paymentMode === 'credit' ? 'block' : 'none';
-    });
-}
-
-function toggleVatInputs() {
-    const isVatExempt = document.getElementById('isVatExempt').value === 'true';
-
-    // VAT-related fields
-    // const vatInputs = document.getElementById('vatInputs'); // Group for VAT-related inputs
-    const taxableAmountRow = document.getElementById('taxableAmountRow');
-    const vatPercentageRow = document.getElementById('vatPercentageRow');
-    // const vatAmountRow = document.getElementById('vatAmountRow');
-
-    // Toggle display based on VAT exemption
-    if (isVatExempt) {
-        taxableAmountRow.style.display = 'none';
-        vatPercentageRow.style.display = 'none';
-        // vatAmountRow.style.display = 'none';
-        moveToNextVisibleInput(document.getElementById('isVatExempt'));
-
-    } else {
-        taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
-        vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
-        // vatAmountRow.style.display = 'table-row'; // Show VAT amount row
-    }
-
-    // Recalculate total when toggling VAT
-    calculateTotal();
-}
-
-function moveToNextVisibleInput(currentElement) {
-    const formElements = Array.from(document.querySelectorAll('input, select, textarea, button'));
-
-    // Find the current element's index in the form
-    const currentIndex = formElements.indexOf(currentElement);
-
-    // Iterate through the remaining elements to find the next visible one
-    for (let i = currentIndex + 1; i < formElements.length; i++) {
-        if (formElements[i].offsetParent !== null) { // Check if the element is visible
-            formElements[i].focus();
-            break;
-        }
-    }
-}
-
-function submitBillForm(print) {
-    shouldPrint = print;
-    const billForm = document.getElementById('billForm');
-    const saveButton = document.getElementById('saveBill');
-
-    // Change button text and disable it
-    saveButton.innerText = 'Saving...';
-    saveButton.disabled = true;
-
-    if (print) {
-        const url = new URL(billForm.action);
-        url.searchParams.append('print', 'true');
-        billForm.action = url.toString();
-    }
-
-    // Simulate form submission (replace this with actual form submission logic)
-    setTimeout(() => {
-        billForm.submit();
-
-        // Reset button text and enable it after submission
-        saveButton.innerText = 'Save Bill';
-        saveButton.disabled = false;
-    }, 2000); // Simulating a delay; adjust or remove as needed
-}
-
-
-document.getElementById('billForm').addEventListener('submit', function (event) {
-    if (!shouldPrint && event.submitter && event.submitter.innerText === 'Save & Print Bill') {
-        event.preventDefault();
-        // showPrintModal();
-    }
-});
-
-// function numberToWords(num) {
-//     const ones = [
-//         '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-//         'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
-//         'Seventeen', 'Eighteen', 'Nineteen'
-//     ];
-
-//     const tens = [
-//         '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'
-//     ];
-
-//     const scales = ['', 'Thousand', 'Million', 'Billion'];
-
-//     function convertHundreds(num) {
-//         let words = '';
-
-//         if (num > 99) {
-//             words += ones[Math.floor(num / 100)] + ' Hundred ';
-//             num %= 100;
-//         }
-
-//         if (num > 19) {
-//             words += tens[Math.floor(num / 10)] + ' ';
-//             num %= 10;
-//         }
-
-//         if (num > 0) {
-//             words += ones[num] + ' ';
-//         }
-
-//         return words.trim();
-//     }
-
-//     if (num === 0) return 'Zero';
-
-//     if (num < 0) return 'Negative ' + numberToWords(Math.abs(num));
-
-//     let words = '';
-
-//     for (let i = 0; i < scales.length; i++) {
-//         let unit = Math.pow(1000, scales.length - i - 1);
-//         let currentNum = Math.floor(num / unit);
-
-//         if (currentNum > 0) {
-//             words += convertHundreds(currentNum) + ' ' + scales[scales.length - i - 1] + ' ';
-//         }
-
-//         num %= unit;
-//     }
-
-//     return words.trim();
-// };
-
-// Fetch Total Amount and Convert to Words
-document.addEventListener('DOMContentLoaded', () => {
-    const totalAmount = parseFloat(document.getElementById('totalAmount').innerText);
-    const amountInWords = numberToWords(totalAmount);
-    document.getElementById('amountInWords').innerText = amountInWords + ' Only.';
-});
-
-
 window.addEventListener('DOMContentLoaded', () => {
     toggleVatInputs();
     toggleCreditPartyOptions();
@@ -885,6 +890,10 @@ document.addEventListener('DOMContentLoaded', function () {
         calculateTotal();
     });
 
+    // document.querySelectorAll('.price-input, .quantity-input, .item-select').forEach(element => {
+    //     element.addEventListener('input', calculateTotal);
+    // });
+
     document.getElementById('roundOffAmount').addEventListener('input', function () {
         calculateTotal();
     });
@@ -892,100 +901,100 @@ document.addEventListener('DOMContentLoaded', function () {
     calculateTotal();
 });
 
-async function shouldDisplayTransactions() {
-    try {
-        const response = await fetch(`/settings/get-display-transactions`);
-        const { displayTransactions } = await response.json();
-        return displayTransactions;
-    } catch (error) {
-        console.error('Error fetching settings:', error);
-        return false;
-    }
-}
+// async function shouldDisplayTransactions() {
+//     try {
+//         const response = await fetch(`/settings/get-display-transactions`);
+//         const { displayTransactions } = await response.json();
+//         return displayTransactions;
+//     } catch (error) {
+//         console.error('Error fetching settings:', error);
+//         return false;
+//     }
+// }
 
-async function fetchLastTransactions(itemId) {
-    // const itemId = select.value;
-    const accountId = document.getElementById('accountId').value;
-    const purchaseSalesType = document.getElementById('purchaseSalesType').value; // Ensure this element exists and has a value
-    const transactionList = document.getElementById('transactionList');
+// async function fetchLastTransactions(itemId) {
+//     // const itemId = select.value;
+//     const accountId = document.getElementById('account').value;
+//     const purchaseSalesType = document.getElementById('purchaseSalesType').value; // Ensure this element exists and has a value
+//     const transactionList = document.getElementById('transactionList');
 
-    if (!purchaseSalesType) {
-        console.error('Account Type is undefined. Please ensure it is set.');
-        return;
-    }
+//     if (!purchaseSalesType) {
+//         console.error('Account Type is undefined. Please ensure it is set.');
+//         return;
+//     }
 
-    try {
+//     try {
 
-        const response = await fetch(`/api/transactions/${itemId}/${accountId}/${purchaseSalesType}`);
-        const transactions = await response.json();
-        // const { transactions, companyDateFormat } = await response.json();
+//         const response = await fetch(`/api/transactions/${itemId}/${accountId}/${purchaseSalesType}`);
+//         const transactions = await response.json();
+//         // const { transactions, companyDateFormat } = await response.json();
 
-        // Check if transactions are empty
-        if (transactions.length === 0) {
-            transactionList.innerHTML = '<p>No transactions to display.</p>';
-            // Do not show the modal if there are no transactions
-            return;
-        }
+//         // Check if transactions are empty
+//         if (transactions.length === 0) {
+//             transactionList.innerHTML = '<p>No transactions to display.</p>';
+//             // Do not show the modal if there are no transactions
+//             return;
+//         }
 
-        // Create table header
-        let tableHtml = `
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Trans. Id</th>
-                        <th>Date</th>
-                        <th>Bill No.</th>
-                        <th>Type</th>
-                        <th>A/c Type</th>
-                        <th>Pay.Mode</th>
-                        <th>Qty.</th>
-                        <th>Unit</th>
-                        <th>Rate</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+//         // Create table header
+//         let tableHtml = `
+//             <table class="table table-sm">
+//                 <thead>
+//                     <tr>
+//                         <th>Trans. Id</th>
+//                         <th>Date</th>
+//                         <th>Bill No.</th>
+//                         <th>Type</th>
+//                         <th>A/c Type</th>
+//                         <th>Pay.Mode</th>
+//                         <th>Qty.</th>
+//                         <th>Unit</th>
+//                         <th>S.price</th>
+//                     </tr>
+//                 </thead>
+//                 <tbody>
+//         `;
 
-        // Add table rows for each transaction
-        tableHtml += transactions.map(transaction => {
-            return `
-                <tr onclick="window.location.href='/bills/${transaction.billId._id}/print'" style="cursor: pointer;">
-                    <td>${transaction._id}</td>
-                    <td>${new Date(transaction.date).toLocaleDateString()}</td>
-                    <td>${transaction.billNumber}</td>
-                    <td>${transaction.type}</td>
-                    <td>${transaction.purchaseSalesType}</td>
-                    <td>${transaction.paymentMode}</td>
-                    <td>${transaction.quantity}</td>
-                    <td>${transaction.unit ? transaction.unit.name : 'N/A'}</td>
-                    <td>Rs.${transaction.price}</td>
-                </tr>
-            `;
-        }).join('');
+//         // Add table rows for each transaction
+//         tableHtml += transactions.map(transaction => {
+//             return `
+//                 <tr onclick="window.location.href='/bills/${transaction.billId._id}/print'" style="cursor: pointer;">
+//                     <td>${transaction._id}</td>
+//                     <td>${new Date(transaction.date).toLocaleDateString()}</td>
+//                     <td>${transaction.billNumber}</td>
+//                     <td>${transaction.type}</td>
+//                     <td>${transaction.purchaseSalesType}</td>
+//                     <td>${transaction.paymentMode}</td>
+//                     <td>${transaction.quantity}</td>
+//                     <td>${transaction.unit ? transaction.unit.name : 'N/A'}</td>
+//                     <td>Rs.${transaction.price}</td>
+//                 </tr>
+//             `;
+//         }).join('');
 
-        // Close table
-        tableHtml += `
-                </tbody>
-            </table>
-        `;
+//         // Close table
+//         tableHtml += `
+//                 </tbody>
+//             </table>
+//         `;
 
-        // Set the innerHTML of the transaction list container
-        transactionList.innerHTML = tableHtml;
+//         // Set the innerHTML of the transaction list container
+//         transactionList.innerHTML = tableHtml;
 
-        // Show the modal
-        $('#transactionModal').modal('show');
-    } catch (error) {
-        console.error('Error fetching transactions:', error);
-    }
-}
+//         // Show the modal
+//         $('#transactionModal').modal('show');
+//     } catch (error) {
+//         console.error('Error fetching transactions:', error);
+//     }
+// }
 
 
-async function handleFetchLastTransactions(itemId) {
-    const displayTransactions = await shouldDisplayTransactions();
-    if (displayTransactions) {
-        await fetchLastTransactions(itemId);
-    }
-}
+// async function handleFetchLastTransactions(itemId) {
+//     const displayTransactions = await shouldDisplayTransactions();
+//     if (displayTransactions) {
+//         await fetchLastTransactions(itemId);
+//     }
+// }
 
 
 // Assuming you have a batch modal with an ID 'batchModal' and an input field inside it
@@ -1020,105 +1029,6 @@ function focusOnLastQuantityField() {
 document.addEventListener('DOMContentLoaded', function () {
     const itemSearchInput = document.getElementById('itemSearch'); // Initial focus on item search input
 });
-
-// async function handleItemSearchKeydown(event) {
-//     const itemSearchInput = document.getElementById('itemSearch');
-//     const itemsTable = document.getElementById('itemsTable');
-//     const itemsAvailable = itemsTable && itemsTable.querySelectorAll('.item').length > 0;
-
-//     if (itemSearchInput.value.length > 0) {
-//         if (event.key === 'Enter') {
-//             // Fetch and check if transactions should be displayed
-//             const displayTransactions = await shouldDisplayTransactions();
-
-//             // Only open the modal if displayTransactions is true
-//             if (displayTransactions) {
-//                 openModalAndFocusCloseButton();
-
-//             } else {
-//                 focusOnLastRow('item-quantity');
-//             }
-//         }
-//     } else if (itemSearchInput.value.length < 0 || itemsAvailable) {
-//         if (event.key === 'Enter') {
-//             const submitBillForm = document.getElementById('saveBill')
-//             submitBillForm.focus();
-//         }
-//     }
-// }
-// function openModalAndFocusCloseButton() {
-//     // Open the modal
-//     $('#transactionModal').modal('show');
-
-//     // Wait until the modal is fully shown before focusing the close button
-//     $('#transactionModal').on('shown.bs.modal', function () {
-//         document.getElementById('closeModalButton').focus();
-//     });
-// }
-
-// function handleCloseButtonKeydown(event) {
-//     if (event.key === 'Enter') {
-//         // Close the modal (optional, depending on your implementation)
-//         $('#transactionModal').modal('hide');
-
-//         // Focus on the quantity input field
-//         document.getElementById(`quantity-${itemIndex - 1}`).focus();
-//         // focusOnLastRow('quantity');
-//     }
-// }
-
-// function handleQuantityKeydown(event) {
-//     if (event.key === 'Enter') {
-//         // Focus on the price input field
-//         const batchNumberInput = document.getElementById(`batchNumber-${itemIndex - 1}`);
-//         batchNumberInput.focus();
-//         batchNumberInput.select();
-
-//     }
-// }
-
-// function handleBatchKeydown(event) {
-//     if (event.key === 'Enter') {
-//         const expDateInput = document.getElementById(`expiryDate-${itemIndex - 1}`);
-//         expDateInput.focus();
-//         expDateInput.select();
-//     }
-// }
-
-// function handleExpDateKeydown(event) {
-//     if (event.key === 'Enter') {
-//         const priceInput = document.getElementById(`price-${itemIndex - 1}`);
-//         priceInput.focus();
-//         priceInput.select();
-//     }
-// }
-
-// function handlePriceKeydown(event) {
-//     if (event.key === 'Enter') {
-//         // Focus back on the item search input field
-//         const itemSearchInput = document.getElementById('itemSearch');
-//         itemSearchInput.focus();
-//         itemSearchInput.select();
-
-//     }
-// }
-
-// function selectValue(input) {
-//     input.select(); // Select the value of the input field when it is focused
-// }
-
-// function focusOnLastRow(fieldClass) {
-//     const rows = document.querySelectorAll('.item');
-//     if (rows.length > 0) {
-//         const lastRow = rows[rows.length - 1];
-//         const inputField = lastRow.querySelector(`.${fieldClass}`);
-//         if (inputField) {
-//             inputField.focus();
-//             inputField.select();
-//         }
-//     }
-// }
-
 
 async function handleItemSearchKeydown(event) {
     const itemSearchInput = document.getElementById('itemSearch');
@@ -1160,53 +1070,37 @@ function handleCloseButtonKeydown(event) {
         // Close the modal (optional, depending on your implementation)
         $('#transactionModal').modal('hide');
 
-        // Focus on the quantity input field in the last row
-        const lastRow = document.querySelector('#items tr.item:last-child');
-        if (lastRow) {
-            const quantityInput = lastRow.querySelector('.item-quantity');
-            if (quantityInput) {
-                quantityInput.focus();
-            }
-        }
+        // Focus on the quantity input field
+        document.getElementById(`quantity-${itemIndex - 1}`).focus();
+        // focusOnLastRow('quantity');
     }
 }
 
 function handleQuantityKeydown(event) {
     if (event.key === 'Enter') {
-        const lastRow = document.querySelector('#items tr.item:last-child');
-        if (lastRow) {
-            const batchNumberInput = lastRow.querySelector('.item-batchNumber');
-            if (batchNumberInput) {
-                batchNumberInput.focus();
-                batchNumberInput.select();
-            }
-        }
+        // Focus on the price input field
+        // document.getElementById('price').focus();
+        // document.getElementById(`price-${itemIndex}`).focus();
+        const batchNumberInput = document.getElementById(`batchNumber-${itemIndex - 1}`);
+        batchNumberInput.focus();
+        batchNumberInput.select();
+
     }
 }
 
 function handleBatchKeydown(event) {
     if (event.key === 'Enter') {
-        const lastRow = document.querySelector('#items tr.item:last-child');
-        if (lastRow) {
-            const expDateInput = lastRow.querySelector('.item-expiryDate');
-            if (expDateInput) {
-                expDateInput.focus();
-                expDateInput.select();
-            }
-        }
+        const expDateInput = document.getElementById(`expiryDate-${itemIndex - 1}`);
+        expDateInput.focus();
+        expDateInput.select();
     }
 }
 
 function handleExpDateKeydown(event) {
     if (event.key === 'Enter') {
-        const lastRow = document.querySelector('#items tr.item:last-child');
-        if (lastRow) {
-            const puPriceInput = lastRow.querySelector('.item-price');
-            if (puPriceInput) {
-                puPriceInput.focus();
-                puPriceInput.select();
-            }
-        }
+        const priceInput = document.getElementById(`price-${itemIndex - 1}`);
+        priceInput.focus();
+        priceInput.select();
     }
 }
 
@@ -1219,45 +1113,6 @@ function handlePriceKeydown(event) {
 
     }
 }
-
-
-// Attach event listeners dynamically to the last row
-function attachEventListenersToLastRow() {
-    const lastRow = document.querySelector('#items tr.item:last-child');
-    if (lastRow) {
-        const quantityInput = lastRow.querySelector('.item-quantity');
-        const batchNumberInput = lastRow.querySelector('.item-batchNumber');
-        const expDateInput = lastRow.querySelector('.item-expiryDate');
-        const priceInput = lastRow.querySelector('.item-price');
-
-        if (quantityInput) {
-            quantityInput.addEventListener('keydown', handleQuantityKeydown);
-        }
-        if (batchNumberInput) {
-            batchNumberInput.addEventListener('keydown', handleBatchKeydown);
-        }
-        if (expDateInput) {
-            expDateInput.addEventListener('keydown', handleExpDateKeydown);
-        }
-    }
-}
-
-// Re-attach event listeners when a new row is added
-document.addEventListener('DOMContentLoaded', () => {
-    // Attach event listeners to the last row initially
-    attachEventListenersToLastRow();
-
-    // Monitor changes to the table for new rows
-    const observer = new MutationObserver(() => {
-        attachEventListenersToLastRow();
-    });
-
-    // Observe the `#items` table for child changes
-    const itemsTable = document.getElementById('items');
-    if (itemsTable) {
-        observer.observe(itemsTable, { childList: true, subtree: true });
-    }
-});
 
 function selectValue(input) {
     input.select(); // Select the value of the input field when it is focused
@@ -1287,6 +1142,7 @@ function focusOnLastRow(fieldClass) {
 //     }
 // }
 
+
 function moveToNextInput(event) {
     if (event.key === 'Enter') {
         event.preventDefault(); // Prevent form submission
@@ -1295,6 +1151,7 @@ function moveToNextInput(event) {
         moveToNextVisibleInput(event.target);
     }
 }
+
 
 // Get all the input elements within the form
 const inputs = document.querySelectorAll('form input, form select form group');

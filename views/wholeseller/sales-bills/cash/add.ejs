@@ -1,6 +1,6 @@
-<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+<%- include('../../layouts/boilerplate', { title: '' , body: '' }) %>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/stylesheet/sales/bills.css">
+    <link rel="stylesheet" href="/stylesheet/sales/cash/add.css">
 
 
     <!-- Nepali Datepicker -->
@@ -13,7 +13,7 @@
             <div class="card-header">
                 <div class="row">
                     <div class="col-md-8 col-12">
-                        Sales Entry
+                        Cash Sales Entry
                         <span id="customAlertForBillNumber" style="color: red; display: none;">Invoice is
                             required!</span>
                         <span id="transactionDateError" style="color: red; display: none;">Invalid date!</span>
@@ -36,7 +36,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <form action="/bills" method="post" id="billForm" class="wow-form">
+                <form action="/cash/bills/add" method="post" id="billForm" class="wow-form">
                     <div class="form-group row">
 
                         <% if (companyDateFormat==='nepali' ) { %>
@@ -73,18 +73,10 @@
                                         <input type="number" class="form-control" id="billNumber"
                                             value="<%=nextBillNumber %>" onfocus="selectValue(this)">
                                     </div>
-
-                                    <!-- <div class="col">
-                                        <label for="paymentMode">Payment Mode:</label>
-                                        <select class="form-control" id="paymentMode" name="paymentMode">
-                                            <option value="cash">Cash</option>
-                                            <option value="credit">Credit</option>
-                                        </select>
-                                    </div> -->
-                                    <div class="col">
+                                    <div class="col hidden">
                                         <label for="paymentMode">Payment Mode:</label>
                                         <input type="text" class="form-control" id="paymentMode" name="paymentMode"
-                                            placeholder="" autocomplete="off">
+                                            placeholder="" autocomplete="off" value="cash">
                                     </div>
                                     <div class="col">
                                         <label for="isVatExempt">VAT</label>
@@ -105,55 +97,35 @@
                                 <option value="Sales">Sales</option>
                             </select>
                         </div>
-                        <!-- <div class="col-6">
-                            <label for="account">Party Name:</label>
-                            <select name="account" id="account" class="form-control" required>
-                                <option value="" disabled selected>Select a party name</option>
-                                <% if (accounts && accounts.length> 0) { %>
-                                    <% accounts.forEach(account=> { %>
-                                        <option value="<%= account._id %>" data-address="<%= account.address %>"
-                                            data-pan="<%= account.pan %>">
-                                            <%= account.name %>
-                                        </option>
-                                        <% }); %>
-                                            <% } else { %>
-                                                <option disabled>No accounts available</option>
-                                                <% } %>
-                            </select>
-                        </div> -->
 
-                        <div class="col-6">
+                        <div class="col-5">
+                            <!-- Account Selection Input -->
                             <label for="account">Party Name:</label>
-                            <input type="text" id="account" name="account" class="form-control" placeholder=""
+                            <input type="text" id="cashAccount" name="cashAccount" class="form-control" placeholder=""
                                 autocomplete="off" required>
                             <input type="hidden" id="accountId" name="accountId">
                         </div>
                         <div class="col">
                             <!-- New field for the address -->
-                            <label for="address">Party Address:</label>
-                            <input type="text" id="address" name="address" class="form-control"
-                                onfocus="selectValue(this)">
+                            <label for="cashAccountAddress">Address:</label>
+                            <input type="text" id="cashAccountAddress" name="cashAccountAddress" class="form-control"
+                                onfocus="selectValue(this)" autocomplete="off">
+                        </div>
+                        <div class="col">
+                            <label for="cashAccountPhone">Phone:</label>
+                            <input type="tel" id="cashAccountPhone" name="cashAccountPhone" class="form-control" onfocus="selectValue(this)" autocomplete="off">
                         </div>
                         <div class="col">
                             <!-- New field for the address -->
                             <label for="pan">Vat No:</label>
-                            <input type="text" id="pan" name="pan" class="form-control" onfocus="selectValue(this)">
+                            <input type="text" id="cashAccountPan" name="cashAccountPan" class="form-control" onfocus="selectValue(this)" maxlength="9" minlength="9" autocomplete="off">
+                        </div>
+                        <div class="col">
+                            <label for="cashAccountEmail">Email:</label>
+                            <input type="email" id="cashAccountEmail" name="cashAccountEmail" class="form-control" onfocus="selectValue(this)" autocomplete="off">
                         </div>
                     </div>
                     <hr style="border: 1px solid gray;">
-                    <!-- <div class="form-group row">
-                        <div class="col">
-                            <div class="form-group row">
-                                <div class="col">
-                                    <label for="itemSearch">Search Item</label>
-                                    <input type="text" id="itemSearch" class="form-control"
-                                        placeholder="Search for an item" oninput="filterItems(this)" autocomplete="off"
-                                        onkeydown="handleItemSearchKeydown(event)">
-                                    <div id="dropdownMenu" class="dropdown-menu"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div> -->
 
                     <table class="table table-bordered compact-table" id="itemsTable">
                         <thead>
@@ -346,29 +318,8 @@
         </div>
     </div>
 
-    <!-- Modal for payment mode -->
-    <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered"> <!-- Centering class added -->
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="paymentModalLabel">Select Payment Mode</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="text" class="form-control mb-2" id="searchPayment" placeholder="Search Payment Mode"
-                        autocomplete="off">
-                    <ul class="list-group" id="paymentOptions">
-                        <li class="list-group-item active" data-value="credit">credit</li>
-                        <li class="list-group-item" data-value="cash">cash</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
     <!-- Transaction Modal -->
-    <div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel"
+    <!-- <div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -379,9 +330,9 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <ul id="transactionList" class="list-group">
+                    <ul id="transactionList" class="list-group"> -->
                         <!-- Transactions will be dynamically inserted here -->
-                    </ul>
+                    <!-- </ul>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal" id="closeModalButton"
@@ -389,7 +340,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
 
     <!-- Modal for Creating New Account -->
@@ -582,7 +533,7 @@
         </div>
     </div>
 
-    <script src="/javascript/sales/bills.js"></script>
+    <script src="/javascript/sales/cash/add.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script src="https://nepalidatepicker.sajanmaharjan.com.np/nepali.datepicker/js/nepali.datepicker.v4.0.7.min.js"
@@ -669,82 +620,11 @@
             input.select(); // Select the value of the input field when it is focused
         }
 
-        //for payment mode:
-        $(document).ready(function () {
-            let selectedIndex = 0;
-            const inputField = $("#paymentMode");
-            const searchField = $("#searchPayment");
-            const nextField = $("#isVatExempt"); // Next field to focus
-            const modal = new bootstrap.Modal(document.getElementById("paymentModal"));
-            const optionsList = $("#paymentOptions li");
-
-            // Show modal on input focus
-            inputField.focus(function () {
-                modal.show();
-                setTimeout(() => searchField.focus(), 500); // Auto-focus search bar in modal
-            });
-
-            // Search function
-            searchField.on("input", function () {
-                let searchText = $(this).val().toLowerCase();
-                optionsList.each(function () {
-                    let text = $(this).text().toLowerCase();
-                    $(this).toggle(text.includes(searchText));
-                });
-            });
-
-            // Keyboard navigation
-            searchField.keydown(function (e) {
-                if (e.key === "ArrowDown") {
-                    selectedIndex = (selectedIndex + 1) % optionsList.length;
-                    updateActiveOption();
-                } else if (e.key === "ArrowUp") {
-                    selectedIndex = (selectedIndex - 1 + optionsList.length) % optionsList.length;
-                    updateActiveOption();
-                } else if (e.key === "Enter") {
-                    if (selectedIndex !== -1) {
-                        selectOption($(optionsList[selectedIndex]));
-                    }
-                }
-            });
-
-            // Click selection
-            optionsList.click(function () {
-                selectOption($(this));
-            });
-
-            function updateActiveOption() {
-                optionsList.removeClass("active");
-                if (selectedIndex !== -1) {
-                    $(optionsList[selectedIndex]).addClass("active");
-                }
-            }
-
-            function selectOption(option) {
-                inputField.val(option.text());
-                modal.hide();
-                setTimeout(() => nextField.focus(), 300); // Focus next field
-            }
-        });
         //-----------------------------------------------------------------------------------------
-        // Check if the payment modal is open
-        let isPaymentModalOpen = false;
 
-        // Monitor the opening and closing of the payment modal
-        $('#paymentModal').on('show.bs.modal', function () {
-            isPaymentModalOpen = true;
-        });
-
-        $('#paymentModal').on('hide.bs.modal', function () {
-            isPaymentModalOpen = false;
-        });
         //for vat selection
         // Open VAT modal when VAT select field is focused
         function openVatModal() {
-            if (isPaymentModalOpen) {
-                // Prevent opening the VAT modal if payment modal is open
-                return;
-            }
             $('#vatModal').modal('show');
 
             // Ensure search input gets focus when modal is shown
@@ -767,7 +647,7 @@
 
             // Move focus to the account input field after VAT selection
             setTimeout(() => {
-                document.getElementById('account').focus();
+                document.getElementById('cashAccount').focus();
             }, 300); // Small delay to ensure modal closes before focusing
         }
 
@@ -864,18 +744,17 @@
             isVatModalOpen = false;
         });
 
-        //for account
-        $(document).ready(function () {
 
+        $(document).ready(function () {
             if (isVatModalOpen) {
                 // Prevent opening the VAT modal if payment modal is open
                 return;
             }
-
             let selectedIndex = 0;
             let allAccounts = [];
+            let customNameAllowed = true;
 
-            const $accountInput = $("#account");
+            const $accountInput = $("#cashAccount");
             const $accountIdInput = $("#accountId"); // Hidden input field to store account ID
             const $accountModal = $("#accountModal");
             const $searchInput = $("#searchAccount");
@@ -893,10 +772,16 @@
                 $searchInput.focus();
             });
 
+            // Allow typing a new name directly
+            $accountInput.on("input", function () {
+                customNameAllowed = true;
+                $accountIdInput.val(""); // Clear account ID when typing a new name
+            });
+
             // Fetch accounts from server
             function fetchAccounts() {
                 $.ajax({
-                    url: "/api/accounts",
+                    url: "/api/fetch/cashaccounts",
                     method: "GET",
                     success: function (data) {
                         allAccounts = data;
@@ -912,11 +797,6 @@
             // Render accounts dynamically
             function renderAccounts(filtered = allAccounts) {
                 $accountList.empty();
-
-                if (filtered.length === 0) {
-                    $accountList.html('<li class="list-group-item text-muted">No accounts found</li>');
-                    return;
-                }
 
                 filtered.forEach((account, index) => {
                     const isActive = index === 0 ? "active" : "";
@@ -948,7 +828,7 @@
                 renderAccounts(filteredAccounts);
             });
 
-            // Handle keyboard navigation & scrolling
+            // Handle keyboard navigation & pressing "Enter"
             $searchInput.on("keydown", function (e) {
                 let visibleItems = $(".account-item");
 
@@ -964,6 +844,9 @@
                     e.preventDefault();
                     if (visibleItems.length > 0) {
                         selectAccount(visibleItems.eq(selectedIndex));
+                    } else {
+                        // If no accounts are displayed, allow custom name selection
+                        selectCustomName();
                     }
                 }
 
@@ -989,14 +872,30 @@
 
                 $accountInput.val(accountName);
                 $accountIdInput.val(accountId); // Store account ID in hidden input
-                $("#address").val(accountAddress);
-                $("#pan").val(accountPan);
+                $("#cashAccountAddress").val(accountAddress);
+                $("#cashAccountPan").val(accountPan);
                 $accountModal.modal("hide");
 
-                // Move focus to the next input field
+                customNameAllowed = false; // Prevent custom name typing when an account is selected
+                // Move focus to the Party Address field
                 setTimeout(() => {
-                    $("#address").focus();
+                    $("#cashAccountAddress").focus();
                 }, 300);
+            }
+
+            // Function to handle custom name selection
+            function selectCustomName() {
+                let typedName = $searchInput.val().trim();
+                if (typedName !== "") {
+                    $accountInput.val(typedName);
+                    $accountIdInput.val(""); // Clear account ID for new name
+                    $accountModal.modal("hide");
+
+                    // Move focus to the Party Address field
+                    setTimeout(() => {
+                        $("#cashAccountAddress").focus();
+                    }, 300);
+                }
             }
 
             // Function to adjust scroll position
@@ -1012,6 +911,8 @@
                 }
             }
         });
+
+
         //----------------------------------------------------------------------------------------------------
 
     </script>

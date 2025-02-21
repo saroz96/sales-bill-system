@@ -20,6 +20,11 @@ const SalesBillSchema = new Schema({
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     billNumber: { type: Number, required: true },
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
+    cashAccount: { type: String },
+    cashAccountAddress:{type: String},
+    cashAccountPan:{type: String},
+    cashAccountEmail:{type: String},
+    cashAccountPhone:{type: String},
     settings: { type: mongoose.Schema.Types.ObjectId, ref: 'Settings' },
     fiscalYear: {
         type: Schema.Types.ObjectId,
