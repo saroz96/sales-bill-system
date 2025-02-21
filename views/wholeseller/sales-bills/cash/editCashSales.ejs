@@ -1,79 +1,83 @@
-<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+<%- include('../../layouts/boilerplate', { title: '' , body: '' }) %>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/stylesheet/purchase/edit.css">
-
+    <link rel="stylesheet" href="/stylesheet/sales/edit.css">
 
     <!-- Nepali Datepicker -->
     <link href="https://nepalidatepicker.sajanmaharjan.com.np/nepali.datepicker/css/nepali.datepicker.v4.0.7.min.css"
         rel="stylesheet" type="text/css" />
 
-
-    <div class="container wow-form expanded-container">
+    <div class="container mt-4 wow-form expanded-container">
         <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
             <div class="card-header">
-                Update Purchase
+                Update Sales
+
                 <span id="customAlertForBillNumber" style="color: red; display: none;">Invoice is required!</span>
                 <span id="transactionDateError" style="color: red; display: none;">Invalid date!</span>
                 <span id="nepaliDateError" style="color: red; display: none;">Invalid date!</span>
             </div>
             <div class="card-body">
-                <form action="/purchase-bills/edit/<%=purchaseInvoice._id%>?_method=PUT" method="post" id="billForm"
-                    class="wow-form">
+                <form action="/bills/editCashAccount/<%=bill._id%>?_method=PUT" method="post" id="billForm" class="wow-form">
                     <div class="form-group row">
+
                         <% if (companyDateFormat==='nepali' ) { %>
                             <!-- Nepali Date Fields -->
                             <div class="col">
                                 <label for="transactionDateNepali">Transaction Date:</label>
                                 <input type="text" name="transactionDateNepali" id="transactionDateNepali"
                                     class="form-control"
-                                    value="<%= purchaseInvoice.transactionDate ? purchaseInvoice.transactionDate.toISOString().split('T')[0]: '' %>"
+                                    value="<%= bill.transactionDate ? bill.transactionDate.toISOString().split('T')[0]: '' %>"
                                     onfocus="selectValue(this)" autofocus required />
 
                             </div>
+
                             <div class="col">
                                 <label for="nepaliDate">Invoice Date:</label>
                                 <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
-                                    value="<%= purchaseInvoice.date ? purchaseInvoice.date.toISOString().split('T')[0] : '' %>"
+                                    value="<%= bill.date ? bill.date.toISOString().split('T')[0] : '' %>"
                                     onfocus="selectValue(this)" autofocus />
 
                             </div>
 
                             <% } else { %>
                                 <!-- English Date Fields -->
+                                <!-- <div class="col">
+                                    <label for="transactionDateRoman">Transaction Date:</label>
+                                    <input type="date" name="transactionDateRoman" id="transactionDateRoman"
+                                        class="form-control"
+                                        value="<%= bill.transactionDate ? bill.transactionDate.toISOString().split('T')[0]: '' %>"
+                                        autofocus required>
+                                </div> -->
                                 <div class="col">
                                     <label for="transactionDateRoman">Transaction Date:</label>
                                     <input type="date" name="transactionDateRoman" id="transactionDateRoman"
                                         class="form-control"
-                                        value="<%= purchaseInvoice.transactionDate ? purchaseInvoice.transactionDate.toISOString().split('T')[0]: '' %>"
+                                        value="<%= bill.transactionDate ? bill.transactionDate.toISOString().split('T')[0]: '' %>"
                                         onfocus="selectValue(this)" autofocus required onblur="validateDate(this)">
                                     <span class="error-message" style="color: red; display: none;"></span>
 
                                 </div>
+                                <!-- <div class="col">
+                                    <label for="billDate">Invoice Date:</label>
+                                    <input type="date" name="billDate" id="billDate" class="form-control" required
+                                        value="<%= bill.date ? bill.date.toISOString().split('T')[0] : '' %>">
+                                </div> -->
                                 <div class="col">
-                                    <label for="purchaseInvoiceDate">Invoice Date:</label>
-                                    <input type="date" name="purchaseInvoiceDate" id="purchaseInvoiceDate"
-                                        class="form-control" required
-                                        value="<%= purchaseInvoice.date ? purchaseInvoice.date.toISOString().split('T')[0] : '' %>"
+                                    <label for="billDate">Invoice Date:</label>
+                                    <input type="date" name="billDate" id="billDate" class="form-control" required
+                                        value="<%= bill.date ? bill.date.toISOString().split('T')[0] : '' %>"
                                         onfocus="selectValue(this)" onblur="validateDate(this)">
                                     <span class="error-message" style="color: red; display: none;"></span>
-
                                 </div>
                                 <% } %>
                                     <div class="col">
                                         <label for="billNumber">Vch. No:</label>
                                         <input type="number" name="billNumber" id="billNumber" class="form-control"
-                                            value="<%= purchaseInvoice.billNumber %>" onfocus="selectValue(this)">
+                                            value="<%= bill.billNumber %>">
                                     </div>
-                                    <div class="col">
+                                    <div class="col hidden">
                                         <label for="paymentMode">Payment Mode:</label>
                                         <input type="text" class="form-control" id="paymentMode" name="paymentMode"
-                                            placeholder="" autocomplete="off" value="<%=purchaseInvoice.paymentMode%>">
-                                    </div>
-                                    <div class="col">
-                                        <label for="partyBillNumber">Suppliers Inv. No:</label>
-                                        <input type="text" class="form-control" name="partyBillNumber"
-                                            id="partyBillNumber" value="<%=purchaseInvoice.partyBillNumber%>"
-                                            autocomplete="off" onfocus="selectValue(this)">
+                                            placeholder="" autocomplete="off" value="<%=bill.paymentMode%>">
                                     </div>
 
                                     <div class="col">
@@ -81,50 +85,51 @@
                                         <select name="isVatExempt" id="isVatExempt" class="form-control"
                                             onchange="toggleVatInputs()" onfocus="openVatModal()" autocomplete="off">
                                             <% if (vatEnabled) {%>
-                                                <option value="all"
-                                                    <%=purchaseInvoice.isVatExempt===false&&purchaseInvoice.isVatAll==='true'
+                                                <option value="all" <%=bill.isVatExempt===false&&bill.isVatAll==='true'
                                                     ? 'selected' :'' %>>All</option>
                                                 <option value="false"
-                                                    <%=purchaseInvoice.isVatExempt===false&&purchaseInvoice.isVatAll==='false'
-                                                    ? 'selected' : '' %>>13%
+                                                    <%=bill.isVatExempt===false&&bill.isVatAll==='false' ? 'selected'
+                                                    : '' %>>13%
                                                 </option>
                                                 <%}%>
                                                     <option value="true"
-                                                        <%=purchaseInvoice.isVatExempt===true&&purchaseInvoice.isVatAll==='false'
-                                                        ? 'selected' : '' %>>Exempt
+                                                        <%=bill.isVatExempt===true&&bill.isVatAll==='false' ? 'selected'
+                                                        : '' %>>Exempt
                                                     </option>
                                         </select>
                                     </div>
                     </div>
                     <div class="form-group row">
                         <div class="col hidden">
-                            <label for="purchaseSalesType">Type</label>
+                            <label for="purchaseSalesType">Type:</label>
                             <select id="purchaseSalesType" name="purchaseSalesType" class="form-control" disabled>
-                                <option value="Purchase">Purchase</option>
+                                <option value="Sales">Sales</option>
                             </select>
                         </div>
+
                         <div class="col-6">
                             <!-- Account Selection Input -->
-                            <label for="account">Party Name:</label>
-                            <input type="text" id="account" name="account" class="form-control"
-                                value="<%=purchaseInvoice.account.name%>" required>
+                            <label for="cashAccount">Party Name:</label>
+                            <input type="text" id="cashAccount" name="cashAccount" class="form-control"
+                                value="<%=bill.cashAccount%>" required>
                             <!-- <input type="hidden" id="accountId" name="accountId"> -->
-                            <input type="hidden" id="accountId" name="accountId" value="<%= purchaseInvoice.account._id %>">
+                            <input type="hidden" id="accountId" name="accountId" value="<%= bill.cashAccount %>">
                         </div>
+
                         <div class="col">
                             <!-- New field for the address -->
-                            <label for="address">Party Address:</label>
-                            <input type="text" id="address" name="address" class="form-control"
-                                value="<%=purchaseInvoice.account.address%>" onfocus="selectValue(this)">
+                            <label for="cashAccountAddress">Party Address:</label>
+                            <input type="text" id="cashAccountAddress" name="cashAccountAddress" class="form-control"
+                                value="<%=bill.cashAccountAddress%>">
                         </div>
                         <div class="col">
                             <!-- New field for the address -->
                             <label for="pan">Vat No:</label>
-                            <input type="text" id="pan" name="pan" class="form-control"
-                                value="<%=purchaseInvoice.account.pan%>" onfocus="selectValue(this)">
+                            <input type="text" id="cashAccountPan" name="cashAccountPan" class="form-control" value="<%=bill.cashAccountPan%>">
                         </div>
                     </div>
                     <hr style="border: 1px solid gray;">
+
                     <table class="table table-bordered compact-table" id="itemsTable">
                         <thead>
                             <tr>
@@ -190,14 +195,14 @@
                                                 onfocus="selectValue(this)">
                                         </td>
                                         <td>
-                                            <input type="number" name="items[<%= index %>][puPrice]"
-                                                value="<%= item.puPrice || 0 %>" class="form-control item-puPrice"
-                                                id="puPrice-<%= index %>" step="any" oninput="updateItemTotal(this)"
+                                            <input type="number" name="items[<%= index %>][price]"
+                                                value="<%= item.price || 0 %>" class="form-control item-price"
+                                                id="price-<%= index %>" step="any" oninput="updateItemTotal(this)"
                                                 onkeydown="handlePriceKeydown(event, <%= index %>)"
                                                 onfocus="selectValue(this)">
                                         </td>
                                         <td class="item-amount">
-                                            <%= (item.quantity * item.puPrice).toFixed(2) %>
+                                            <%= (item.quantity * item.price).toFixed(2) %>
                                         </td>
                                         <td>
                                             <button type="button" class="btn btn-danger" onclick="removeItem(this)">
@@ -213,11 +218,14 @@
                         </tbody>
                     </table>
 
+                    <hr style="border: 1px solid gray;">
+
                     <div class="form-group row">
                         <div class="col">
                             <label for="itemSearch">Search Item</label>
                             <input type="text" id="itemSearch" class="form-control" placeholder="Search for an item"
-                                autocomplete="off" onkeydown="handleItemSearchKeydown(event)">
+                                oninput="filterItems(this)" autocomplete="off"
+                                onkeydown="handleItemSearchKeydown(event)">
                             <div id="dropdownMenu" class="dropdown-menu"></div>
                         </div>
                     </div>
@@ -237,7 +245,7 @@
                                     <td><label for="subTotal">Sub Total:</label></td>
                                     <td colspan="2" class="text-right">
                                         <p class="form-control-plaintext">Rs. <span id="subTotal">
-                                                <%= purchaseInvoice.subTotal.toFixed(2) %>
+                                                <%= bill.subTotal.toFixed(2) %>
                                             </span></p>
                                     </td>
                                 </tr>
@@ -248,14 +256,14 @@
                                     <td>
                                         <input type="number" step="any" name="discountPercentage"
                                             id="discountPercentage" class="form-control"
-                                            value="<%= purchaseInvoice.discountPercentage.toFixed(2) %>"
-                                            oninput="calculateTotal()" onfocus="selectValue(this)">
+                                            value="<%= bill.discountPercentage.toFixed(2) %>"
+                                            oninput="calculateTotal()">
                                     </td>
                                     <td><label for="discountAmount">Discount (Rs.):</label></td>
                                     <td>
                                         <input type="number" step="any" name="discountAmount" id="discountAmount"
-                                            value="<%= purchaseInvoice.discountAmount.toFixed(2) %>"
-                                            class="form-control" oninput="calculateTotal()" onfocus="selectValue(this)">
+                                            value="<%= bill.discountAmount.toFixed(2) %>" class="form-control"
+                                            oninput="calculateTotal()">
                                     </td>
                                 </tr>
 
@@ -264,7 +272,7 @@
                                     <td><label for="taxableAmount">Taxable Amount:</label></td>
                                     <td colspan="2" class="text-right">
                                         <p class="form-control-plaintext">Rs. <span id="taxableAmount">
-                                                <%= purchaseInvoice.taxableAmount.toFixed(2) %>
+                                                <%= bill.taxableAmount.toFixed(2) %>
                                             </span>
                                         </p>
                                     </td>
@@ -278,7 +286,7 @@
                                     <td><label for="vatAmount">VAT Amount:</label></td>
                                     <td class="text-right">
                                         <p class="form-control-plaintext">Rs. <span id="vatAmount">
-                                                <%= purchaseInvoice.vatAmount.toFixed(2) %>
+                                                <%= bill.vatAmount.toFixed(2) %>
                                             </span></p>
                                     </td>
                                 </tr>
@@ -288,8 +296,7 @@
                                     <td><label for="roundOffAmount">Round Off:</label></td>
                                     <td colspan="2">
                                         <input type="number" class="form-control" step="any" id="roundOffAmount"
-                                            name="roundOffAmount" value="0.00" oninput="calculateTotal()"
-                                            onfocus="selectValue(this)">
+                                            name="roundOffAmount" value="0.00" oninput="calculateTotal()">
                                     </td>
                                 </tr>
 
@@ -298,7 +305,7 @@
                                     <td><label for="totalAmount">Total Amount:</label></td>
                                     <td>
                                         <p class="form-control-plaintext">Rs. <span id="totalAmount">
-                                                <%= purchaseInvoice.totalAmount.toFixed(2) %>
+                                                <%= bill.totalAmount.toFixed(2) %>
                                             </span></p>
                                     </td>
                                     <td><label for="amountInWords">In Words:</label></td>
@@ -361,97 +368,45 @@
             </div>
         </div>
     </div>
-
-
-    <!-- Transaction Modal -->
+<!-- 
     <div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="transactionModalLabel">Last Transactions</h5>
-                    <button type="button" class="close" data-bs-dismiss="modal">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
                     <ul id="transactionList" class="list-group">
-                        <!-- Transactions will be dynamically inserted here -->
                     </ul>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="closeModalButton"
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" id="closeModalButton"
                         onkeydown="handleCloseButtonKeydown(event)">Close</button>
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
-    <!-- Sales Price Modal -->
-    <div class="modal fade" id="setSalesPriceModal" tabindex="-1" aria-labelledby="setSalesPriceModalLabel"
-        aria-hidden="true">
+    <!-- Batch and Expiry Modal -->
+    <div class="modal fade" id="batchModal" tabindex="-1" aria-labelledby="batchModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="setSalesPriceModalLabel">Set Sales Price for New Batch</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <% if (items && items.length> 0) { %>
-                    <% items.forEach((item)=> { %>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="puPrice" class="form-label">Purchase Price</label>
-                                <input type="number" class="form-control" id="puPrice"
-                                    value="<%= item.item.puPrice || 'N/A' %>" step="any" readonly>
-                            </div>
-                            <div class="mb-3">
-                                <label for="marginPercentage" class="form-label">Margin Percentage (%)</label>
-                                <input type="number" class="form-control" id="marginPercentage" min="0" step="any"
-                                    placeholder="Enter margin percentage" onfocus="selectValue(this)">
-                            </div>
-                            <div class="mb-3">
-                                <label for="currency" class="form-label">Currency</label>
-                                <select class="form-select" id="currency" onfocus="selectValue(this)">
-                                    <option value="NPR">NPR</option>
-                                    <option value="INR">INR</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="mrp" class="form-label">MRP</label>
-                                <input type="number" class="form-control" id="mrp" step="any" placeholder="Enter MRP"
-                                    onfocus="selectValue(this)">
-                            </div>
-                            <div class="mb-3">
-                                <label for="salesPrice" class="form-label">Sales Price</label>
-                                <input type="number" class="form-control" id="salesPrice" step="any"
-                                    onfocus="selectValue(this)" required>
-                            </div>
-                            <% }); %>
-                                <% } %>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary" id="saveSalesPrice">Save Sales Price</button>
-                        </div>
-            </div>
-        </div>
-    </div>
+                    <h5 class="modal-title" id="batchModalLabel">Batch Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
 
-    <!-- Modal for payment mode -->
-    <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered"> <!-- Centering class added -->
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="paymentModalLabel">Select Payment Mode</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </button>
+
                 </div>
-                <div class="modal-body">
-                    <input type="text" class="form-control mb-2" id="searchPayment" placeholder="Search Payment Mode"
-                        autocomplete="off">
-                    <ul class="list-group" id="paymentOptions">
-                        <li class="list-group-item active" data-value="credit">credit</li>
-                        <li class="list-group-item" data-value="cash">cash</li>
-                    </ul>
+                <div class="modal-body" id="batchModalBody">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -485,8 +440,9 @@
         </div>
     </div>
 
-    <script src="/javascript/purchase/edit.js"></script>
+    <script src="/javascript/sales/cash/editCashSales.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 
     <script>
         function selectValue(input) {
@@ -498,169 +454,10 @@
     <script src="https://nepalidatepicker.sajanmaharjan.com.np/nepali.datepicker/js/nepali.datepicker.v4.0.7.min.js"
         type="text/javascript"></script>
 
+
     <script type="text/javascript">
 
-        // Check if the payment modal is open
-        let isVatModalOpen = false;
-
-        // Monitor the opening and closing of the payment modal
-        $('#vatModal').on('show.bs.modal', function () {
-            isVatModalOpen = true;
-        });
-
-        $('#vatModal').on('hide.bs.modal', function () {
-            isVatModalOpen = false;
-        });
-
-        //for account
-        $(document).ready(function () {
-            if (isVatModalOpen) {
-                // Prevent opening the VAT modal if payment modal is open
-                return;
-            }
-            let selectedIndex = 0;
-            let allAccounts = [];
-
-            const $accountInput = $("#account");
-            const $accountIdInput = $("#accountId"); // Hidden input field to store account ID
-            const $accountModal = $("#accountModal");
-            const $searchInput = $("#searchAccount");
-            const $accountList = $("#accountList");
-            const $modalBody = $accountList.parent();
-
-            // Open modal when input is focused
-            $accountInput.focus(function () {
-                $accountModal.modal("show");
-                fetchAccounts();
-            });
-
-            // Focus on search input when modal opens
-            $accountModal.on("shown.bs.modal", function () {
-                $searchInput.focus();
-            });
-
-            // Fetch accounts from server
-            function fetchAccounts() {
-                $.ajax({
-                    url: "/api/accounts",
-                    method: "GET",
-                    success: function (data) {
-                        allAccounts = data;
-                        renderAccounts();
-                    },
-                    error: function (err) {
-                        console.error("Error fetching accounts:", err);
-                        $accountList.html('<li class="list-group-item text-danger">Failed to load accounts</li>');
-                    }
-                });
-            }
-
-            // Render accounts dynamically
-            function renderAccounts(filtered = allAccounts) {
-                $accountList.empty();
-
-                if (filtered.length === 0) {
-                    $accountList.html('<li class="list-group-item text-muted">No accounts found</li>');
-                    return;
-                }
-
-                filtered.forEach((account, index) => {
-                    const isActive = index === 0 ? "active" : "";
-                    $accountList.append(`
-                <li class="list-group-item account-item ${isActive}" 
-                    data-id="${account._id}" 
-                    data-name="${account.name}" 
-                    data-address="${account.address || 'N/A'}" 
-                    data-pan="${account.pan || 'N/A'}"
-                    data-index="${index}">
-                    <div class="d-flex justify-content-between">
-                        <strong>${account.name}</strong>
-                        <span>📍 ${account.address || 'N/A'} | 🆔 PAN: ${account.pan || 'N/A'}</span>
-                    </div>
-                </li>
-            `);
-                });
-
-                selectedIndex = 0;
-            }
-
-            // Search accounts dynamically
-            $searchInput.on("input", function () {
-                let searchText = $(this).val().toLowerCase();
-                let filteredAccounts = allAccounts.filter(account =>
-                    account.name.toLowerCase().includes(searchText)
-                );
-
-                renderAccounts(filteredAccounts);
-            });
-
-            // Handle keyboard navigation & scrolling
-            $searchInput.on("keydown", function (e) {
-                let visibleItems = $(".account-item");
-
-                if (e.key === "ArrowDown") {
-                    if (selectedIndex < visibleItems.length - 1) {
-                        selectedIndex++;
-                    }
-                } else if (e.key === "ArrowUp") {
-                    if (selectedIndex > 0) {
-                        selectedIndex--;
-                    }
-                } else if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (visibleItems.length > 0) {
-                        selectAccount(visibleItems.eq(selectedIndex));
-                    }
-                }
-
-                // Highlight the selected item
-                visibleItems.removeClass("active");
-                let selectedItem = visibleItems.eq(selectedIndex);
-                selectedItem.addClass("active");
-
-                adjustScroll(selectedItem);
-            });
-
-            // Click to select account
-            $(document).on("click", ".account-item", function () {
-                selectAccount($(this));
-            });
-
-            // Function to select account and populate fields
-            function selectAccount(element) {
-                let accountId = element.data("id"); // Get account ID
-                let accountName = element.data("name");
-                let accountAddress = element.data("address");
-                let accountPan = element.data("pan");
-
-                $accountInput.val(accountName);
-                $accountIdInput.val(accountId); // Store account ID in hidden input
-                $("#address").val(accountAddress);
-                $("#pan").val(accountPan);
-                $accountModal.modal("hide");
-
-                // Move focus to the next input field
-                setTimeout(() => {
-                    $("#address").focus();
-                }, 300);
-            }
-
-            // Function to adjust scroll position
-            function adjustScroll(selectedItem) {
-                let itemTop = selectedItem.position().top;
-                let itemHeight = selectedItem.outerHeight();
-                let modalHeight = $modalBody.innerHeight();
-
-                if (itemTop + itemHeight > modalHeight) {
-                    $modalBody.scrollTop($modalBody.scrollTop() + itemHeight);
-                } else if (itemTop < 0) {
-                    $modalBody.scrollTop($modalBody.scrollTop() - itemHeight);
-                }
-            }
-        });
-        //-----------------------------------------------------------------------------------------------
-
-        window.onload = function () {
+window.onload = function () {
             var transactionDateNepali = document.getElementById("transactionDateNepali");
             var nepaliDate = document.getElementById("nepaliDate");
 
@@ -734,99 +531,15 @@
             return nepaliMonths[month - 1]; // Return the number of days for the given month
         }
 
-        //for english date validation
-        function validateDate(input) {
-            const errorMessage = input.nextElementSibling; // Get the error message span
-            const dateValue = input.value;
-
-            // Check if the date is valid
-            if (!dateValue || isNaN(new Date(dateValue).getTime())) {
-                errorMessage.textContent = "Invalid date!";
-                errorMessage.style.display = "block";
-                input.focus(); // Prevent moving to the next field
-            } else {
-                errorMessage.style.display = "none"; // Hide error if valid
-            }
+        function selectValue(input) {
+            input.select(); // Select the value of the input field when it is focused
         }
 
-
-        //for payment mode:
-        $(document).ready(function () {
-            let selectedIndex = 0;
-            const inputField = $("#paymentMode");
-            const searchField = $("#searchPayment");
-            const nextField = $("#partyBillNumber"); // Next field to focus
-            const modal = new bootstrap.Modal(document.getElementById("paymentModal"));
-            const optionsList = $("#paymentOptions li");
-
-            // Show modal on input focus
-            inputField.focus(function () {
-                modal.show();
-                setTimeout(() => searchField.focus(), 500); // Auto-focus search bar in modal
-            });
-
-            // Search function
-            searchField.on("input", function () {
-                let searchText = $(this).val().toLowerCase();
-                optionsList.each(function () {
-                    let text = $(this).text().toLowerCase();
-                    $(this).toggle(text.includes(searchText));
-                });
-            });
-
-            // Keyboard navigation
-            searchField.keydown(function (e) {
-                if (e.key === "ArrowDown") {
-                    selectedIndex = (selectedIndex + 1) % optionsList.length;
-                    updateActiveOption();
-                } else if (e.key === "ArrowUp") {
-                    selectedIndex = (selectedIndex - 1 + optionsList.length) % optionsList.length;
-                    updateActiveOption();
-                } else if (e.key === "Enter") {
-                    if (selectedIndex !== -1) {
-                        selectOption($(optionsList[selectedIndex]));
-                    }
-                }
-            });
-
-            // Click selection
-            optionsList.click(function () {
-                selectOption($(this));
-            });
-
-            function updateActiveOption() {
-                optionsList.removeClass("active");
-                if (selectedIndex !== -1) {
-                    $(optionsList[selectedIndex]).addClass("active");
-                }
-            }
-
-            function selectOption(option) {
-                inputField.val(option.text());
-                modal.hide();
-                setTimeout(() => nextField.focus(), 300); // Focus next field
-            }
-        });
         //-----------------------------------------------------------------------------------------
 
         //for vat selection
-        // Check if the payment modal is open
-        let isPaymentModalOpen = false;
-
-        // Monitor the opening and closing of the payment modal
-        $('#paymentModal').on('show.bs.modal', function () {
-            isPaymentModalOpen = true;
-        });
-
-        $('#paymentModal').on('hide.bs.modal', function () {
-            isPaymentModalOpen = false;
-        });
         // Open VAT modal when VAT select field is focused
         function openVatModal() {
-            if (isPaymentModalOpen) {
-                // Prevent opening the VAT modal if payment modal is open
-                return;
-            }
             $('#vatModal').modal('show');
 
             // Ensure search input gets focus when modal is shown
@@ -849,7 +562,7 @@
 
             // Move focus to the account input field after VAT selection
             setTimeout(() => {
-                document.getElementById('account').focus();
+                document.getElementById('cashAccount').focus();
             }, 300); // Small delay to ensure modal closes before focusing
         }
 
@@ -932,5 +645,337 @@
     }
 `;
         document.head.appendChild(style);
+
+        //---------------------------------------------------------------------------------------------------------
+        // Check if the payment modal is open
+        let isVatModalOpen = false;
+
+        // Monitor the opening and closing of the payment modal
+        $('#vatModal').on('show.bs.modal', function () {
+            isVatModalOpen = true;
+        });
+
+        $('#vatModal').on('hide.bs.modal', function () {
+            isVatModalOpen = false;
+        });
+
+        // //for account
+        // $(document).ready(function () {
+
+        //     if (isVatModalOpen) {
+        //         // Prevent opening the VAT modal if payment modal is open
+        //         return;
+        //     }
+
+        //     let selectedIndex = 0;
+        //     let allAccounts = [];
+
+        //     const $accountInput = $("#account");
+        //     const $accountIdInput = $("#accountId"); // Hidden input field to store account ID
+        //     const $accountModal = $("#accountModal");
+        //     const $searchInput = $("#searchAccount");
+        //     const $accountList = $("#accountList");
+        //     const $modalBody = $accountList.parent();
+
+        //     // Open modal when input is focused
+        //     $accountInput.focus(function () {
+        //         $accountModal.modal("show");
+        //         fetchAccounts();
+        //     });
+
+        //     // Focus on search input when modal opens
+        //     $accountModal.on("shown.bs.modal", function () {
+        //         $searchInput.focus();
+        //     });
+
+        //     // Fetch accounts from server
+        //     function fetchAccounts() {
+        //         $.ajax({
+        //             url: "/api/fetch/cashaccounts",
+        //             method: "GET",
+        //             success: function (data) {
+        //                 allAccounts = data;
+        //                 renderAccounts();
+        //             },
+        //             error: function (err) {
+        //                 console.error("Error fetching accounts:", err);
+        //                 $accountList.html('<li class="list-group-item text-danger">Failed to load accounts</li>');
+        //             }
+        //         });
+        //     }
+
+        //     // Render accounts dynamically
+        //     function renderAccounts(filtered = allAccounts) {
+        //         $accountList.empty();
+
+        //         if (filtered.length === 0) {
+        //             $accountList.html('<li class="list-group-item text-muted">No accounts found</li>');
+        //             return;
+        //         }
+
+        //         filtered.forEach((account, index) => {
+        //             const isActive = index === 0 ? "active" : "";
+        //             $accountList.append(`
+        //         <li class="list-group-item account-item ${isActive}" 
+        //             data-id="${account._id}" 
+        //             data-name="${account.name}" 
+        //             data-address="${account.address || 'N/A'}" 
+        //             data-pan="${account.pan || 'N/A'}"
+        //             data-index="${index}">
+        //             <div class="d-flex justify-content-between">
+        //                 <strong>${account.name}</strong>
+        //                 <span>📍 ${account.address || 'N/A'} | 🆔 PAN: ${account.pan || 'N/A'}</span>
+        //             </div>
+        //         </li>
+        //     `);
+        //         });
+
+        //         selectedIndex = 0;
+        //     }
+
+        //     // Search accounts dynamically
+        //     $searchInput.on("input", function () {
+        //         let searchText = $(this).val().toLowerCase();
+        //         let filteredAccounts = allAccounts.filter(account =>
+        //             account.name.toLowerCase().includes(searchText)
+        //         );
+
+        //         renderAccounts(filteredAccounts);
+        //     });
+
+        //     // Handle keyboard navigation & scrolling
+        //     $searchInput.on("keydown", function (e) {
+        //         let visibleItems = $(".account-item");
+
+        //         if (e.key === "ArrowDown") {
+        //             if (selectedIndex < visibleItems.length - 1) {
+        //                 selectedIndex++;
+        //             }
+        //         } else if (e.key === "ArrowUp") {
+        //             if (selectedIndex > 0) {
+        //                 selectedIndex--;
+        //             }
+        //         } else if (e.key === "Enter") {
+        //             e.preventDefault();
+        //             if (visibleItems.length > 0) {
+        //                 selectAccount(visibleItems.eq(selectedIndex));
+        //             }
+        //         }
+
+        //         // Highlight the selected item
+        //         visibleItems.removeClass("active");
+        //         let selectedItem = visibleItems.eq(selectedIndex);
+        //         selectedItem.addClass("active");
+
+        //         adjustScroll(selectedItem);
+        //     });
+
+        //     // Click to select account
+        //     $(document).on("click", ".account-item", function () {
+        //         selectAccount($(this));
+        //     });
+
+        //     // Function to select account and populate fields
+        //     function selectAccount(element) {
+        //         let accountId = element.data("id"); // Get account ID
+        //         let accountName = element.data("name");
+        //         let accountAddress = element.data("address");
+        //         let accountPan = element.data("pan");
+
+        //         $accountInput.val(accountName);
+        //         $accountIdInput.val(accountId); // Store account ID in hidden input
+        //         $("#address").val(accountAddress);
+        //         $("#pan").val(accountPan);
+        //         $accountModal.modal("hide");
+
+        //         // Move focus to the next input field
+        //         setTimeout(() => {
+        //             $("#address").focus();
+        //         }, 300);
+        //     }
+
+        //     // Function to adjust scroll position
+        //     function adjustScroll(selectedItem) {
+        //         let itemTop = selectedItem.position().top;
+        //         let itemHeight = selectedItem.outerHeight();
+        //         let modalHeight = $modalBody.innerHeight();
+
+        //         if (itemTop + itemHeight > modalHeight) {
+        //             $modalBody.scrollTop($modalBody.scrollTop() + itemHeight);
+        //         } else if (itemTop < 0) {
+        //             $modalBody.scrollTop($modalBody.scrollTop() - itemHeight);
+        //         }
+        //     }
+        // });
+
+
+
+        $(document).ready(function () {
+            if (isVatModalOpen) {
+                // Prevent opening the VAT modal if payment modal is open
+                return;
+            }
+            let selectedIndex = 0;
+            let allAccounts = [];
+            let customNameAllowed = true;
+
+            const $accountInput = $("#cashAccount");
+            const $accountIdInput = $("#accountId"); // Hidden input field to store account ID
+            const $accountModal = $("#accountModal");
+            const $searchInput = $("#searchAccount");
+            const $accountList = $("#accountList");
+            const $modalBody = $accountList.parent();
+
+            // Open modal when input is focused
+            $accountInput.focus(function () {
+                $accountModal.modal("show");
+                fetchAccounts();
+            });
+
+            // Focus on search input when modal opens
+            $accountModal.on("shown.bs.modal", function () {
+                $searchInput.focus();
+            });
+
+            // Allow typing a new name directly
+            $accountInput.on("input", function () {
+                customNameAllowed = true;
+                $accountIdInput.val(""); // Clear account ID when typing a new name
+            });
+
+            // Fetch accounts from server
+            function fetchAccounts() {
+                $.ajax({
+                    url: "/api/fetch/cashaccounts",
+                    method: "GET",
+                    success: function (data) {
+                        allAccounts = data;
+                        renderAccounts();
+                    },
+                    error: function (err) {
+                        console.error("Error fetching accounts:", err);
+                        $accountList.html('<li class="list-group-item text-danger">Failed to load accounts</li>');
+                    }
+                });
+            }
+
+            // Render accounts dynamically
+            function renderAccounts(filtered = allAccounts) {
+                $accountList.empty();
+
+                filtered.forEach((account, index) => {
+                    const isActive = index === 0 ? "active" : "";
+                    $accountList.append(`
+                <li class="list-group-item account-item ${isActive}" 
+                    data-id="${account._id}" 
+                    data-name="${account.name}" 
+                    data-address="${account.address || 'N/A'}" 
+                    data-pan="${account.pan || 'N/A'}"
+                    data-index="${index}">
+                    <div class="d-flex justify-content-between">
+                        <strong>${account.name}</strong>
+                        <span>📍 ${account.address || 'N/A'} | 🆔 PAN: ${account.pan || 'N/A'}</span>
+                    </div>
+                </li>
+            `);
+                });
+
+                selectedIndex = 0;
+            }
+
+            // Search accounts dynamically
+            $searchInput.on("input", function () {
+                let searchText = $(this).val().toLowerCase();
+                let filteredAccounts = allAccounts.filter(account =>
+                    account.name.toLowerCase().includes(searchText)
+                );
+
+                renderAccounts(filteredAccounts);
+            });
+
+            // Handle keyboard navigation & pressing "Enter"
+            $searchInput.on("keydown", function (e) {
+                let visibleItems = $(".account-item");
+
+                if (e.key === "ArrowDown") {
+                    if (selectedIndex < visibleItems.length - 1) {
+                        selectedIndex++;
+                    }
+                } else if (e.key === "ArrowUp") {
+                    if (selectedIndex > 0) {
+                        selectedIndex--;
+                    }
+                } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (visibleItems.length > 0) {
+                        selectAccount(visibleItems.eq(selectedIndex));
+                    } else {
+                        // If no accounts are displayed, allow custom name selection
+                        selectCustomName();
+                    }
+                }
+
+                // Highlight the selected item
+                visibleItems.removeClass("active");
+                let selectedItem = visibleItems.eq(selectedIndex);
+                selectedItem.addClass("active");
+
+                adjustScroll(selectedItem);
+            });
+
+            // Click to select account
+            $(document).on("click", ".account-item", function () {
+                selectAccount($(this));
+            });
+
+            // Function to select account and populate fields
+            function selectAccount(element) {
+                let accountId = element.data("id"); // Get account ID
+                let accountName = element.data("name");
+                let accountAddress = element.data("address");
+                let accountPan = element.data("pan");
+
+                $accountInput.val(accountName);
+                $accountIdInput.val(accountId); // Store account ID in hidden input
+                $("#cashAccountAddress").val(accountAddress);
+                $("#cashAccountPan").val(accountPan);
+                $accountModal.modal("hide");
+
+                customNameAllowed = false; // Prevent custom name typing when an account is selected
+                // Move focus to the Party Address field
+                setTimeout(() => {
+                    $("#cashAccountAddress").focus();
+                }, 300);
+            }
+
+            // Function to handle custom name selection
+            function selectCustomName() {
+                let typedName = $searchInput.val().trim();
+                if (typedName !== "") {
+                    $accountInput.val(typedName);
+                    $accountIdInput.val(""); // Clear account ID for new name
+                    $accountModal.modal("hide");
+
+                    // Move focus to the Party Address field
+                    setTimeout(() => {
+                        $("#cashAccountAddress").focus();
+                    }, 300);
+                }
+            }
+
+            // Function to adjust scroll position
+            function adjustScroll(selectedItem) {
+                let itemTop = selectedItem.position().top;
+                let itemHeight = selectedItem.outerHeight();
+                let modalHeight = $modalBody.innerHeight();
+
+                if (itemTop + itemHeight > modalHeight) {
+                    $modalBody.scrollTop($modalBody.scrollTop() + itemHeight);
+                } else if (itemTop < 0) {
+                    $modalBody.scrollTop($modalBody.scrollTop() - itemHeight);
+                }
+            }
+        });
+        //----------------------------------------------------------------------------------------------------
 
     </script>

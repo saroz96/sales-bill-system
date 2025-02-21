@@ -1,14 +1,19 @@
 {
   "name": "sales-bill-system",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "A billing software to manage sales and stock",
+  "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "electron": "electron .",
+    "package-win": "electron-packager . sales-bill-system --platform=win32 --arch=x64 --out=dist --overwrite --electron-version=34.2.0",
+    "dist": "electron-builder --win",
+    "package": "electron-builder"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
@@ -30,6 +35,31 @@
     "socket.io": "^4.7.5"
   },
   "devDependencies": {
+    "electron": "^34.2.0",
+    "electron-builder": "^25.1.8",
+    "electron-packager": "^17.1.2",
+    "electron-winstaller": "^5.4.0",
     "nodemon": "^3.1.9"
+  },
+  "build": {
+    "appId": "com.yourname.sales-bill-system",
+    "productName": "Sarathi",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/.cache",
+      "!dist/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icons/icons.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

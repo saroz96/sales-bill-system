@@ -2,50 +2,6 @@ let itemIndex = 0;
 let currentFocus = 0;
 let isFirstLoad = true;
 
-$(document).ready(function () {
-    // Initialize Select2 for searchable dropdown
-    // $('#account').select2({
-    //     placeholder: "Select a party name",
-    //     allowClear: true,
-    //     width: '100%', // Ensure it takes the full width of the container
-    // });
-
-    // Listen for the change event on the account dropdown
-    //     $('#account').on('change', function () {
-    //         const selectedOption = $(this).find('option:selected');
-    //         const address = selectedOption.data('address');
-
-    //         // Set the address field with the selected account's address
-    //         $('#address').val(address || 'Address not available');
-    //     });
-
-    //     // Listen for the change event on the account dropdown
-    //     $('#account').on('change', function () {
-    //         const selectedOption = $(this).find('option:selected');
-    //         const pan = selectedOption.data('pan');
-
-    //         // Set the address field with the selected account's address
-    //         $('#pan').val(pan || 'Pan no. not available');
-    //     });
-
-    //     // Initialize Select2 for searchable dropdown
-    //     $('#isVatExempt').select2({
-    //         placeholder: "Select a vat",
-    //         allowClear: true,
-    //         width: '100%', // Ensure it takes the full width of the container
-    //     });
-    // });
-
-
-    // $(document).ready(function () {
-    //     // Initialize Select2 for searchable dropdown
-    //     $('#paymentMode').select2({
-    //         placeholder: "Select mode",
-    //         allowClear: true,
-    //         width: '100%', // Ensure it takes the full width of the container
-    //     });
-});
-
 async function fetchItems(query, vatStatus, existingItemIds) {
     try {
         const response = await fetch(`/items/search?q=${query}&isVatExempt=${vatStatus}`);
@@ -217,10 +173,6 @@ async function showAllItems(input) {
     }
 }
 
-
-
-
-
 // Add event listener for focus to show all items
 document.getElementById('itemSearch').addEventListener('focus', function () {
     showAllItems(this);
@@ -315,68 +267,6 @@ function addItemToBill(item, dropdownMenu) {
 
     // Clear the item search field immediately after showing the modal
     inputField.value = '';
-
-    // First, check if we should display last transactions
-    shouldDisplayTransactions().then((displayTransactions) => {
-        // If displayTransactions is true, fetch the last transactions
-        if (displayTransactions) {
-            handleFetchLastTransactions(item._id).then(() => {
-                // Show batch modal after the transaction modal is closed
-                $('#transactionModal').on('hidden.bs.modal', function () {
-                    // Trigger the batch modal with batch details
-                    showBatchModal(item, (batchInfo) => {
-                        // This callback will be triggered when the user selects a batch from the modal
-                        selectedBatch = batchInfo;
-
-                        const tr = document.createElement('tr');
-                        tr.classList.add('item', item.vatStatus ? 'vatable-item' : 'non-vatable-item');
-
-                        const serialNumber = tbody.rows.length + 1;  // Calculate the serial number based on the number of rows already in the table
-                        tr.innerHTML = `
-            <td>${serialNumber}</td>
-            <td>${item.uniqueNumber}</td>
-             <td>
-            <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
-            ${item.hscode}
-        </td>
-        <td class="col-3">
-            <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
-            ${item.name}
-        </td>
-        <td><input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)"></td>
-        <td>
-            ${item.unit ? item.unit.name : ''}
-            <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
-        </td>
-             <td>
-                    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
-                </td>
-                  <td>
-                    <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
-                </td>
-        <td><input type="number" name="items[${itemIndex}][price]" value="${selectedBatch.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
-        <td class="item-amount">0.00</td>
-        <td>
-             <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </td>
-        <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
-    `;
-
-                        tbody.appendChild(tr);
-                        itemIndex++;
-                        calculateTotal();
-
-                        // Focus on the newly added row's quantity input
-                        document.getElementById(`quantity-${itemIndex - 1}`).focus();
-
-                        // Hide the dropdown menu after selecting an item
-                        dropdownMenu.classList.remove('show');
-                    });
-                });
-            });
-        } else {
             // Directly show the batch modal without fetching transactions
             showBatchModal(item, (batchInfo) => {
                 // This callback will be triggered when the user selects a batch from the modal
@@ -430,8 +320,8 @@ function addItemToBill(item, dropdownMenu) {
                 dropdownMenu.classList.remove('show');
             });
         }
-    });
-}
+//     });
+// }
 
 function showBatchModal(item, callback) {
     const modal = document.getElementById('batchModal');
@@ -808,59 +698,6 @@ document.getElementById('billForm').addEventListener('submit', function (event) 
     }
 });
 
-// function numberToWords(num) {
-//     const ones = [
-//         '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-//         'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
-//         'Seventeen', 'Eighteen', 'Nineteen'
-//     ];
-
-//     const tens = [
-//         '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'
-//     ];
-
-//     const scales = ['', 'Thousand', 'Million', 'Billion'];
-
-//     function convertHundreds(num) {
-//         let words = '';
-
-//         if (num > 99) {
-//             words += ones[Math.floor(num / 100)] + ' Hundred ';
-//             num %= 100;
-//         }
-
-//         if (num > 19) {
-//             words += tens[Math.floor(num / 10)] + ' ';
-//             num %= 10;
-//         }
-
-//         if (num > 0) {
-//             words += ones[num] + ' ';
-//         }
-
-//         return words.trim();
-//     }
-
-//     if (num === 0) return 'Zero';
-
-//     if (num < 0) return 'Negative ' + numberToWords(Math.abs(num));
-
-//     let words = '';
-
-//     for (let i = 0; i < scales.length; i++) {
-//         let unit = Math.pow(1000, scales.length - i - 1);
-//         let currentNum = Math.floor(num / unit);
-
-//         if (currentNum > 0) {
-//             words += convertHundreds(currentNum) + ' ' + scales[scales.length - i - 1] + ' ';
-//         }
-
-//         num %= unit;
-//     }
-
-//     return words.trim();
-// };
-
 // Fetch Total Amount and Convert to Words
 document.addEventListener('DOMContentLoaded', () => {
     const totalAmount = parseFloat(document.getElementById('totalAmount').innerText);
@@ -903,90 +740,6 @@ async function shouldDisplayTransactions() {
     }
 }
 
-async function fetchLastTransactions(itemId) {
-    // const itemId = select.value;
-    const accountId = document.getElementById('accountId').value;
-    const purchaseSalesType = document.getElementById('purchaseSalesType').value; // Ensure this element exists and has a value
-    const transactionList = document.getElementById('transactionList');
-
-    if (!purchaseSalesType) {
-        console.error('Account Type is undefined. Please ensure it is set.');
-        return;
-    }
-
-    try {
-
-        const response = await fetch(`/api/transactions/${itemId}/${accountId}/${purchaseSalesType}`);
-        const transactions = await response.json();
-        // const { transactions, companyDateFormat } = await response.json();
-
-        // Check if transactions are empty
-        if (transactions.length === 0) {
-            transactionList.innerHTML = '<p>No transactions to display.</p>';
-            // Do not show the modal if there are no transactions
-            return;
-        }
-
-        // Create table header
-        let tableHtml = `
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Trans. Id</th>
-                        <th>Date</th>
-                        <th>Bill No.</th>
-                        <th>Type</th>
-                        <th>A/c Type</th>
-                        <th>Pay.Mode</th>
-                        <th>Qty.</th>
-                        <th>Unit</th>
-                        <th>Rate</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-        // Add table rows for each transaction
-        tableHtml += transactions.map(transaction => {
-            return `
-                <tr onclick="window.location.href='/bills/${transaction.billId._id}/print'" style="cursor: pointer;">
-                    <td>${transaction._id}</td>
-                    <td>${new Date(transaction.date).toLocaleDateString()}</td>
-                    <td>${transaction.billNumber}</td>
-                    <td>${transaction.type}</td>
-                    <td>${transaction.purchaseSalesType}</td>
-                    <td>${transaction.paymentMode}</td>
-                    <td>${transaction.quantity}</td>
-                    <td>${transaction.unit ? transaction.unit.name : 'N/A'}</td>
-                    <td>Rs.${transaction.price}</td>
-                </tr>
-            `;
-        }).join('');
-
-        // Close table
-        tableHtml += `
-                </tbody>
-            </table>
-        `;
-
-        // Set the innerHTML of the transaction list container
-        transactionList.innerHTML = tableHtml;
-
-        // Show the modal
-        $('#transactionModal').modal('show');
-    } catch (error) {
-        console.error('Error fetching transactions:', error);
-    }
-}
-
-
-async function handleFetchLastTransactions(itemId) {
-    const displayTransactions = await shouldDisplayTransactions();
-    if (displayTransactions) {
-        await fetchLastTransactions(itemId);
-    }
-}
-
 
 // Assuming you have a batch modal with an ID 'batchModal' and an input field inside it
 const batchModal = document.getElementById('batchModal');
@@ -1020,105 +773,6 @@ function focusOnLastQuantityField() {
 document.addEventListener('DOMContentLoaded', function () {
     const itemSearchInput = document.getElementById('itemSearch'); // Initial focus on item search input
 });
-
-// async function handleItemSearchKeydown(event) {
-//     const itemSearchInput = document.getElementById('itemSearch');
-//     const itemsTable = document.getElementById('itemsTable');
-//     const itemsAvailable = itemsTable && itemsTable.querySelectorAll('.item').length > 0;
-
-//     if (itemSearchInput.value.length > 0) {
-//         if (event.key === 'Enter') {
-//             // Fetch and check if transactions should be displayed
-//             const displayTransactions = await shouldDisplayTransactions();
-
-//             // Only open the modal if displayTransactions is true
-//             if (displayTransactions) {
-//                 openModalAndFocusCloseButton();
-
-//             } else {
-//                 focusOnLastRow('item-quantity');
-//             }
-//         }
-//     } else if (itemSearchInput.value.length < 0 || itemsAvailable) {
-//         if (event.key === 'Enter') {
-//             const submitBillForm = document.getElementById('saveBill')
-//             submitBillForm.focus();
-//         }
-//     }
-// }
-// function openModalAndFocusCloseButton() {
-//     // Open the modal
-//     $('#transactionModal').modal('show');
-
-//     // Wait until the modal is fully shown before focusing the close button
-//     $('#transactionModal').on('shown.bs.modal', function () {
-//         document.getElementById('closeModalButton').focus();
-//     });
-// }
-
-// function handleCloseButtonKeydown(event) {
-//     if (event.key === 'Enter') {
-//         // Close the modal (optional, depending on your implementation)
-//         $('#transactionModal').modal('hide');
-
-//         // Focus on the quantity input field
-//         document.getElementById(`quantity-${itemIndex - 1}`).focus();
-//         // focusOnLastRow('quantity');
-//     }
-// }
-
-// function handleQuantityKeydown(event) {
-//     if (event.key === 'Enter') {
-//         // Focus on the price input field
-//         const batchNumberInput = document.getElementById(`batchNumber-${itemIndex - 1}`);
-//         batchNumberInput.focus();
-//         batchNumberInput.select();
-
-//     }
-// }
-
-// function handleBatchKeydown(event) {
-//     if (event.key === 'Enter') {
-//         const expDateInput = document.getElementById(`expiryDate-${itemIndex - 1}`);
-//         expDateInput.focus();
-//         expDateInput.select();
-//     }
-// }
-
-// function handleExpDateKeydown(event) {
-//     if (event.key === 'Enter') {
-//         const priceInput = document.getElementById(`price-${itemIndex - 1}`);
-//         priceInput.focus();
-//         priceInput.select();
-//     }
-// }
-
-// function handlePriceKeydown(event) {
-//     if (event.key === 'Enter') {
-//         // Focus back on the item search input field
-//         const itemSearchInput = document.getElementById('itemSearch');
-//         itemSearchInput.focus();
-//         itemSearchInput.select();
-
-//     }
-// }
-
-// function selectValue(input) {
-//     input.select(); // Select the value of the input field when it is focused
-// }
-
-// function focusOnLastRow(fieldClass) {
-//     const rows = document.querySelectorAll('.item');
-//     if (rows.length > 0) {
-//         const lastRow = rows[rows.length - 1];
-//         const inputField = lastRow.querySelector(`.${fieldClass}`);
-//         if (inputField) {
-//             inputField.focus();
-//             inputField.select();
-//         }
-//     }
-// }
-
 
 async function handleItemSearchKeydown(event) {
     const itemSearchInput = document.getElementById('itemSearch');
@@ -1274,18 +928,6 @@ function focusOnLastRow(fieldClass) {
         }
     }
 }
-
-
-
-// Function to move focus to the next input field
-// function moveToNextInput(event) {
-//     if (event.key === 'Enter') {
-//         event.preventDefault(); // Prevent form submission
-//         const form = event.target.form;
-//         const index = Array.prototype.indexOf.call(form, event.target);
-//         form.elements[index + 1].focus();
-//     }
-// }
 
 function moveToNextInput(event) {
     if (event.key === 'Enter') {

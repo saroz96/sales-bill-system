@@ -914,7 +914,7 @@ async function shouldDisplayTransactions() {
 
 async function fetchLastTransactions(itemId) {
     // const itemId = select.value;
-    const accountId = document.getElementById('account').value;
+    const accountId = document.getElementById('accountId').value;
     const purchaseSalesType = document.getElementById('purchaseSalesType').value; // Ensure this element exists and has a value
     const transactionList = document.getElementById('transactionList');
 
