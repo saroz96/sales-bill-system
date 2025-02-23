@@ -39,6 +39,15 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- jQuery CDN -->
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+  <!-- Bootstrap JS (for modals) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
   <style>
     *#loader {
       position: fixed;
@@ -109,6 +118,8 @@
           </li>
           <li class="nav-item d-none d-md-block"><a href="#" class="nav-link">Home</a></li>
           <li class="nav-item d-none d-md-block"><a href="#" class="nav-link">Contact</a></li>
+          <li class="nav-item d-none d-md-block"> <a href="#" class="nav-link" id="productsButton">Products</a>
+          </li>
         </ul>
         <!--end::Start Navbar Links-->
         <!--begin::End Navbar Links-->
@@ -1656,6 +1667,105 @@
     <!--end::Footer-->
   </div>
   <!--end::App Wrapper-->
+
+  <!-- Modal for Product Details -->
+  <div class="modal fade" id="productsModal" tabindex="-1" aria-labelledby="productsModalLabel" aria-hidden="true">
+    <!-- <div class="modal-dialog modal-xl"> -->
+    <div class="modal-dialog" style="max-width: 75%;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="productsModalLabel">Product Details</h5>
+          <button type="button" class="btn-close btn btn-danger" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form class="mb-4">
+            <div class="form-group">
+              <input type="text" class="form-control" id="searchInput"
+                placeholder="Search items by item code, name & category..." autocomplete="off"
+                onfocus="selectValue(this)">
+            </div>
+          </form>
+          <!-- Container for products -->
+          <div id="productDetailsContainer">
+            <!-- Header Row -->
+            <ul id="productDetailsHeader">
+              <li class="product-cell">#</li>
+              <li class="product-cell">HSN</li>
+              <li class="product-cell product-name">Description of Goods</li>
+              <li class="product-cell">Category</li>
+              <li class="product-cell">Rate</li>
+              <li class="product-cell">Stock</li>
+              <li class="product-cell">Unit</li>
+              <li class="product-cell">%</li>
+            </ul>
+            <ul id="productDetailsList" class="list-group" style="max-height: 400px; overflow-y: auto;">
+              <!-- Product details will be dynamically inserted here -->
+            </ul>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Purchase Price Modal -->
+  <div class="modal fade" id="purchasePriceModal" tabindex="-1" aria-labelledby="purchasePriceModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-md">
+      <!-- <div class="modal-dialog modal-dialog-centered" role="document"> -->
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="purchasePriceModalLabel">Purchase Price</h5>
+          <button type="button" class="btn-close btn btn-danger" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="purchasePriceDisplay">Purchase Price: Rs.0</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batch Update Modal -->
+  <div class="modal fade" id="updateBatchModal" tabindex="-1" aria-labelledby="updateBatchModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="updateBatchModalLabel">Update Batch</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="batchUpdateForm">
+            <input type="hidden" id="batchIndex">
+            <div class="mb-3">
+              <label for="batchNumberInput" class="form-label">Batch Number</label>
+              <input type="text" class="form-control" id="batchNumberInput">
+            </div>
+            <div class="mb-3">
+              <label for="expiryDateInput" class="form-label">Expiry Date</label>
+              <input type="date" class="form-control" id="expiryDateInput">
+            </div>
+            <div class="mb-3">
+              <label for="salesPriceInput" class="form-label">Sales Price</label>
+              <input type="number" class="form-control" id="salesPriceInput">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-success" onclick="updateBatch()">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!--end:: Modal for Product Details-->
   <!--begin::Script-->
   <!--begin::Third Party Plugin(OverlayScrollbars)-->
   <script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.10.1/browser/overlayscrollbars.browser.es6.min.js"
@@ -1952,6 +2062,355 @@
       showLoader();
     });
   </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+
+    function openPurchasePriceModal(product) {
+      selectedProduct = product; // Store product globally
+      const purchasePriceDisplay = document.getElementById('purchasePriceDisplay');
+      if (purchasePriceDisplay) {
+        let tableContent = '<table class="table table-bordered"><thead><tr><th>Cost Rate</th><th>Stock</th><th>Unit</th><th>Batch</th><th>Expiry Date</th><th>Sales Rate</th><th>Action</th></tr></thead><tbody>';
+
+        if (product.stockEntries.length > 0) {
+          tableContent += product.stockEntries.map((entry, index) => `
+                <tr>
+                    <td>Rs.${entry.puPrice.toFixed(2)}</td>
+                    <td>${entry.quantity}</td>
+                    <td>${product.unit ? product.unit.name : 'No unit'}</td>
+                    <td>${entry.batchNumber}</td>
+                    <td>${entry.expiryDate}</td>
+                    <td>${entry.price}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="openBatchUpdateModal(${index}, '${entry.batchNumber}', '${entry.expiryDate}', '${entry.price}')">
+                            Update
+                        </button>
+                    </td>
+                </tr>`).join('');
+        } else {
+          // If no stock entries exist, show one row with default values
+          tableContent += `
+                <tr>
+                    <td>Rs.0.00</td>
+                    <td>0</td>
+                    <td>${product.unit ? product.unit.name : 'No unit'}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>Rs.0.00</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary" disabled>Update</button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        tableContent += '</tbody></table>';
+        purchasePriceDisplay.innerHTML = tableContent;
+
+        // Show the modal
+        new bootstrap.Modal(document.getElementById('purchasePriceModal')).show();
+      }
+    }
+
+
+    function openBatchUpdateModal(index, batchNumber, expiryDate, price) {
+      document.getElementById('batchIndex').value = index;
+      document.getElementById('batchNumberInput').value = batchNumber;
+      document.getElementById('expiryDateInput').value = expiryDate;
+      document.getElementById('salesPriceInput').value = price;
+
+      new bootstrap.Modal(document.getElementById('updateBatchModal')).show();
+    }
+
+    async function updateBatch() {
+      const index = document.getElementById('batchIndex').value;
+      const updatedBatchNumber = document.getElementById('batchNumberInput').value;
+      const updatedExpiryDate = document.getElementById('expiryDateInput').value;
+      const updatedSalesPrice = document.getElementById('salesPriceInput').value;
+
+      if (selectedProduct && selectedProduct._id) {
+        try {
+          const response = await fetch(`/update-batch/${selectedProduct._id}/${index}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              batchNumber: updatedBatchNumber,
+              expiryDate: updatedExpiryDate,
+              price: updatedSalesPrice,
+            })
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            alert('Batch updated successfully!');
+            selectedProduct.stockEntries[index].batchNumber = updatedBatchNumber;
+            selectedProduct.stockEntries[index].expiryDate = updatedExpiryDate;
+            selectedProduct.stockEntries[index].price = updatedSalesPrice;
+            openPurchasePriceModal(selectedProduct); // Refresh modal
+            // bootstrap.Modal.getInstance(document.getElementById('updateBatchModal')).hide();
+
+            const updateModal = document.getElementById('updateBatchModal');
+            const modalInstance = bootstrap.Modal.getInstance(updateModal);
+            if (modalInstance) {
+              modalInstance.hide();
+            }
+
+            document.body.classList.remove('modal-open');
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+
+
+          } else {
+            alert(`Error: ${data.message}`);
+          }
+        } catch (error) {
+          console.error('Error updating batch:', error);
+          alert('Something went wrong! Try again.');
+        }
+      } else {
+        alert('Invalid product data!');
+      }
+    }
+
+
+
+
+    $(document).ready(function () {
+      $('#productsModal').on('shown.bs.modal', function () { $('#searchInput').focus(); });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+      let products = [];
+      let currentFocus = 0;
+      let allProducts = []; // Store all products for filtering
+
+      document.getElementById('productsButton').addEventListener('click', function () {
+        document.getElementById('searchInput').value = ''; // Clear the search field
+        fetch('/products')
+          .then(response => response.json())
+          .then(data => {
+            allProducts = data;
+            products = data; // Display first 10 products
+            displayProducts(products);
+            new bootstrap.Modal(document.getElementById('productsModal')).show();
+          })
+          .catch(error => console.error('Error fetching product details:', error));
+      });
+
+      document.getElementById('searchInput').addEventListener('input', function () {
+        const searchQuery = this.value.toLowerCase();
+        const filteredProducts = allProducts.filter(product =>
+          product.name.toLowerCase().includes(searchQuery) ||
+          (product.category && product.category.name.toLowerCase().includes(searchQuery)) ||
+          product.uniqueNumber.toString().toLowerCase().includes(searchQuery)
+        );
+        products = filteredProducts; // Display first 10 filtered products
+        displayProducts(products);
+      });
+
+      function displayProducts(products) {
+        const list = document.getElementById('productDetailsList');
+        list.innerHTML = '';
+        currentFocus = 0;
+
+        products.forEach((product, index) => {
+          const listItem = document.createElement('li');
+          listItem.className = 'product-row list-group-item';
+          listItem.dataset.index = index;
+          listItem.dataset.vatStatus = product.vatStatus;
+
+          if (product.vatStatus === 'vatable') {
+            listItem.classList.add('vatable');
+          } else if (product.vatStatus === 'vatExempt') {
+            listItem.classList.add('vatExempt');
+          }
+
+          const totalStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+          const latestStockEntry = product.stockEntries[product.stockEntries.length - 1];
+          const price = latestStockEntry ? latestStockEntry.price : 0;
+          const margin = latestStockEntry ? latestStockEntry.marginPercentage : 'Null';
+
+          listItem.innerHTML = `
+            <div class="product-cell">${product.uniqueNumber}</div>
+            <div class="product-cell">${product.hscode}</div>
+            <div class="product-cell product-name">${product.name}</div>
+            <div class="product-cell">${product.category ? product.category.name : 'No Category'}</div>
+            <div class="product-cell">Rs.${price}</div>
+            <div class="product-cell">${totalStock}</div>
+            <div class="product-cell">${product.unit.name}</div>
+            <div class="product-cell">${margin}</div>
+          `;
+
+          listItem.addEventListener('click', () => openPurchasePriceModal(product));
+          list.appendChild(listItem);
+        });
+
+        highlightItem(currentFocus);
+      }
+
+      function highlightItem(index) {
+        const items = document.querySelectorAll('#productDetailsList .list-group-item');
+        items.forEach(item => {
+          const vatStatus = item.dataset.vatStatus;
+          if (vatStatus === 'vatable') {
+            item.style.backgroundColor = 'lightgreen';
+          } else if (vatStatus === 'vatExempt') {
+            item.style.backgroundColor = 'lightyellow';
+          } else {
+            item.style.backgroundColor = '';
+          }
+          item.classList.remove('active');
+          item.style.color = 'black';
+        });
+
+        if (items[index]) {
+          items[index].classList.add('active');
+          items[index].style.backgroundColor = '#518CE8';
+          items[index].style.color = 'white';
+          items[index].scrollIntoView({ block: 'center' });
+        }
+      }
+
+      document.addEventListener('keydown', function (event) {
+        const items = document.querySelectorAll('#productDetailsList .list-group-item');
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          currentFocus = (currentFocus + 1) % items.length;
+        } else if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          currentFocus = (currentFocus - 1 + items.length) % items.length;
+        } else if (event.key === 'Enter' && items[currentFocus]) {
+          event.preventDefault();
+          items[currentFocus].click();
+        }
+        highlightItem(currentFocus);
+      });
+
+      // Handle F9 key press
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'F9') {
+          event.preventDefault();
+          fetch('/products')
+            .then(response => response.json())
+            .then(data => {
+              allProducts = data;
+              products = data;
+              displayProducts(products);
+              $('#productsModal').modal('show');
+            })
+            .catch(error => console.error('Error fetching product details:', error));
+        }
+
+        if (event.key === 'F5') {
+          event.preventDefault();
+          window.location.href = '/statement';
+        }
+      });
+
+      // Handle Escape key press
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          const purchasePriceModalElement = document.getElementById('purchasePriceModal');
+          const productsModalElement = document.getElementById('productsModal');
+
+          const purchasePriceModal = bootstrap.Modal.getInstance(purchasePriceModalElement);
+          const productsModal = bootstrap.Modal.getInstance(productsModalElement);
+
+          if (purchasePriceModal && purchasePriceModal._isShown) {
+            purchasePriceModal.hide();
+          } else if (productsModal && productsModal._isShown) {
+            productsModal.hide();
+          }
+        }
+      });
+    });
+
+    function selectValue(input) {
+      input.select(); // Select the value of the input field when it is focused
+    }
+  </script>
+  <style>
+    #productDetailsHeader {
+      display: flex;
+      background: #333;
+      color: white;
+      padding: 2px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .product-row {
+      display: flex;
+      padding: 2px;
+      border-bottom: 1px solid #ddd;
+      cursor: pointer;
+      align-items: center;
+    }
+
+    .product-cell {
+      flex: 1;
+      padding: 5px;
+      text-align: left;
+      min-width: 100px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .product-name {
+      min-width: 30ch;
+      max-width: 40ch;
+    }
+
+    .product-row.active {
+      background-color: blue !important;
+      color: white;
+    }
+
+    .vatable {
+      background-color: lightgreen;
+    }
+
+    .vatExempt {
+      background-color: lightyellow;
+    }
+
+    .modal-dialog {
+      max-width: 75%;
+      margin: 1.75rem auto;
+    }
+
+    .modal-content {
+      font-size: 1.2rem;
+    }
+
+    .modal-body {
+      padding: 2rem;
+    }
+
+    .modal-header {
+      font-size: 1.5rem;
+    }
+
+    .product-cell {
+      font-size: 1.1rem;
+    }
+
+    #productsContainer {
+      max-height: 400px;
+      /* Adjust this height as needed */
+      overflow-y: auto;
+      /* Enable vertical scrolling */
+    }
+
+    #productDetailsList {
+      list-style-type: none;
+      padding: 0;
+    }
+  </style>
 </body>
 <!--end::Body-->
 
