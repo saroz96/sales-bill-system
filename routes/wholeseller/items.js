@@ -93,7 +93,38 @@ router.get('/items/search', ensureAuthenticated, ensureCompanySelected, ensureTr
     }
 });
 
+// Update batch number and expiry date
+router.put('/update-batch/:itemId/:batchIndex', async (req, res) => {
+    try {
+        const { itemId, batchIndex } = req.params;
+        const { batchNumber, expiryDate, price } = req.body;
 
+        // Find the item in the database
+        const item = await Item.findById(itemId);
+        if (!item) {
+            return res.status(404).json({ message: 'Item not found' });
+        }
+
+        // Ensure the batchIndex is valid
+        if (batchIndex < 0 || batchIndex >= item.stockEntries.length) {
+            return res.status(400).json({ message: 'Invalid batch index' });
+        }
+
+        // Update batch details
+        item.stockEntries[batchIndex].batchNumber = batchNumber;
+        item.stockEntries[batchIndex].expiryDate = expiryDate;
+        item.stockEntries[batchIndex].price=price;
+
+        // Save changes to database
+        await item.save();
+
+        res.status(200).json({ message: 'Batch updated successfully', item });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
 
 router.get('/items/get', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {

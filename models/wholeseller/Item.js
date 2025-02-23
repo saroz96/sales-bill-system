@@ -153,33 +153,4 @@ itemSchema.pre('save', async function (next) {
     next();
 });
 
-// // Method to update stock entries
-// itemSchema.methods.updateStockEntries = async function (batchNumber, quantity, puPrice, price, expiryDate) {
-//     // Find or create stock entry
-//     let stockEntry = this.stockEntries.find(entry => entry.batchNumber === batchNumber && entry.expiryDate?.toISOString() === expiryDate?.toISOString());
-
-//     if (stockEntry) {
-//         // Update existing stock entry
-//         stockEntry.remainingQuantity += quantity;
-//     } else {
-//         // Add new stock entry
-//         stockEntry = {
-//             batchNumber,
-//             quantity,
-//             remainingQuantity: quantity,
-//             cost: puPrice,
-//             salesPrice: price,
-//             expiryDate
-//         };
-//         this.stockEntries.push(stockEntry);
-//     }
-
-//     // Update item-level prices
-//     this.puPrice = this.puPrice; // Ensure purchase price is set correctly
-//     this.price = this.price; // Ensure sales price is set correctly
-
-//     await this.save();
-// };
-
-
 module.exports = mongoose.model('Item', itemSchema);

@@ -118,7 +118,7 @@ async function showAllItems(input) {
     <div><strong>Name</strong></div>
     <div><strong>Stock</strong></div>
     <div><strong>Unit</strong></div>
-    <div><strong>C.Rate</strong></div>
+    <div><strong>Rate</strong></div>
 `;
         headerRow.style.backgroundColor = '#f0f0f0';
         headerRow.style.fontWeight = 'bold';

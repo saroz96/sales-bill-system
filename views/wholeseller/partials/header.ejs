@@ -135,152 +135,12 @@
               transform: translateY(0);
           }
       }
-
-      /*Mobile menu styles*/
-      /* .header .header-row .mobile-menu {
-          position: absolute;
-          background-color: #fff;
-          top: 100%;
-          left: 0;
-          width: 100%;
-          border-top: 3px solid #e9900a;
-          padding: 15px 20px;
-          box-shadow: 0 5px 8px rgb(0 0 0 / 15%);
-
-      }
-
-      .header .header-row .mobile-menu ul {
-          list-style: none;
-      }
-
-      .header .header-row .mobile-menu ul li {
-          margin-bottom: 10px;
-      }
-
-      .header .header-row .mobile-menu ul:hover {
-          background-color: rgba(225, 225, 226, 0.466);
-      }
-
-      .header .header-row .mobile-menu ul a {
-          text-decoration: none;
-          display: block;
-          font-size: 14px;
-          font-weight: 600;
-          color: rgb(128, 131, 131);
-          padding-top: 8px;
-          padding-bottom: 8px;
-          padding-left: 8px;
-      } */
-
-      /*single dropdown menu style for mobile view*/
-      /* .header .header-row .mobile-menu ul li.dropdown {
-          position: relative;
-      }
-
-      .header .header-row .mobile-menu ul li.dropdown .sub-menu-wrapper {
-          display: none;
-      }
-
-      .header .header-row .mobile-menu ul li.dropdown:hover .sub-menu-wrapper {
-          display: block;
-      }
-
-      .header .header-row .mobile-menu ul li.dropdown:hover .sub-menu-wrapper ul li a {
-          font-weight: 400;
-          padding-left: 15px;
-      }
-      */
-
-      /*mega menu*/
-      /* header .header-row .mobile-menu ul li.mega-menu {
-          position: relative;
-      }
-
-      header .header-row .mobile-menu ul li.mega-menu .mega-menu-wrapper {
-          display: none;
-      }
-
-      header .header-row .mobile-menu ul li.mega-menu:hover .mega-menu-wrapper {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          padding: 20px;
-      }
-
-      header .header-row .mobile-menu ul li.mega-menu .mega-menu-wrapper .mega-menu-col {
-          margin-bottom: 20px;
-      }
-
-      header .header-row .mobile-menu ul li.mega-menu .mega-menu-wrapper .mega-menu-col h5 {
-          font-weight: 800;
-          text-transform: uppercase;
-      }
-
-      header .header-row .mobile-menu ul li.mega-menu .mega-menu-wrapper .mega-menu-col ul li a {
-          font-weight: 400;
-      } */
-
       /*Hide desktop menu on mobile view up to 48em*/
       @media(max-width:48em) {
           .header .header-row .header-right .main-menu {
               display: none;
           }
       }
-
-      /*Show menu on desktop 48em and above*/
-      /*
-      @media(min-width:48em) {
-          .header .header-row {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              width: 100%;
-              position: relative;
-          }
-
-          .header .mobile-toggler {
-              display: none;
-          }
-
-          .header .header-row .header-right .main-menu {
-              display: flex;
-          }
-
-          .header .header-row .header-right .main-menu li.menu-item {
-              display: block;
-          }
-
-          .header .header-row .header-right .main-menu li.dropdown {
-              position: relative;
-          }
-
-          .header .header-row .header-right .main-menu li.menu-item:not(:last-child) {
-              margin: 0 20px 0 0;
-          }
-
-          .header .header-row .header-right .main-menu li.menu-item>a {
-              font-size: 13px;
-              font-weight: 600;
-              line-height: 20px;
-              color: #444444;
-              padding: 20px 10px 20px 10px;
-              display: inline-block;
-              text-decoration: none;
-              text-transform: uppercase;
-          }
-
-          .header .header-row .header-right .main-menu li.menu-item a.active {
-              color: #e9900a;
-          }
-
-          .header .header-row .header-right .main-menu .sub-menu-wrapper {
-              position: absolute;
-              text-align: left;
-              margin: 0;
-              z-index: 111;
-              min-width: 100%;
-              line-height: 20px;
-              display: none;
-          } */
 
       @media (min-width: 48em) {
           .header .header-row {
@@ -400,149 +260,18 @@
               display: block;
           }
       }
-
-      /*Show single dropdown menu on hover*/
-      /* .header .header-row .header-right .main-menu>li.menu-item:hover .sub-menu-wrapper {
-          display: block;
-      }
-
-      .header .header-row .header-right .main-menu .dropdown ul.sub-menu {
-          background-color: #fff;
-          border-top: 3px solid #e9900a;
-          padding: 0px 0px;
-          box-shadow: 0 5px 8px rgb(0 0 0 / 15%);
-          min-width: 200px;
-          text-transform: none;
-      }
-
-      .header .header-row .header-right .main-menu li.menu-item:hover .sub-menu-wrapper li.menu-item {
-          padding: 0;
-          margin-right: 0;
-      }
-
-      .header .header-row .header-right .main-menu li.menu-item:hover .sub-menu-wrapper li.menu-item>a {
-          padding: 8px;
-          display: block;
-          text-transform: none;
-          color: #6d6c6c;
-          font-size: 14px;
-          font-weight: 400;
-      }
-
-      .header .header-row .header-right .main-menu .sub-menu-wrapper ul li:not(:last-child) {
-          border-bottom: 1px solid rgba(204, 204, 204, 0.432);
-      }
-
-      .header .header-row .header-right .main-menu .sub-menu-wrapper ul li:hover {
-          background-color: #ededed;
-      } */
-
-      /*Mega menu on desktop*/
-      /*
-          .header .header-row .header-right .main-menu .mega-menu .mega-menu-wrapper {
-              position: absolute;
-              left: 0;
-              padding: 20px 25px;
-              background-color: #fff;
-              border-top: 3px solid #e9900a;
-              box-shadow: 0 5px 8px rgb(0 0 0 / 15%);
-              width: 100%;
-              display: none;
-
-          } */
-
-      /*Show mega menu on hover*/
-
-      /* .header .header-row .header-right .main-menu li.mega-menu:hover .mega-menu-wrapper {
-              display: grid;
-              grid-template-columns: repeat(4, 1fr);
-          }
-
-          .header .header-row .header-right .main-menu li.mega-menu:hover .mega-menu-wrapper .mega-menu-col ul {
-              list-style: none;
-              margin-left: 0px;
-              margin-right: 20px;
-          }
-
-          .header .header-row .header-right .main-menu li.mega-menu:hover .mega-menu-wrapper .mega-menu-col ul li a {
-              text-decoration: none;
-              padding: 8px;
-              display: block;
-              font-size: 14px;
-              color: rgba(149, 151, 151, 1);
-          }
-
-          .header .header-row .header-right .main-menu li.mega-menu:hover .mega-menu-wrapper .mega-menu-col ul li:hover a {
-              background-color: rgba(222, 225, 226, 0.466);
-          } */
-
-      }
     </style>
   </head>
 
   <body>
     <header class="header">
       <div class="header-row container-fluid" role="navigation">
-        <!-- <div class="header-left">
-                <div class="logo">
-                    <h1>Logo</h1>
-                </div>
-            </div> -->
         <!--Desktop Menu-->
         <div class="header-right">
           <ul class="main-menu">
             <li class="menu-item">
               <a href="/wholesellerDashboard/indexv1" class="active">Home</a>
             </li>
-            <!-- <li class="menu-item mega-menu">
-                        <a href="#" class="active">Accounts+</a>
-                        <div class="mega-menu-wrapper slideInUp">
-                            <div class="mega-menu-col">
-                                <h5>Mega Block 1</h5>
-                                <ul class="mega-sub-menu">
-                                    <li><a href="#">Mega block item 1</a></li>
-                                    <li><a href="#">Mega block item 2</a></li>
-                                    <li><a href="#">Mega block item 3</a></li>
-                                    <li><a href="#">Mega block item 4</a></li>
-                                    <li><a href="#">Mega block item 5</a></li>
-
-                                </ul>
-                            </div>
-                            <div class="mega-menu-col">
-                                <h5>Mega Block 2</h5>
-                                <ul class="mega-sub-menu">
-                                    <li><a href="#">Mega block item 1</a></li>
-                                    <li><a href="#">Mega block item 2</a></li>
-                                    <li><a href="#">Mega block item 3</a></li>
-                                    <li><a href="#">Mega block item 4</a></li>
-                                    <li><a href="#">Mega block item 5</a></li>
-
-                                </ul>
-                            </div>
-                            <div class="mega-menu-col">
-                                <h5>Mega Block 3</h5>
-                                <ul class="mega-sub-menu">
-                                    <li><a href="#">Mega block item 1</a></li>
-                                    <li><a href="#">Mega block item 2</a></li>
-                                    <li><a href="#">Mega block item 3</a></li>
-                                    <li><a href="#">Mega block item 4</a></li>
-                                    <li><a href="#">Mega block item 5</a></li>
-
-                                </ul>
-                            </div>
-                            <div class="mega-menu-col">
-                                <h5>Mega Block 4</h5>
-                                <ul class="mega-sub-menu">
-                                    <li><a href="#">Mega block item 1</a></li>
-                                    <li><a href="#">Mega block item 2</a></li>
-                                    <li><a href="#">Mega block item 3</a></li>
-                                    <li><a href="#">Mega block item 4</a></li>
-                                    <li><a href="#">Mega block item 5</a></li>
-
-                                </ul>
-                            </div>
-                        </div>
-                    </li> -->
             <li class="menu-item dropdown">
               <a href="#" class="active">Accounts</a>
               <div class="sub-menu-wrapper slideInUp">
@@ -844,76 +573,8 @@
           ></a>
         </div>
 
-        <!-- Mobile Menu
-            <div id="mobile-menu" class="mobile-menu hidden slideInDown">
-                <ul>
-                    <li class="menu-item"><a href="#" class="active">Home</a></li>
-                    <li class="menu-item mega-menu">
-                        <a href="#" class="active">Accounts+</a>
-                        <div class="mega-menu-wrapper slideInUp">
-                            <div class="mega-menu-col">
-                                <h5>Mega Block 1</h5>
-                                <ul class="mega-sub-menu">
-                                    <li><a href="#">Mega block item 1</a></li>
-                                    <li><a href="#">Mega block item 2</a></li>
-                                    <li><a href="#">Mega block item 3</a></li>
-                                    <li><a href="#">Mega block item 4</a></li>
-                                    <li><a href="#">Mega block item 5</a></li>
-
-                                </ul>
-                            </div>
-
-
-                            <div class="mega-menu-col">
-                                <h5>Mega Block 2</h5>
-                                <ul class="mega-sub-menu">
-                                    <li><a href="#">Mega block item 1</a></li>
-                                    <li><a href="#">Mega block item 2</a></li>
-                                    <li><a href="#">Mega block item 3</a></li>
-                                    <li><a href="#">Mega block item 4</a></li>
-                                    <li><a href="#">Mega block item 5</a></li>
-
-                                </ul>
-                            </div>
-                            <div class="mega-menu-col">
-                                <h5>Mega Block 3</h5>
-                                <ul class="mega-sub-menu">
-                                    <li><a href="#">Mega block item 1</a></li>
-                                    <li><a href="#">Mega block item 2</a></li>
-                                    <li><a href="#">Mega block item 3</a></li>
-                                    <li><a href="#">Mega block item 4</a></li>
-                                    <li><a href="#">Mega block item 5</a></li>
-
-                                </ul>
-                            </div>
-                        </div>
-                    </li>
-                    <li class="menu-item"><a href="#" class="active">Items</a></li>
-                    <li class="menu-item dropdown">
-                        <a href="#" class="active">Sales Register</a>
-                        <div class="sub-menu-wrapper">
-                            <ul class="sub-menu">
-                                <li class="menu-item"><a href="#">Sales</a></li>
-                                <li class="menu-item"><a href="#">Sales Open</a></li>
-                                <li class="menu-item"><a href="#">View</a></li>
-
-                            </ul>
-                        </div>
-                    </li>
-                    <li class="menu-item"><a href="#" class="active">Sales Return</a></li>
-                    <li class="menu-item"><a href="#" class="active">Purchase</a></li>
-                    <li class="menu-item"><a href="#" class="active">Purchase Return</a></li>
-
-                </ul>
-            </div> -->
       </div>
     </header>
-
-    <!-- <section class="hero">
-        <div class="container">
-            <h1>Sajilo</h1>
-        </div>
-    </section> -->
     <script>
       const mobileBtn = document.getElementById("three-dots");
       const mobileMenu = document.getElementById("mobile-menu");

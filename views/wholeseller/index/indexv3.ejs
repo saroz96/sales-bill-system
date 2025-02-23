@@ -34,6 +34,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.37.1/dist/apexcharts.css"
     integrity="sha256-4MX+61mt9NVvvuPjUWdUdyfZfxSB1/Rf9WtqRHgG5S0=" crossorigin="anonymous" />
 
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
   <style>
     *#loader {
@@ -410,23 +411,67 @@
                   </a>
                   <ul class="nav nav-treeview">
                     <li class="nav-item">
-                      <a href="/bills" class="nav-link">
-                        <i class="nav-icon bi bi-circle"></i>
-                        <p>Add Sales</p>
+                      <a href="#" class="nav-link">
+                        <i class="fas fa-shopping-bag"></i>
+                        <p>
+                          Party Sales
+                          <i class="nav-arrow bi bi-chevron-right"></i>
+                        </p>
                       </a>
+                      <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                          <a href="/bills" class="nav-link">
+                            <i class="nav-icon bi bi-circle"></i>
+                            <p>Add Sales</p>
+                          </a>
+                        </li>
+                        <li class="nav-item">
+                          <a href="/billsTrackBatchOpen" class="nav-link">
+                            <i class="nav-icon bi bi-circle"></i>
+                            <p>Add Sales Open</p>
+                          </a>
+                        </li>
+                        <li class="nav-item">
+                          <a href="/sales-bills/finds" class="nav-link">
+                            <i class="nav-icon bi bi-circle"></i>
+                            <p>Edit Sales</p>
+                          </a>
+                        </li>
+                      </ul>
                     </li>
+                  </ul>
+                  <ul class="nav nav-treeview">
                     <li class="nav-item">
-                      <a href="/billsTrackBatchOpen" class="nav-link">
-                        <i class="nav-icon bi bi-circle"></i>
-                        <p>Add Sales Open</p>
+                      <a href="#" class="nav-link">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <p>
+                          Cash Sales
+                          <i class="nav-arrow bi bi-chevron-right"></i>
+                        </p>
                       </a>
+                      <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                          <a href="/cash/bills/add" class="nav-link">
+                            <i class="nav-icon bi bi-circle"></i>
+                            <p>Add Sales</p>
+                          </a>
+                        </li>
+                        <li class="nav-item">
+                          <a href="/cash/bills/addOpen" class="nav-link">
+                            <i class="nav-icon bi bi-circle"></i>
+                            <p>Add Sales Open</p>
+                          </a>
+                        </li>
+                        <li class="nav-item">
+                          <a href="/cash-sales/sales-bills/finds" class="nav-link">
+                            <i class="nav-icon bi bi-circle"></i>
+                            <p>Edit Sales</p>
+                          </a>
+                        </li>
+                      </ul>
                     </li>
-                    <li class="nav-item">
-                      <a href="/sales-bills/finds" class="nav-link">
-                        <i class="nav-icon bi bi-circle"></i>
-                        <p>Edit Sales</p>
-                      </a>
-                    </li>
+                  </ul>
+                  <ul class="nav nav-treeview">
                     <li class="nav-item">
                       <a href="/bills-list" class="nav-link">
                         <i class="nav-icon bi bi-circle"></i>
@@ -510,7 +555,7 @@
                       </a>
                     </li>
                     <li class="nav-item">
-                      <a href="#" class="nav-link">
+                      <a href="/purchase-return/finds" class="nav-link">
                         <i class="nav-icon bi bi-circle"></i>
                         <p>Edit</p>
                       </a>
@@ -1519,7 +1564,7 @@
     integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
     crossorigin="anonymous"></script>
   <!--end::Required Plugin(Bootstrap 5)--><!--begin::Required Plugin(AdminLTE)-->
-  <script src="../../dist/js/adminlte.js"></script>
+  <script src="/js/adminlte.js"></script>
   <!--end::Required Plugin(AdminLTE)--><!--begin::OverlayScrollbars Configure-->
   <script>
     const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
