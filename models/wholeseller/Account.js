@@ -36,6 +36,10 @@ const accountSchema = new mongoose.Schema({
     email: {
         type: String,
     },
+    uniqueNumber: {
+        type: Number,
+        unique: true
+    }, // 4-digit unique item number
     openingBalanceByFiscalYear: [openingBalanceByFiscalYearSchema],
     openingBalance: {
         fiscalYear: {
@@ -92,5 +96,25 @@ const accountSchema = new mongoose.Schema({
 
 // Index to ensure unique account names within a company
 accountSchema.index({ name: 1, company: 1, fiscalYear: 1 }, { unique: true });
+
+// Pre-save hook to generate a unique 4-digit number for each account
+accountSchema.pre('save', async function (next) {
+    if (!this.uniqueNumber) {
+        let isUnique = false;
+        while (!isUnique) {
+            // Generate a random 4-digit number
+            const randomNum = Math.floor(1000 + Math.random() * 9000); // Generates a 4-digit number
+
+            // Check if this number is already in use
+            const existingAccount = await mongoose.model('Account').findOne({ uniqueNumber: randomNum });
+            if (!existingAccount) {
+                // If the number is unique, assign it to the item
+                this.uniqueNumber = randomNum;
+                isUnique = true;
+            }
+        }
+    }
+    next();
+});
 
 module.exports = mongoose.model('Account', accountSchema);

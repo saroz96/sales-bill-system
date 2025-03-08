@@ -12,6 +12,8 @@ const transactionSchema = new mongoose.Schema({
     },
     unit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
 
+    mainUnit: { type: mongoose.Schema.Types.ObjectId, ref: 'MainUnit' },
+
     account: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Account',
@@ -52,14 +54,29 @@ const transactionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Receipt'
     },
+    WSUnit: {
+        type: Number, // Alternative unit name (e.g., "Box")
+    },
     quantity: {
         type: Number,
+        set: function (value) {
+            // Calculate quantity based on WSUnit
+            // Use default value of 1 for WSUnit if not specified
+            const wsUnit = this.WSUnit || 1;
+            return wsUnit * value;
+        }
     },
     price: {
         type: Number,
+        default: 0,
     },
     puPrice: {
         type: Number,
+        set: function (value) {
+            // Calculate quantity based on WSUnit
+            const wsUnit = this.WSUnit || 1;
+            return value / wsUnit;
+        }
     },
     type: {
         type: String,
@@ -67,7 +84,7 @@ const transactionSchema = new mongoose.Schema({
     },
     isType: {
         type: String,
-        enum: ['VAT', 'RoundOff', 'Purc', 'PrRt', 'Sale']
+        enum: ['VAT', 'RoundOff', 'Purc', 'PrRt', 'Sale', 'SlRt']
     },
     billNumber: {
         type: Number,

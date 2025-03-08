@@ -5,7 +5,7 @@ const Item = require('../../models/wholeseller/Item');
 const Category = require('../../models/wholeseller/Category');
 const Unit = require('../../models/wholeseller/Unit');
 
-const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware/auth');
+const { ensureAuthenticated, ensureCompanySelected, isLoggedIn } = require('../../middleware/auth');
 const { ensureTradeType } = require('../../middleware/tradeType');
 const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
 const checkFiscalYearDateRange = require('../../middleware/checkFiscalYearDateRange');
@@ -20,6 +20,7 @@ const Transaction = require('../../models/wholeseller/Transaction');
 const StockAdjustment = require('../../models/wholeseller/StockAdjustment');
 
 const moment = require('moment');
+const MainUnit = require('../../models/wholeseller/MainUnit');
 
 // Example backend route to handle item search
 router.get('/items/search/get', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
@@ -113,7 +114,7 @@ router.put('/update-batch/:itemId/:batchIndex', async (req, res) => {
         // Update batch details
         item.stockEntries[batchIndex].batchNumber = batchNumber;
         item.stockEntries[batchIndex].expiryDate = expiryDate;
-        item.stockEntries[batchIndex].price=price;
+        item.stockEntries[batchIndex].price = price;
 
         // Save changes to database
         await item.save();
@@ -154,7 +155,7 @@ router.get('/items/get/:id', ensureAuthenticated, ensureCompanySelected, ensureT
 });
 
 // Route to fetch items based on current fiscal year
-router.get('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/items', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const companyId = req.session.currentCompany;
@@ -200,7 +201,7 @@ router.get('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType
             const items = await Item.find({
                 company: companyId,
                 fiscalYear: fiscalYear // Match items based on fiscalYearId
-            }).populate('category').populate('unit');
+            }).populate('category').populate('unit').populate('mainUnit');
 
             // Extract openingStock and openingStockBalance if they exist for the current fiscal year
             const itemsWithOpeningStock = items.map(item => {
@@ -214,6 +215,7 @@ router.get('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType
             // Fetch categories and units for item creation
             const categories = await Category.find({ company: companyId });
             const units = await Unit.find({ company: companyId });
+            const mainUnits = await MainUnit.find({ company: companyId });
 
 
             // Render the items page with the fetched data
@@ -224,6 +226,7 @@ router.get('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType
                 items: itemsWithOpeningStock,
                 categories,
                 units,
+                mainUnits,
                 companyId,
                 currentCompanyName,
                 companyDateFormat,
@@ -453,7 +456,7 @@ router.get('/items/reorder', ensureAuthenticated, ensureCompanySelected, ensureT
 router.post('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
 
-        const { name, hscode, category, unit, price, puPrice, vatStatus, openingStock, reorderLevel, openingStockBalance } = req.body;
+        const { name, hscode, category, mainUnit, WSUnit, unit, price, puPrice, vatStatus, openingStock, reorderLevel, openingStockBalance } = req.body;
         const companyId = req.session.currentCompany;
 
         if (!companyId) {
@@ -505,6 +508,11 @@ router.post('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
             return res.status(400).json({ error: 'Invalid item unit for this company' });
         }
 
+        const mainUnits = await MainUnit.findOne({ _id: mainUnit, company: companyId });
+        if (!mainUnits) {
+            return res.status(400).json({ error: 'Invalid item main unit for this company' });
+        }
+
         // Check if an item with the same name already exists for the current fiscal year
         const existingItem = await Item.findOne({ name, company: companyId, fiscalYear: fiscalYear });
         if (existingItem) {
@@ -516,6 +524,8 @@ router.post('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
             name,
             hscode,
             category,
+            mainUnit,
+            WSUnit,
             unit,
             price,
             puPrice,
@@ -763,7 +773,7 @@ router.post('/create-items-from-bills-track-batch-open', ensureAuthenticated, en
 });
 
 
-router.get('/items/:id', ensureAuthenticated, ensureCompanySelected, async (req, res) => {
+router.get('/items/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, async (req, res) => {
     const companyId = req.session.currentCompany;
     const currentCompanyName = req.session.currentCompanyName;
 
@@ -810,6 +820,8 @@ router.get('/items/:id', ensureAuthenticated, ensureCompanySelected, async (req,
         const items = await Item.findOne({ _id: req.params.id, company: companyId })
             .populate('category')
             .populate('unit')
+            .populate('mainUnit')
+            .populate('WSUnit')
             .lean(); // Use .lean() to get plain JavaScript objects instead of Mongoose documents
 
         if (!items) {
@@ -875,7 +887,7 @@ router.get('/items/:id', ensureAuthenticated, ensureCompanySelected, async (req,
 router.put('/items/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
-            const { name, hscode, category, price, puPrice, vatStatus, openingStock, reorderLevel, unit, openingStockBalance } = req.body;
+            const { name, hscode, category, price, puPrice, vatStatus, openingStock, reorderLevel, mainUnit,WSUnit, unit, openingStockBalance } = req.body;
             const companyId = req.session.currentCompany;
 
             // Fetch the company and populate the fiscalYear
@@ -945,6 +957,8 @@ router.put('/items/:id', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 name,
                 hscode,
                 category,
+                mainUnit,
+                WSUnit,
                 unit,
                 price,
                 puPrice,

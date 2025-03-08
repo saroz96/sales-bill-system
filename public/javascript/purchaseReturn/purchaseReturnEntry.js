@@ -316,6 +316,8 @@ function addItemToBill(item, dropdownMenu) {
     </button>
 </td>
 <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
+<input type="hidden" name="items[${itemIndex}][uniqueUuId]" value="${selectedBatch.uniqueUuId}">
+
 `;
 
                         tbody.appendChild(tr);
@@ -371,6 +373,8 @@ function addItemToBill(item, dropdownMenu) {
     </button>
 </td>
 <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
+<input type="hidden" name="items[${itemIndex}][uniqueUuId]" value="${selectedBatch.uniqueUuId}">
+
 `;
 
                 tbody.appendChild(tr);
@@ -429,6 +433,7 @@ function showBatchModal(item, callback) {
             <td>${entry.puPrice}</td>
             <td>${entry.marginPercentage}</td>
             <td>${entry.mrp}</td>
+            <td class="hidden">${entry.uniqueUuId}</td>
         </tr>
     `;
             }
@@ -466,7 +471,8 @@ function showBatchModal(item, callback) {
                 const batchNumber = row.cells[0].textContent; // Assuming batch number is in the first cell
                 const expiryDate = row.cells[1].textContent; // Expiry date in the second cell
                 const puPrice = row.cells[4].textContent;
-                callback({ batchNumber, expiryDate, puPrice });
+                const uniqueUuId = row.cells[7].textContent;
+                callback({ batchNumber, expiryDate, puPrice, uniqueUuId });
 
                 // Hide the modal after selection
                 $(modal).modal('hide');
@@ -634,12 +640,12 @@ function toggleVatInputs() {
     // Toggle display based on VAT exemption
     if (isVatExempt) {
         taxableAmountRow.style.display = 'none';
-        vatPercentageRow.style.display = 'none';
+        // vatPercentageRow.style.display = 'none';
         // Move focus to the next available input field
         moveToNextVisibleInput(document.getElementById('isVatExempt'));
     } else {
         taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
-        vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
+        // vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
     }
 
     // Recalculate total when toggling VAT
@@ -808,91 +814,8 @@ async function shouldDisplayTransactions() {
     }
 }
 
-// async function fetchLastTransactions(itemId) {
-//     // const itemId = select.value;
-//     const accountId = document.getElementById('account').value;
-//     const purchaseSalesType = document.getElementById('purchaseSalesType').value; // Ensure this element exists and has a value
-//     const transactionList = document.getElementById('transactionList');
-
-//     if (!purchaseSalesType) {
-//         console.error('Account Type is undefined. Please ensure it is set.');
-//         return;
-//     }
-
-//     try {
-
-//         const response = await fetch(`/api/transactions/${itemId}/${accountId}/${purchaseSalesType}`);
-//         const transactions = await response.json();
-//         // const { transactions, companyDateFormat } = await response.json();
-//         console.log('Fetched Transactions:', transactions);
-
-//         // Check if transactions are empty
-//         if (transactions.length === 0) {
-//             transactionList.innerHTML = '<p>No transactions to display.</p>';
-//             // Do not show the modal if there are no transactions
-//             return;
-//         }
-
-//         // Create table header
-//         let tableHtml = `
-//     <table class="table table-sm">
-//         <thead>
-//             <tr>
-//                 <th>Date</th>
-//                 <th>Vch. No.</th>
-//                 <th>Type</th>
-//                 <th>A/c Type</th>
-//                 <th>Pay.Mode</th>
-//                 <th>Qty.</th>
-//                 <th>Unit</th>
-//                 <th>Rate</th>
-//             </tr>
-//         </thead>
-//         <tbody>
-// `;
-
-//         // Add table rows for each transaction
-//         tableHtml += transactions.map(transaction => {
-
-//             if (!transaction || !transaction.purchaseBillId || !transaction.purchaseBillId._id) {
-//                 console.error('Invalid transaction:', transaction);
-//                 return ''; // Return an empty string for invalid transactions
-//             }
-
-//             return `
-//         <tr onclick="window.location.href='/bills/${transaction.purchaseBillId._id}/print'" style="cursor: pointer;">
-//             <td>${new Date(transaction.date).toLocaleDateString()}</td>
-//             <td>${transaction.billNumber}</td>
-//             <td>${transaction.type}</td>
-//             <td>${transaction.purchaseSalesType}</td>
-//             <td>${transaction.paymentMode}</td>
-//             <td>${transaction.quantity}</td>
-//             <td>${transaction.unit ? transaction.unit.name : 'N/A'}</td>
-//             <td>Rs.${transaction.puPrice.toFixed(2)}</td>
-//         </tr>
-//     `;
-//         }).join('');
-
-//         // Close table
-//         tableHtml += `
-//         </tbody>
-//     </table>
-// `;
-
-//         // Set the innerHTML of the transaction list container
-//         transactionList.innerHTML = tableHtml;
-//         console.log('Transactions:', transactions);
-
-//         // Show the modal
-//         $('#transactionModal').modal('show');
-//     } catch (error) {
-//         console.error('Error fetching transactions:', error);
-//     }
-// }
-
-
 async function fetchLastTransactions(itemId) {
-    const accountId = document.getElementById('account').value;
+    const accountId = document.getElementById('accountId').value;
     const purchaseSalesType = document.getElementById('purchaseSalesType').value;
     const transactionList = document.getElementById('transactionList');
 
@@ -905,7 +828,7 @@ async function fetchLastTransactions(itemId) {
 
     try {
         const response = await fetch(`/api/transactions/${itemId}/${accountId}/${purchaseSalesType}`);
-        const { transactions, companyDateFormat, nepaliDate } = await response.json();
+        const transactions = await response.json();
         console.log('Fetched Transactions:', transactions);
 
         // Check if transactions are empty

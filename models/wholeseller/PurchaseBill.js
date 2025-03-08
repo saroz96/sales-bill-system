@@ -19,7 +19,7 @@ const PurchaseBillSchema = new Schema({
     originalCopies: { type: Number, default: 1 },
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     billNumber: { type: Number, required: true },
-    partyBillNumber: { type: String},
+    partyBillNumber: { type: String },
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     unit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
     settings: { type: mongoose.Schema.Types.ObjectId, ref: 'Settings' },
@@ -31,9 +31,53 @@ const PurchaseBillSchema = new Schema({
     items: [{
         item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
         unit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
-        quantity: { type: Number},  // Required in item schema
-        price: { type: Number },     // Required in item schema
-        puPrice: { type: Number },
+        WSUnit: {
+            type: Number, // Alternative unit name (e.g., "Box")
+        },
+        quantity: {
+            type: Number,
+        },  // Required in item schema
+        price: {
+            type: Number,
+        },     // Required in item schema
+        puPrice: {
+            type: Number,
+        },
+        mrp: {
+            type: Number,
+            default: 0,
+        },
+        marginPercentage: { type: Number, default: 0 },
+        currency:{
+            type:String,
+        },
+        //for itemsLedger
+        Altquantity: {
+            type: Number,
+            set: function (value) {
+                // Calculate quantity based on WSUnit
+                // Use default value of 1 for WSUnit if not specified
+                const wsUnit = this.WSUnit || 1;
+                return wsUnit * value;
+            }
+        },  // Required in item schema
+        Altprice: {
+            type: Number,
+            set: function (value) {
+                // Calculate quantity based on WSUnit
+                const wsUnit = this.WSUnit || 1;
+                return value / wsUnit;
+            }
+        },     // Required in item schema
+        AltpuPrice: {
+            type: Number,
+            set: function (value) {
+                // Calculate quantity based on WSUnit
+                const wsUnit = this.WSUnit || 1;
+                return value / wsUnit;
+            }
+        },
+
         batchNumber: { type: String },
         expiryDate: { type: Date },
         vatStatus: {

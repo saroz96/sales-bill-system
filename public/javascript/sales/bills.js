@@ -1,30 +1,6 @@
 let itemIndex = 0;
 
 $(document).ready(function () {
-    // // Initialize Select2 for searchable dropdown
-    // $('#account').select2({
-    //     placeholder: "Select a party name",
-    //     allowClear: true,
-    //     width: '100%', // Ensure it takes the full width of the container
-    // });
-
-    // Listen for the change event on the account dropdown
-    // $('#account').on('change', function () {
-    //     const selectedOption = $(this).find('option:selected');
-    //     const address = selectedOption.data('address');
-
-    //     // Set the address field with the selected account's address
-    //     $('#address').val(address || 'Address not available');
-    // });
-
-    // // Listen for the change event on the account dropdown
-    // $('#account').on('change', function () {
-    //     const selectedOption = $(this).find('option:selected');
-    //     const pan = selectedOption.data('pan');
-
-    //     // Set the address field with the selected account's address
-    //     $('#pan').val(pan || 'Pan no. not available');
-    // });
 
     // Initialize Select2 for searchable dropdown
     $('#companyGroup').select2({
@@ -620,12 +596,12 @@ function toggleVatInputs() {
     // Toggle display based on VAT exemption
     if (isVatExempt) {
         taxableAmountRow.style.display = 'none';
-        vatPercentageRow.style.display = 'none';
+        // vatPercentageRow.style.display = 'none';
         // Move focus to the next available input field
         moveToNextVisibleInput(document.getElementById('isVatExempt'));
     } else {
         taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
-        vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
+        // vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
     }
 
     // Recalculate total when toggling VAT

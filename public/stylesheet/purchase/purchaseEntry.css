@@ -20,7 +20,7 @@
 
         .dropdown-item:focus,
         .dropdown-item:hover {
-            background-color: #f1f1f1;
+            background-color: #007bff;
         }
 
         .item {
@@ -96,7 +96,7 @@
         /* Keep the header fixed at the top */
         .dropdown-header {
             display: grid;
-            grid-template-columns: 2fr 2fr 5fr 2fr 2fr 2fr 1fr;
+            grid-template-columns: 0fr 2fr 5fr 2fr 2fr 2fr 0fr;
             padding: 5px;
             border-bottom: 1px solid #ccc;
             top: 0;

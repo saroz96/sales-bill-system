@@ -341,8 +341,8 @@ function showBatchModal(item, callback) {
         <table class="table" id="batchTable">
             <thead>
                 <tr>
-                    <th>Batch Number</th>
-                    <th>Expiry Date</th>
+                    <th>Batch</th>
+                    <th>Expiry</th>
                     <th>Quantity</th>
                     <th>S.P</th>
                     <th>C.P</th>

@@ -299,10 +299,10 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
                     account: account._id,
                     company: companyId,
                     fiscalYear: currentFiscalYear,
-                    type: { $in: ['Purc', 'Sale', 'Slrt', 'PrRt', 'Pymt', 'Rcpt', 'Jrnl', 'DrNt', 'CrNt'] },
+                    type: { $in: ['Purc', 'Sale', 'SlRt', 'PrRt', 'Pymt', 'Rcpt', 'Jrnl', 'DrNt', 'CrNt'] },
                     // Exclude transactions of Sale, Purc, Slrt, PrRt where payment mode is 'cash'
                     $or: [
-                        { type: { $in: ['Sale', 'Purc', 'Slrt', 'PrRt'] }, paymentMode: { $ne: 'cash' } },
+                        { type: { $in: ['Sale', 'Purc', 'SlRt', 'PrRt'] }, paymentMode: { $ne: 'cash' } },
                         { type: { $in: ['Pymt', 'Rcpt', 'Jrnl', 'DrNt', 'CrNt'] } } // Include these types regardless of payment mode
                     ]
                 });
@@ -319,27 +319,35 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
                     console.log(`Transaction type: ${transaction.type}, debit: ${transaction.debit}, credit: ${transaction.credit}`);
                     switch (transaction.type) {
                         case 'Sale':
-                            totalDebits += transaction.debit; // Sales should be recorded as debits
-                            break;
+                            if (transaction.debit > 0 && transaction.isType === 'Sale') {
+                                totalDebits += transaction.debit; // Add to total debits if there's a debit value
+                            }
+                            if (transaction.credit > 0 && transaction.isType === 'VAT') {
+                                totalCredits += transaction.credit; // Add to total credits if there's a credit value
+                            } break;
                         case 'Purc':
-                            if (transaction.debit > 0 && transaction.isType==='VAT') {
+                            if (transaction.debit > 0 && transaction.isType === 'VAT') {
                                 totalDebits += transaction.debit; // Add to total debits if there's a debit value
                             }
-                            if (transaction.credit > 0 && transaction.isType==='Purc') {
+                            if (transaction.credit > 0 && transaction.isType === 'Purc') {
                                 totalCredits += transaction.credit; // Add to total credits if there's a credit value
                             }
-                             break;
-                        case 'Slrt': // Sales Return
-                            totalCredits += transaction.credit; // Sales return should be recorded as credits
                             break;
-                        case 'PrRt': // Purchase Return
-                            if (transaction.debit > 0 && transaction.isType==='PrRt') {
+                        case 'SlRt': // Sales Return
+                            if (transaction.debit > 0 && transaction.isType === 'VAT') {
                                 totalDebits += transaction.debit; // Add to total debits if there's a debit value
                             }
-                            if (transaction.credit > 0 && transaction.isType==='VAT') {
+                            if (transaction.credit > 0 && transaction.isType === 'SlRt') {
+                                totalCredits += transaction.credit; // Add to total credits if there's a credit value
+                            } break;
+                        case 'PrRt': // Purchase Return
+                            if (transaction.debit > 0 && transaction.isType === 'PrRt') {
+                                totalDebits += transaction.debit; // Add to total debits if there's a debit value
+                            }
+                            if (transaction.credit > 0 && transaction.isType === 'VAT') {
                                 totalCredits += transaction.credit; // Add to total credits if there's a credit value
                             }
-                             break;
+                            break;
                         // Handle other types as needed
                         case 'Pymt': //Party Payment
                             if (transaction.debit > 0) {
@@ -402,8 +410,6 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
                 }
 
                 console.log('Opening Balance:', openingBalance, 'Total Balance:', totalBalance);
-                const sanimaTransactions = await Transaction.find({ accountId: '67683ec90eea9d2e7abfbe29' });
-                console.log('Transactions for SANIMA BANK LIMITED:', sanimaTransactions);
 
 
                 // Determine the new opening balance type

@@ -14,7 +14,7 @@ const FiscalYear = require('../models/wholeseller/FiscalYear');
 const Settings = require('../models/wholeseller/Settings');
 const { ensureNotAdministrator } = require('../middleware/adminAuth');
 const catchAsync = require('../catchAsync');
-const setNoCache = require('../middleware/setNoCache');
+const mainUnit = require('../models/wholeseller/MainUnit');
 
 router.get('/company/new', ensureAuthenticated, ensureNotAdministrator, async (req, res) => {
     const companyId = req.session.currentCompany;
@@ -116,17 +116,6 @@ router.get('/dashboard', isLoggedIn, storeReturnTo, ensureAuthenticated, catchAs
     }
 }));
 
-
-
-// router.get('/dashboard', ensureAuthenticated, async (req, res) => {
-//     try {
-//         const userCompanies = await Company.find({ owner: req.user._id });
-//         res.render('wholeseller/dashboard', { user: req.user, companies: userCompanies });
-//     } catch (err) {
-//         console.error(err);
-//         res.status(500).json({ error: err.message });
-//     }
-// });
 
 router.get('/retailerDashboard', ensureAuthenticated, async (req, res) => {
     try {
@@ -287,54 +276,6 @@ async function addDefaultCashAccount(companyId) {
     }
 }
 
-// //function to add default vat accounts
-// async function addOtherDefaultAccounts(companyId) {
-//     try{
-//  // Find the company by ID and populate its fiscalYear
-//  const company = await Company.findById(companyId).populate('fiscalYear');
-
-//  if (!company) {
-//      throw new Error('Company not found');
-//  }
-
-//  // Fetch the fiscal year directly from the newly created company
-//  let currentFiscalYear = company.fiscalYear;
-
-//  // Ensure that the fiscal year exists
-//  if (!currentFiscalYear) {
-//      throw new Error('No fiscal year found for the newly created company.');
-//  }
-
-//  const otherDefaultAccountGroup = await AccountGroup.findOne({
-//     name: otherDefaultAccounts.groupName,
-//     type: otherDefaultAccounts.groupType,
-//     company: companyId,
-// });
-
-// if (otherDefaultAccountGroup) {
-//     const otherAccount = new Account({
-//         _id: new mongoose.Types.ObjectId(),
-//         name: otherDefaultAccounts.name,
-//         companyGroups: otherDefaultAccountGroup._id, // Correct field for group reference
-//         openingBalance: {
-//             amount: otherDefaultAccounts.openingBalance.amount,
-//             type: otherDefaultAccounts.openingBalance.type
-//         },
-//         company: companyId,
-//         fiscalYear: currentFiscalYear._id, // Associate the fiscal year directly from company
-//         otherDefaultAccounts: true,
-//     });
-
-//     await otherAccount.save();
-//     console.log(`Default other accounts "${otherAccount.name}" added successfully.`);
-// } else {
-//     console.error('Error: "other default account" group not found for the company.');
-// }
-//     }catch (error) {
-//         console.error('Error adding default other account:', error);
-//     }
-// }
-
 // Function to add default other accounts
 async function addOtherDefaultAccounts(companyId) {
     try {
@@ -493,22 +434,27 @@ const defaultItemUnit = [
     { name: 'Units' }
 ];
 
-// async function addDefaultAccountGroups(companyId) {
-//     try {
-//         const accountGroups = defaultAccountGroups.map(group => ({
-//             ...group,
-//             company: companyId // Associate with the newly created company
-//         }));
+const defaultItemMainUnit = [
+    { name: 'Bott' },
+    { name: 'Box' },
+    { name: 'Dozen' },
+    { name: 'Gms.' },
+    { name: 'Jar' },
+    { name: 'Kgs.' },
+    { name: 'Kit' },
+    { name: 'Test' },
+    { name: 'Mtr' },
+    { name: 'Pair' },
+    { name: 'Pcs' },
+    { name: 'Ph' },
+    { name: 'Pkt' },
+    { name: 'Roll' },
+    { name: 'Set' },
+    { name: 'Than' },
+    { name: 'Tonne' },
+    { name: 'Units' }
+];
 
-//         await AccountGroup.insertMany(accountGroups);
-//         console.log('Default account groups added successfully.');
-
-//         // After adding groups, add the default Cash account under the "Cash in Hand" group
-//         await addDefaultCashAccount(companyId);
-//     } catch (error) {
-//         console.error('Error adding default account groups:', error);
-//     }
-// }
 async function addDefaultItemUnit(companyId) {
     try {
         const units = defaultItemUnit.map(unit => ({
@@ -519,6 +465,19 @@ async function addDefaultItemUnit(companyId) {
         console.log('Default item units added successfully.');
     } catch (error) {
         console.error('Error adding default item unit:', error);
+    }
+}
+
+async function addDefaultItemMainUnit(companyId) {
+    try {
+        const mainUnits = defaultItemMainUnit.map(mainUnit => ({
+            ...mainUnit,
+            company: companyId,
+        }));
+        await mainUnit.insertMany(mainUnits);
+        console.log('Default item main units added successfully.');
+    } catch (error) {
+        console.error('Error adding default item main unit:', error);
     }
 }
 
@@ -646,6 +605,7 @@ router.post('/company', ensureAuthenticated, async (req, res) => {
         await addDefaultAccountGroups(company._id);
         await addDefaultItemCategory(company._id);
         await addDefaultItemUnit(company._id);
+        await addDefaultItemMainUnit(company._id);
         await User.findByIdAndUpdate(req.user._id, { $push: { companies: company._id } });
 
         // Create default settings for the new company with all boolean values set to false

@@ -289,6 +289,9 @@ function addItemToBill(item, dropdownMenu) {
     <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
     ${item.name || 'N/A'}
 </td>
+<td class="">
+    <input type="number" name="items[${itemIndex}][WSUnit]" class="form-control item-WSUnit" id="WSUnit-${itemIndex}" value="${item.WSUnit || 1}" onfocus="selectValue(this)" onkeydown="handleWSUnitKeydown(event,${itemIndex})" required>
+</td>
 <td>
     <input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
 </td>
@@ -322,6 +325,7 @@ function addItemToBill(item, dropdownMenu) {
 
     // Fetch and display last transactions for the added item
     fetchLastTransactions(item._id);
+    fetchLastItemsData(item._id);
 
     // Hide the dropdown menu
     dropdownMenu.classList.remove('show');
@@ -329,6 +333,26 @@ function addItemToBill(item, dropdownMenu) {
     // Clear the input field and focus on the quantity of the newly added row
     inputField.value = '';
     document.getElementById(`quantity-${itemIndex}`).focus();
+}
+
+// Function to fetch last transactions for the selected item
+async function fetchLastItemsData(itemId) {
+    try {
+        const response = await fetch(`/api/last-item-values/${itemId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch last item values');
+        }
+        const lastValues = await response.json();
+
+        // Populate the modal fields with the last values
+        document.getElementById('mrp').value = lastValues.mrp || 0;
+        document.getElementById('marginPercentage').value = lastValues.marginPercentage || 0;
+        document.getElementById('salesPrice').value = lastValues.price || 0;
+        document.getElementById('currency').value = lastValues.currency || "NPR";
+
+    } catch (error) {
+        console.error('Error fetching last item values:', error);
+    }
 }
 
 function getDefaultExpiryDate() {
@@ -554,18 +578,18 @@ function toggleVatInputs() {
 
     // VAT-related fields
     const taxableAmountRow = document.getElementById('taxableAmountRow');
-    const vatPercentageRow = document.getElementById('vatPercentageRow');
+    // const vatPercentageRow = document.getElementById('vatPercentageRow');
 
     // Toggle display based on VAT exemption
     if (isVatExempt) {
         taxableAmountRow.style.display = 'none';
-        vatPercentageRow.style.display = 'none';
+        // vatPercentageRow.style.display = 'none';
         // vatAmountRow.style.display = 'none';
-         // Move focus to the next available input field
-         moveToNextVisibleInput(document.getElementById('isVatExempt'));
+        // Move focus to the next available input field
+        moveToNextVisibleInput(document.getElementById('isVatExempt'));
     } else {
         taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
-        vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
+        // vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
         // vatAmountRow.style.display = 'table-row'; // Show VAT amount row
 
     }
@@ -662,7 +686,7 @@ async function shouldDisplayTransactions() {
 
 async function fetchLastTransactions(itemId) {
     // const itemId = select.value;
-    const accountId = document.getElementById('account').value;
+    const accountId = document.getElementById('accountId').value;
     const purchaseSalesType = document.getElementById('purchaseSalesType').value; // Ensure this element exists and has a value
     const transactionList = document.getElementById('transactionList');
 
@@ -773,7 +797,7 @@ async function handleItemSearchKeydown(event) {
             if (displayTransactions) {
                 openModalAndFocusCloseButton();
             } else {
-                focusOnLastRow('item-quantity');
+                focusOnLastRow('item-WSUnit');
             }
         }
     } else if (itemSearchInput.value.length < 0 || itemsAvailable) {
@@ -792,10 +816,23 @@ function handleCloseButtonKeydown(event) {
         // Focus on the quantity input field in the last row
         const lastRow = document.querySelector('#items tr.item:last-child');
         if (lastRow) {
-            const quantityInput = lastRow.querySelector('.item-quantity');
-            if (quantityInput) {
-                quantityInput.focus();
+            const WSUnitInput = lastRow.querySelector('.item-WSUnit');
+            if (WSUnitInput) {
+                WSUnitInput.focus();
             }
+        }
+    }
+}
+
+
+function handleWSUnitKeydown(event) {
+    if (event.key === 'Enter') {
+        const lastRow = document.querySelector('#items tr.item:last-child');
+        if (lastRow) {
+            const quantityInput = lastRow.querySelector('.item-quantity');
+            quantityInput.focus();
+            quantityInput.select();
+
         }
     }
 }
@@ -877,17 +914,169 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// function handlePriceKeydown(event, itemIndex) {
+//     if (event.key === 'Enter') {
+//         // Select the `puPrice` input of the row where the Enter key was pressed
+//         const puPriceInput = document.getElementById(`puPrice-${itemIndex}`);
 
+//         // Proceed if the `puPrice` input exists and has a value
+//         if (puPriceInput && puPriceInput.value) {
+//             // Fetch saved values from hidden fields (for existing items)
+//             const marginPercentage = document.getElementById(`marginPercentage-${itemIndex}`)?.value || '';
+//             const mrp = document.getElementById(`mrp-${itemIndex}`)?.value || '';
+//             const salesPrice = document.getElementById(`salesPrice-${itemIndex}`)?.value || '';
+//             const puPrice = puPriceInput.value; // Get the PU Price from the input field
 
-function handlePriceKeydown(event, itemIndex) {
+//             // Debugging: Log the fetched values
+//             console.log('marginPercentage:', marginPercentage);
+//             console.log('mrp:', mrp);
+//             console.log('salesPrice:', salesPrice);
+//             console.log('puPrice:', puPrice);
+
+//             // Set the PU Price in the modal
+//             document.getElementById('puPrice').value = puPrice;
+
+//             // Populate saved values in the modal (for existing items)
+//             document.getElementById('marginPercentage').value = marginPercentage;
+//             document.getElementById('mrp').value = mrp;
+//             document.getElementById('salesPrice').value = salesPrice;
+
+//             // Show the sales price modal
+//             $('#setSalesPriceModal').modal('show');
+
+//             // Handle modal shown event to focus on the margin percentage input
+//             $('#setSalesPriceModal').on('shown.bs.modal', function () {
+//                 document.getElementById('marginPercentage').focus();
+//             });
+
+//             // Handle margin percentage input
+//             const marginPercentageInput = document.getElementById('marginPercentage');
+//             marginPercentageInput.oninput = function () {
+//                 updateSalesPriceFromMargin(puPrice);
+//             };
+
+//             // Handle MRP input
+//             const mrpInput = document.getElementById('mrp');
+//             mrpInput.oninput = function () {
+//                 updateSalesPriceFromMRP(mrpInput.value);
+//                 updateMarginFromMRPAndSalesPrice(mrpInput.value, puPrice);
+//             };
+
+//             // Handle sales price input
+//             const salesPriceInput = document.getElementById('salesPrice');
+//             salesPriceInput.oninput = function () {
+//                 updateMarginFromMRPAndSalesPrice(mrpInput.value, puPrice);
+//             };
+
+//             // Handle currency change
+//             const currencySelect = document.getElementById('currency');
+//             currencySelect.onchange = function () {
+//                 updateSalesPriceFromMRP(mrpInput.value);
+//             };
+
+//             // Handle sales price save action
+//             const saveSalesPriceButton = document.getElementById('saveSalesPrice');
+//             saveSalesPriceButton.onclick = function () {
+//                 const salesPrice = document.getElementById('salesPrice').value;
+//                 const mrpValue = document.getElementById('mrp').value;
+//                 const marginPercentage = document.getElementById('marginPercentage').value;
+
+//                 if (salesPrice) {
+//                     // Store sales price in a hidden input within the current row
+//                     const tr = puPriceInput.closest('tr');
+//                     const salesPriceInput = document.createElement('input');
+//                     salesPriceInput.type = 'hidden';
+//                     salesPriceInput.name = `items[${itemIndex}][price]`;
+//                     salesPriceInput.value = salesPrice;
+//                     tr.appendChild(salesPriceInput);
+
+//                     // Store MRP in a hidden input within the current row
+//                     const mrpInputHidden = document.createElement('input');
+//                     mrpInputHidden.type = 'hidden';
+//                     mrpInputHidden.name = `items[${itemIndex}][mrp]`;
+//                     mrpInputHidden.value = mrpValue;
+//                     tr.appendChild(mrpInputHidden);
+
+//                     // Store marginPercentage in a hidden input within the current row
+//                     const marginPercentageInputHidden = document.createElement('input');
+//                     marginPercentageInputHidden.type = 'hidden';
+//                     marginPercentageInputHidden.name = `items[${itemIndex}][marginPercentage]`;
+//                     marginPercentageInputHidden.value = marginPercentage;
+//                     tr.appendChild(marginPercentageInputHidden);
+
+//                     // Close the modal
+//                     $('#setSalesPriceModal').modal('hide');
+
+//                     // Focus back on the item search input field
+//                     const itemSearchInput = document.getElementById('itemSearch');
+//                     itemSearchInput.focus();
+//                 } else {
+//                     alert('Please enter a valid sales price.');
+//                 }
+//             };
+//         }
+//     }
+// }
+
+// Function to fetch last transactions for the selected item
+// async function fetchLastItemsData(itemId) {
+//     try {
+//         const response = await fetch(`/api/last-item-values/${itemId}`);
+//         if (!response.ok) {
+//             throw new Error('Failed to fetch last item values');
+//         }
+//         const lastValues = await response.json();
+//         return lastValues;
+//     } catch (error) {
+//         console.error('Error fetching last item values:', error);
+//         return null;
+//     }
+// }
+
+// Function to handle Enter key press on the PU Price input
+async function handlePriceKeydown(event, itemIndex) {
     if (event.key === 'Enter') {
         // Select the `puPrice` input of the row where the Enter key was pressed
         const puPriceInput = document.getElementById(`puPrice-${itemIndex}`);
 
         // Proceed if the `puPrice` input exists and has a value
         if (puPriceInput && puPriceInput.value) {
+            const puPrice = puPriceInput.value; // Get the PU Price from the input field
+
+            // Check if this is an existing item (editing) or a new item
+            const isExistingItem = document.getElementById(`marginPercentage-${itemIndex}`) !== null;
+
+            if (isExistingItem) {
+                // For existing items, fetch saved values from hidden fields
+                const marginPercentage = document.getElementById(`marginPercentage-${itemIndex}`)?.value || '';
+                const mrp = document.getElementById(`mrp-${itemIndex}`)?.value || '';
+                const salesPrice = document.getElementById(`salesPrice-${itemIndex}`)?.value || '';
+                const currency = document.getElementById(`currency-${itemIndex}`)?.value || '';
+
+                console.log("Currency:", currency);
+
+                // Populate saved values in the modal
+                document.getElementById('marginPercentage').value = marginPercentage;
+                document.getElementById('mrp').value = mrp;
+                document.getElementById('salesPrice').value = salesPrice;
+                document.getElementById('currency').value = currency;
+
+            } else {
+                // For new items, fetch the latest values from the database
+                const itemId = document.querySelector(`input[name="items[${itemIndex}][item]"]`).value;
+                const lastValues = await fetchLastItemsData(itemId);
+
+                if (lastValues) {
+                    // Populate the modal fields with the last values
+                    document.getElementById('marginPercentage').value = lastValues.marginPercentage || 0;
+                    document.getElementById('mrp').value = lastValues.mrp || 0;
+                    document.getElementById('salesPrice').value = lastValues.price || 0;
+                    document.getElementById('currency').value = lastValues.currency;
+                }
+            }
+
             // Set the PU Price in the modal
-            document.getElementById('puPrice').value = puPriceInput.value;
+            document.getElementById('puPrice').value = puPrice;
 
             // Show the sales price modal
             $('#setSalesPriceModal').modal('show');
@@ -900,20 +1089,27 @@ function handlePriceKeydown(event, itemIndex) {
             // Handle margin percentage input
             const marginPercentageInput = document.getElementById('marginPercentage');
             marginPercentageInput.oninput = function () {
-                updateSalesPriceFromMargin(puPriceInput.value);
+                updateSalesPriceFromMargin(puPrice);
             };
+
+            // Add Enter key event listener for marginPercentage input
+            marginPercentageInput.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    updateSalesPriceFromMargin(puPrice);
+                }
+            });
 
             // Handle MRP input
             const mrpInput = document.getElementById('mrp');
             mrpInput.oninput = function () {
                 updateSalesPriceFromMRP(mrpInput.value);
-                updateMarginFromMRPAndSalesPrice(mrpInput.value, puPriceInput.value);
+                updateMarginFromMRPAndSalesPrice(mrpInput.value, puPrice);
             };
 
             // Handle sales price input
             const salesPriceInput = document.getElementById('salesPrice');
             salesPriceInput.oninput = function () {
-                updateMarginFromMRPAndSalesPrice(mrpInput.value, puPriceInput.value);
+                updateMarginFromMRPAndSalesPrice(mrpInput.value, puPrice);
             };
 
             // Handle currency change
@@ -928,6 +1124,7 @@ function handlePriceKeydown(event, itemIndex) {
                 const salesPrice = document.getElementById('salesPrice').value;
                 const mrpValue = document.getElementById('mrp').value;
                 const marginPercentage = document.getElementById('marginPercentage').value;
+                const currency = document.getElementById('currency').value;
 
                 if (salesPrice) {
                     // Store sales price in a hidden input within the current row
@@ -952,6 +1149,13 @@ function handlePriceKeydown(event, itemIndex) {
                     marginPercentageInputHidden.value = marginPercentage;
                     tr.appendChild(marginPercentageInputHidden);
 
+                    //Store current in a hidden input within the current row
+                    const currencyInputHidden = document.createElement('input');
+                    currencyInputHidden.type = 'hidden';
+                    currencyInputHidden.name = `items[${itemIndex}][currency]`;
+                    currencyInputHidden.value = currency;
+                    tr.appendChild(currencyInputHidden);
+
                     // Close the modal
                     $('#setSalesPriceModal').modal('hide');
 
@@ -966,11 +1170,26 @@ function handlePriceKeydown(event, itemIndex) {
     }
 }
 
+// function updateSalesPriceFromMargin(puPrice) {
+//     const marginPercentage = parseFloat(document.getElementById('marginPercentage').value) || 0;
+//     const salesPriceFromMargin = parseFloat(puPrice) + (parseFloat(puPrice) * marginPercentage / 100);
+//     document.getElementById('salesPrice').value = salesPriceFromMargin.toFixed(2); // Set calculated sales price from margin
+// }
+
+// Function to update sales price based on margin percentage
 function updateSalesPriceFromMargin(puPrice) {
     const marginPercentage = parseFloat(document.getElementById('marginPercentage').value) || 0;
     const salesPriceFromMargin = parseFloat(puPrice) + (parseFloat(puPrice) * marginPercentage / 100);
     document.getElementById('salesPrice').value = salesPriceFromMargin.toFixed(2); // Set calculated sales price from margin
 }
+
+// Add event listener for Enter key on marginPercentage input
+document.getElementById('marginPercentage').addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+        const puPrice = document.getElementById('puPrice').value; // Get the purchase price
+        updateSalesPriceFromMargin(puPrice); // Update sales price based on margin
+    }
+});
 
 function updateSalesPriceFromMRP(mrpValue) {
     const currency = document.getElementById('currency').value;

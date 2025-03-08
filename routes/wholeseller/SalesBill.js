@@ -760,6 +760,7 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                     quantity: item.quantity,
                     price: item.price,
                     unit: item.unit,
+                    isType: 'Sale',
                     type: 'Sale',
                     billId: newBill._id,
                     purchaseSalesType: 'Sales',
@@ -911,6 +912,7 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                         account: cashAccount._id,
                         // billNumber: billCounter.count,
                         billNumber: newBillNumber,
+                        isType: 'Sale',
                         type: 'Sale',
                         billId: newBill._id,  // Set billId to the new bill's ID
                         purchaseSalesType: 'Sales',
@@ -1053,6 +1055,8 @@ router.get('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompan
 // POST route to handle sales bill creation
 router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const {
                 accountId,
@@ -1215,28 +1219,62 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                 previousBalance = accountTransaction.balance;
             }
 
-            // Batch-wise stock reduction function
-            async function reduceStockBatchWise(product, batchNumber, quantity) {
+            // // Batch-wise stock reduction function
+            // async function reduceStockBatchWise(product, batchNumber, quantity) {
+            //     let remainingQuantity = quantity;
+
+            //     // Find the batch entry with the specific batch number
+            //     const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
+
+            //     if (!batchEntry) {
+            //         throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
+            //     }
+
+            //     // Reduce stock for the specific batch
+            //     if (batchEntry.quantity <= remainingQuantity) {
+            //         remainingQuantity -= batchEntry.quantity;
+            //         batchEntry.quantity = 0; // All stock from this batch is used
+            //     } else {
+            //         batchEntry.quantity -= remainingQuantity;
+            //         remainingQuantity = 0; // Stock is fully reduced for this batch
+            //     }
+
+            //     if (remainingQuantity > 0) {
+            //         throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
+            //     }
+
+            //     // Save the product with the updated stock entries
+            //     await product.save();
+            // }
+
+            async function reduceStockBatchWise(product, batchNumber, quantity, uniqueUuId) {
                 let remainingQuantity = quantity;
 
-                // Find the batch entry with the specific batch number
-                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
+                // Find all batch entries with the specific batch number
+                const batchEntries = product.stockEntries.filter(entry => entry.batchNumber === batchNumber);
 
-                if (!batchEntry) {
+                if (batchEntries.length === 0) {
                     throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
                 }
 
-                // Reduce stock for the specific batch
-                if (batchEntry.quantity <= remainingQuantity) {
-                    remainingQuantity -= batchEntry.quantity;
-                    batchEntry.quantity = 0; // All stock from this batch is used
+                // Find the specific stock entry using uniqueUuId
+                const selectedBatchEntry = batchEntries.find(entry => entry.uniqueUuId === uniqueUuId);
+
+                if (!selectedBatchEntry) {
+                    throw new Error(`Selected stock entry with ID ${uniqueUuId} not found for batch number ${batchNumber}`);
+                }
+
+                // Reduce stock for the selected batch entry
+                if (selectedBatchEntry.quantity <= remainingQuantity) {
+                    remainingQuantity -= selectedBatchEntry.quantity;
+                    selectedBatchEntry.quantity = 0; // All stock from this batch is used
                 } else {
-                    batchEntry.quantity -= remainingQuantity;
+                    selectedBatchEntry.quantity -= remainingQuantity;
                     remainingQuantity = 0; // Stock is fully reduced for this batch
                 }
 
                 if (remainingQuantity > 0) {
-                    throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
+                    throw new Error(`Not enough stock in the selected stock entry for batch number ${batchNumber} of product: ${product.name}`);
                 }
 
                 // Save the product with the updated stock entries
@@ -1244,14 +1282,26 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
             }
 
             // Inside the billItems map function, replace the FIFO stock reduction with batch-wise reduction
-            const billItems = await Promise.all(items.map(async item => {
-                const product = await Item.findById(item.item);
+            // const billItems = await Promise.all(items.map(async item => {
+            //     const product = await Item.findById(item.item);
 
-                // Ensure batch number is provided
-                if (!item.batchNumber) {
-                    req.flash('error', `Batch number is required for item: ${product.name}`);
-                    return res.redirect('/billsTrackBatchOpen');
+            //     // Ensure batch number is provided
+            //     if (!item.batchNumber) {
+            //         req.flash('error', `Batch number is required for item: ${product.name}`);
+            //         return res.redirect('/billsTrackBatchOpen');
+            //     }
+
+            const billItems = [];
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const product = await Item.findById(item.item).session(session);
+
+                if (!product) {
+                    req.flash('error', `Item with id ${item.item} not found`);
+                    await session.abortTransaction();
+                    return res.redirect('/purchase-return');
                 }
+
 
                 // Create the transaction for this item
                 const transaction = new Transaction({
@@ -1278,13 +1328,13 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                 console.log('Transaction', transaction);
 
                 // Assuming reduceStockBatchWise is called here
-                await reduceStockBatchWise(product, item.batchNumber, item.quantity);
+                await reduceStockBatchWise(product, item.batchNumber, item.quantity, item.uniqueUuId);
 
                 // Handle specific batch number not found error
                 product.stock -= item.quantity;
                 await product.save();
 
-                return {
+                billItems.push({
                     item: product._id,
                     quantity: item.quantity,
                     price: item.price,
@@ -1292,9 +1342,10 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                     batchNumber: item.batchNumber,  // Add batch number
                     expiryDate: item.expiryDate,  // Add expiry date
                     vatStatus: product.vatStatus,
-                    fiscalYear: fiscalYearId
-                };
-            }));
+                    fiscalYear: fiscalYearId,
+                    uniqueUuId: item.uniqueUuId,
+                });
+            }
 
             // Create a transaction for the default Sales Account
             const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
@@ -1438,6 +1489,11 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
             // Update bill with items
             newBill.items = billItems;
             await newBill.save();
+
+            // If everything goes smoothly, commit the transaction
+            await session.commitTransaction();
+            session.endSession();
+
 
             if (req.query.print === 'true') {
                 // Redirect to the print route
@@ -1786,6 +1842,7 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                     quantity: item.quantity,
                     price: item.price,
                     unit: item.unit,
+                    isType: 'Sale',
                     type: 'Sale',
                     billId: newBill._id,
                     purchaseSalesType: 'Sales',
@@ -1938,6 +1995,7 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                         cashAccount: cashAccount,
                         // billNumber: billCounter.count,
                         billNumber: newBillNumber,
+                        isType: 'Sale',
                         type: 'Sale',
                         billId: newBill._id,  // Set billId to the new bill's ID
                         purchaseSalesType: 'Sales',
@@ -2081,6 +2139,8 @@ router.get('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompany
 // POST route to handle sales bill creation
 router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const {
                 cashAccount,
@@ -2251,42 +2311,88 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                 previousBalance = accountTransaction.balance;
             }
 
-            // Batch-wise stock reduction function
-            async function reduceStockBatchWise(product, batchNumber, quantity) {
+            // // Batch-wise stock reduction function
+            // async function reduceStockBatchWise(product, batchNumber, quantity) {
+            //     let remainingQuantity = quantity;
+
+            //     // Find the batch entry with the specific batch number
+            //     const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
+
+            //     if (!batchEntry) {
+            //         throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
+            //     }
+
+            //     // Reduce stock for the specific batch
+            //     if (batchEntry.quantity <= remainingQuantity) {
+            //         remainingQuantity -= batchEntry.quantity;
+            //         batchEntry.quantity = 0; // All stock from this batch is used
+            //     } else {
+            //         batchEntry.quantity -= remainingQuantity;
+            //         remainingQuantity = 0; // Stock is fully reduced for this batch
+            //     }
+
+            //     if (remainingQuantity > 0) {
+            //         throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
+            //     }
+
+            //     // Save the product with the updated stock entries
+            //     await product.save();
+            // }
+
+            async function reduceStockBatchWise(product, batchNumber, quantity, uniqueUuId) {
                 let remainingQuantity = quantity;
 
-                // Find the batch entry with the specific batch number
-                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
+                // Find all batch entries with the specific batch number
+                const batchEntries = product.stockEntries.filter(entry => entry.batchNumber === batchNumber);
 
-                if (!batchEntry) {
+                if (batchEntries.length === 0) {
                     throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
                 }
 
-                // Reduce stock for the specific batch
-                if (batchEntry.quantity <= remainingQuantity) {
-                    remainingQuantity -= batchEntry.quantity;
-                    batchEntry.quantity = 0; // All stock from this batch is used
+                // Find the specific stock entry using uniqueUuId
+                const selectedBatchEntry = batchEntries.find(entry => entry.uniqueUuId === uniqueUuId);
+
+                if (!selectedBatchEntry) {
+                    throw new Error(`Selected stock entry with ID ${uniqueUuId} not found for batch number ${batchNumber}`);
+                }
+
+                // Reduce stock for the selected batch entry
+                if (selectedBatchEntry.quantity <= remainingQuantity) {
+                    remainingQuantity -= selectedBatchEntry.quantity;
+                    selectedBatchEntry.quantity = 0; // All stock from this batch is used
                 } else {
-                    batchEntry.quantity -= remainingQuantity;
+                    selectedBatchEntry.quantity -= remainingQuantity;
                     remainingQuantity = 0; // Stock is fully reduced for this batch
                 }
 
                 if (remainingQuantity > 0) {
-                    throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
+                    throw new Error(`Not enough stock in the selected stock entry for batch number ${batchNumber} of product: ${product.name}`);
                 }
 
                 // Save the product with the updated stock entries
                 await product.save();
             }
 
-            // Inside the billItems map function, replace the FIFO stock reduction with batch-wise reduction
-            const billItems = await Promise.all(items.map(async item => {
-                const product = await Item.findById(item.item);
+            // // Inside the billItems map function, replace the FIFO stock reduction with batch-wise reduction
+            // const billItems = await Promise.all(items.map(async item => {
+            //     const product = await Item.findById(item.item);
 
-                // Ensure batch number is provided
-                if (!item.batchNumber) {
-                    req.flash('error', `Batch number is required for item: ${product.name}`);
-                    return res.redirect('/billsTrackBatchOpen');
+            //     // Ensure batch number is provided
+            //     if (!item.batchNumber) {
+            //         req.flash('error', `Batch number is required for item: ${product.name}`);
+            //         return res.redirect('/billsTrackBatchOpen');
+            //     }
+
+            // **Updated processing for billItems to allow multiple entries of the same item**
+            const billItems = [];
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const product = await Item.findById(item.item).session(session);
+
+                if (!product) {
+                    req.flash('error', `Item with id ${item.item} not found`);
+                    await session.abortTransaction();
+                    return res.redirect('/purchase-return');
                 }
 
                 // Create the transaction for this item
@@ -2297,6 +2403,7 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                     quantity: item.quantity,
                     price: item.price,
                     unit: item.unit,
+                    isType: 'Sale',
                     type: 'Sale',
                     billId: newBill._id,
                     purchaseSalesType: 'Sales',
@@ -2314,13 +2421,13 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                 console.log('Transaction', transaction);
 
                 // Assuming reduceStockBatchWise is called here
-                await reduceStockBatchWise(product, item.batchNumber, item.quantity);
+                await reduceStockBatchWise(product, item.batchNumber, item.quantity, item.uniqueUuId);
 
                 // Handle specific batch number not found error
                 product.stock -= item.quantity;
                 await product.save();
 
-                return {
+                billItems.push({
                     item: product._id,
                     quantity: item.quantity,
                     price: item.price,
@@ -2328,10 +2435,11 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                     batchNumber: item.batchNumber,  // Add batch number
                     expiryDate: item.expiryDate,  // Add expiry date
                     vatStatus: product.vatStatus,
-                    fiscalYear: fiscalYearId
-                };
-            }));
+                    fiscalYear: fiscalYearId,
+                    uniqueUuId: item.uniqueUuId,
 
+                });
+            }
             // Create a transaction for the default Sales Account
             const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
             if (salesAmount > 0) {
@@ -2455,6 +2563,7 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                         cashAccount: cashAccount,
                         // billNumber: billCounter.count,
                         billNumber: billNumber,
+                        isType: 'Sale',
                         type: 'Sale',
                         billId: newBill._id,  // Set billId to the new bill's ID
                         purchaseSalesType: 'Sales',
@@ -2475,6 +2584,11 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
             // Update bill with items
             newBill.items = billItems;
             await newBill.save();
+
+            // If everything goes smoothly, commit the transaction
+            await session.commitTransaction();
+            session.endSession();
+
 
             if (req.query.print === 'true') {
                 // Redirect to the print route
@@ -2855,24 +2969,55 @@ router.put('/bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCompanySele
         const billItems = await Promise.all(items.map(async item => {
             const product = await Item.findById(item.item);
 
-            // Batch-wise stock reduction function
+            // // Batch-wise stock reduction function
+            // async function reduceStockBatchWise(product, batchNumber, quantity) {
+            //     let remainingQuantity = quantity;
+
+            //     // Find the batch entry with the specific batch number
+            //     const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
+
+            //     if (!batchEntry) {
+            //         throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
+            //     }
+
+            //     // Reduce stock for the specific batch
+            //     if (batchEntry.quantity <= remainingQuantity) {
+            //         remainingQuantity -= batchEntry.quantity;
+            //         batchEntry.quantity = 0; // All stock from this batch is used
+            //     } else {
+            //         batchEntry.quantity -= remainingQuantity;
+            //         remainingQuantity = 0; // Stock is fully reduced for this batch
+            //     }
+
+            //     if (remainingQuantity > 0) {
+            //         throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
+            //     }
+
+            //     // Save the product with the updated stock entries
+            //     await product.save();
+            // }
+
             async function reduceStockBatchWise(product, batchNumber, quantity) {
                 let remainingQuantity = quantity;
 
-                // Find the batch entry with the specific batch number
-                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
+                // Find all batch entries with the specific batch number
+                const batchEntries = product.stockEntries.filter(entry => entry.batchNumber === batchNumber);
 
-                if (!batchEntry) {
+                if (batchEntries.length === 0) {
                     throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
                 }
 
-                // Reduce stock for the specific batch
-                if (batchEntry.quantity <= remainingQuantity) {
-                    remainingQuantity -= batchEntry.quantity;
-                    batchEntry.quantity = 0; // All stock from this batch is used
-                } else {
-                    batchEntry.quantity -= remainingQuantity;
-                    remainingQuantity = 0; // Stock is fully reduced for this batch
+                // Iterate through all matching batch entries and reduce stock
+                for (const batchEntry of batchEntries) {
+                    if (remainingQuantity <= 0) break; // Stop if the required quantity is fully reduced
+
+                    if (batchEntry.quantity <= remainingQuantity) {
+                        remainingQuantity -= batchEntry.quantity;
+                        batchEntry.quantity = 0; // All stock from this batch is used
+                    } else {
+                        batchEntry.quantity -= remainingQuantity;
+                        remainingQuantity = 0; // Stock is fully reduced for this batch
+                    }
                 }
 
                 if (remainingQuantity > 0) {
@@ -3209,10 +3354,10 @@ router.put('/bills/editCashAccount/:id', isLoggedIn, ensureAuthenticated, ensure
         // Update existing bill
         existingBill.cashAccount = cashAccount;
         existingBill.cashAccountAddress = cashAccountAddress,
-        existingBill.cashAccountPan = cashAccountPan,
-        existingBill.cashAccountEmail = cashAccountEmail,
-        existingBill.cashAccountPhone = cashAccountPhone,
-        existingBill.isVatExempt = isVatExemptBool;
+            existingBill.cashAccountPan = cashAccountPan,
+            existingBill.cashAccountEmail = cashAccountEmail,
+            existingBill.cashAccountPhone = cashAccountPhone,
+            existingBill.isVatExempt = isVatExemptBool;
         existingBill.vatPercentage = isVatExemptBool ? 0 : vatPercentage;
         existingBill.subTotal = totalTaxableAmount + totalNonTaxableAmount;
         existingBill.discountPercentage = discount;
@@ -3439,7 +3584,7 @@ router.put('/bills/editCashAccount/:id', isLoggedIn, ensureAuthenticated, ensure
             if (cashAccount) {
                 const cashTransaction = new Transaction({
                     account: cashAccount._id,
-                    cashAccount:cashAccount,
+                    cashAccount: cashAccount,
                     billNumber: existingBill.billNumber,
                     type: 'Sale',
                     billId: existingBill._id,

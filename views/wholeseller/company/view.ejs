@@ -9,7 +9,7 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <h5 class="card-title">Details</h5>
+                        <h5 class="card-title">Details:</h5>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item"><strong>A/c Name:</strong>
                                 <%= accounts.name %>
@@ -24,31 +24,74 @@
                             <li class="list-group-item"><strong>Pan No.:</strong>
                                 <%= accounts.pan %>
                             </li>
+                           
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="card-title">Contact Information:</h5>
+                        <ul class="list-group list-group-flush">
                             <li class="list-group-item"><strong>Address:</strong>
                                 <%= accounts.address %>
                             </li>
                             <li class="list-group-item"><strong>Ward No.:</strong>
                                 <%= accounts.ward %>
                             </li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h5 class="card-title">Contact Information</h5>
-                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>Contact Person:</strong>
+                                <%= accounts.contactperson %>
+                            </li>
                             <li class="list-group-item"><strong>Phone:</strong>
                                 <%= accounts.phone %>
                             </li>
                             <li class="list-group-item"><strong>Email:</strong>
                                 <%= accounts.email %>
                             </li>
-                            <li class="list-group-item"><strong>Contact Person:</strong>
-                                <%= accounts.contactperson %>
-                            </li>
                         </ul>
                     </div>
                 </div>
             </div>
+            <div class="col">
+            <button id="backButton" class="back-button">
+                <span class="icon">←</span> Back
+              </button>
+              </div>
         </div>
-
-        <a href="/companies" class="btn btn-secondary mt-3">Back to All Accounts</a>
     </div>
+
+    <style>
+        .back-button {
+            background-color: #007bff;
+            /* Blue background */
+            color: white;
+            /* White text */
+            border: none;
+            /* No border */
+            padding: 10px 20px;
+            /* Padding */
+            font-size: 16px;
+            /* Font size */
+            cursor: pointer;
+            /* Pointer cursor on hover */
+            border-radius: 5px;
+            /* Rounded corners */
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            /* Space between icon and text */
+        }
+
+        .back-button:hover {
+            background-color: #0056b3;
+            /* Darker blue on hover */
+        }
+
+        .icon {
+            font-size: 20px;
+            /* Icon size */
+        }
+    </style>
+
+    <script>
+        document.getElementById('backButton').addEventListener('click', function () {
+            window.history.back(); // Navigate to the previous page
+        });
+    </script>

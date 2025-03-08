@@ -113,10 +113,10 @@ async function showAllItems(input) {
         const headerRow = document.createElement('div');
         headerRow.classList.add('dropdown-header');
         headerRow.innerHTML = `
-    <div><strong>Item Code</strong></div>
-    <div><strong>HS Code</strong></div>
-    <div><strong>Name</strong></div>
-    <div><strong>Stock</strong></div>
+    <div><strong>#</strong></div>
+    <div><strong>HSN</strong></div>
+    <div><strong>Description Of Goods</strong></div>
+    <div><strong>Quantity</strong></div>
     <div><strong>Unit</strong></div>
     <div><strong>Rate</strong></div>
 `;
@@ -144,7 +144,7 @@ async function showAllItems(input) {
             dropdownItem.innerHTML = `
         <div>${item.uniqueNumber || 'N/A'}</div>
         <div>${item.hscode || 'N/A'}</div>
-        <div>${item.name}</div>
+        <div class="dropdown-items-name">${item.name}</div>
         <div>${totalStock}</div>
         <div>${item.unit ? item.unit.name : ''}</div>
         <div>Rs.${puPrice.toFixed(2)}</div>
@@ -228,7 +228,7 @@ document.getElementById('itemSearch').addEventListener('input', function () {
             <div>${item.category ? item.category.name : 'No Category'}</div>
             <div>${totalStock}</div>
             <div>${item.unit ? item.unit.name : ''}</div>
-            <div>Rs.${puPrice.toFixed()}</div>
+            <div>Rs.${puPrice.toFixed(2)}</div>
         `;
 
                 dropdownItem.addEventListener('click', () => {
@@ -277,7 +277,7 @@ function addItemToBill(item, dropdownMenu) {
     const serialNumber = tbody.rows.length + 1;
 
     // Use price from the first stock entry
-    const batchpuPrice = lastStockEntry.puPrice || 0;
+    const batchpuPrice = lastStockEntry.mainUnitPuPrice || 0;
 
     // Use the current itemIndex value in the name attributes
     tr.innerHTML = `
@@ -291,7 +291,9 @@ function addItemToBill(item, dropdownMenu) {
     <input type="hidden" name="items[${itemIndex}][item]" value="${item._id}">
     ${item.name}
 </td>
-
+<td class="">
+    <input type="number" name="items[${itemIndex}][WSUnit]" class="form-control item-WSUnit" id="WSUnit-${itemIndex}" value="${item.WSUnit || 1}" onfocus="selectValue(this)" onkeydown="handleWSUnitKeydown(event,${itemIndex})" required>
+</td>
 <td>
     <input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)" required>
 </td>
@@ -318,13 +320,14 @@ function addItemToBill(item, dropdownMenu) {
 `;
 
     tbody.appendChild(tr);
-
     // Increment itemIndex after adding the new item
     itemIndex++;
     calculateTotal();
 
     // Fetch and display last transactions for the added item
     fetchLastTransactions(item._id);
+    fetchLastItemsData(item._id);
+
 
     // Hide the dropdown menu after selecting an item
     dropdownMenu.classList.remove('show');
@@ -335,6 +338,28 @@ function addItemToBill(item, dropdownMenu) {
     // Focus on the quantity input field of the newly added row
     document.getElementById(`quantity-${itemIndex - 1}`).focus();
 }
+
+// Function to fetch last transactions for the selected item
+async function fetchLastItemsData(itemId) {
+    try {
+        const response = await fetch(`/api/last-item-values/${itemId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch last item values');
+        }
+        const lastValues = await response.json();
+
+        // Populate the modal fields with the last values
+        document.getElementById('mrp').value = lastValues.mrp || 0;
+        document.getElementById('marginPercentage').value = lastValues.marginPercentage || 0;
+        document.getElementById('salesPrice').value = lastValues.price || 0;
+        document.getElementById('currency').value = lastValues.currency || "NPR";
+
+    } catch (error) {
+        console.error('Error fetching last item values:', error);
+    }
+}
+
+
 
 function getDefaultExpiryDate() {
     const today = new Date();
@@ -505,12 +530,12 @@ function toggleVatInputs() {
     // Toggle display based on VAT exemption
     if (isVatExempt) {
         taxableAmountRow.style.display = 'none';
-        vatPercentageRow.style.display = 'none';
+        // vatPercentageRow.style.display = 'none';
         // Move focus to the next available input field
         moveToNextVisibleInput(document.getElementById('isVatExempt'));
     } else {
         taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
-        vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
+        // vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
     }
     // Recalculate total when toggling VAT
     calculateTotal();
@@ -786,7 +811,7 @@ async function handleItemSearchKeydown(event) {
             if (displayTransactions) {
                 openModalAndFocusCloseButton();
             } else {
-                focusOnLastRow('item-quantity');
+                focusOnLastRow('item-WSUnit');
             }
         }
     } else if (itemSearchInput.value.length < 0 || itemsAvailable) {
@@ -803,16 +828,22 @@ function handleCloseButtonKeydown(event) {
         $('#transactionModal').modal('hide');
 
         // Focus on the quantity input field
-        document.getElementById(`quantity-${itemIndex - 1}`).focus();
+        document.getElementById(`WSUnit-${itemIndex - 1}`).focus();
         // focusOnLastRow('quantity');
+    }
+}
+
+function handleWSUnitKeydown(event) {
+    if (event.key === 'Enter') {
+        const quantityInput = document.getElementById(`quantity-${itemIndex - 1}`);
+        quantityInput.focus();
+        quantityInput.select();
+
     }
 }
 
 function handleQuantityKeydown(event) {
     if (event.key === 'Enter') {
-        // Focus on the price input field
-        // document.getElementById('price').focus();
-        // document.getElementById(`price-${itemIndex}`).focus();
         const batchNumberInput = document.getElementById(`batchNumber-${itemIndex - 1}`);
         batchNumberInput.focus();
         batchNumberInput.select();
@@ -883,6 +914,7 @@ function handlePriceKeydown(event, itemIndex) {
                 const salesPrice = document.getElementById('salesPrice').value;
                 const mrpValue = document.getElementById('mrp').value;
                 const marginPercentage = document.getElementById('marginPercentage').value;
+                const currency = document.getElementById('currency').value;
 
                 if (salesPrice) {
                     // Store sales price in a hidden input within the current row
@@ -907,6 +939,13 @@ function handlePriceKeydown(event, itemIndex) {
                     marginPercentageInputHidden.value = marginPercentage;
                     tr.appendChild(marginPercentageInputHidden);
 
+                    //Store current in a hidden input within the current row
+                    const currencyInputHidden = document.createElement('input');
+                    currencyInputHidden.type = 'hidden';
+                    currencyInputHidden.name = `items[${itemIndex}][currency]`;
+                    currencyInputHidden.value = currency;
+                    tr.appendChild(currencyInputHidden);
+
                     // Close the modal
                     $('#setSalesPriceModal').modal('hide');
 
@@ -922,11 +961,26 @@ function handlePriceKeydown(event, itemIndex) {
 }
 
 
+// function updateSalesPriceFromMargin(puPrice) {
+//     const marginPercentage = parseFloat(document.getElementById('marginPercentage').value) || 0;
+//     const salesPriceFromMargin = parseFloat(puPrice) + (parseFloat(puPrice) * marginPercentage / 100);
+//     document.getElementById('salesPrice').value = salesPriceFromMargin.toFixed(2); // Set calculated sales price from margin
+// }
+
+// Function to update sales price based on margin percentage
 function updateSalesPriceFromMargin(puPrice) {
     const marginPercentage = parseFloat(document.getElementById('marginPercentage').value) || 0;
     const salesPriceFromMargin = parseFloat(puPrice) + (parseFloat(puPrice) * marginPercentage / 100);
     document.getElementById('salesPrice').value = salesPriceFromMargin.toFixed(2); // Set calculated sales price from margin
 }
+
+// Add event listener for Enter key on marginPercentage input
+document.getElementById('marginPercentage').addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+        const puPrice = document.getElementById('puPrice').value; // Get the purchase price
+        updateSalesPriceFromMargin(puPrice); // Update sales price based on margin
+    }
+});
 
 function updateSalesPriceFromMRP(mrpValue) {
     const currency = document.getElementById('currency').value;

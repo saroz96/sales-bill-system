@@ -21,7 +21,9 @@
                                             <%=currentCompany.country%> <br>
                                                 Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
                                                         <br>
-                                                        VAT NO.: <span><%=currentCompany.pan%></span>
+                                                        VAT NO.: <span>
+                                                            <%=currentCompany.pan%>
+                                                        </span>
                             </h4>
                         </b>
                         <hr style="border: 0.5px solid;">
@@ -83,53 +85,53 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <% bills.forEach(purchaseBill=> { %>
-                        <tr class="searchClass bill-row" data-payment-mode="<%= purchaseBill.paymentMode %>">
-                            <td>
-                                <%= new Date(purchaseBill.date).toLocaleDateString() %>
-                            </td>
-                            <td>
-                                <%= purchaseBill.billNumber %>
-                            </td>
-                            <td>
-                                <%= purchaseBill.account ? purchaseBill.account.name : 'Account Not Found' %>
-                            </td>
-                            <td>
-                                <%= purchaseBill.paymentMode %>
-                            </td>
-                            <td>
-                                <%= purchaseBill.subTotal %>
-                            </td>
-                            <td>
-                                <%= purchaseBill.discountPercentage %>% - Rs.<%= purchaseBill.discountAmount %>
-                            </td>
-                            <td>
-                                <%= purchaseBill.taxableAmount %>
-                            </td>
-                            <td>
-                                <%= purchaseBill.vatPercentage %>% - Rs.<%= purchaseBill.vatAmount.toFixed(2) %>
-                            </td>
-                            <td>
-                                <%= purchaseBill.roundOffAmount %>
-                            </td>
-                            <td>
-                                <%= purchaseBill.totalAmount.toFixed(2) %>
-                            </td>
-                            <td>
-                                <%= purchaseBill.user?purchaseBill.user.name:'User Not Found' %>
-                            </td>
-                            <td>
+                    <tbody>
+                        <% bills.forEach(purchaseBill=> { %>
+                            <tr class="searchClass bill-row" data-payment-mode="<%= purchaseBill.paymentMode %>">
+                                <td>
+                                    <%= new Date(purchaseBill.date).toLocaleDateString() %>
+                                </td>
+                                <td>
+                                    <%= purchaseBill.billNumber %>
+                                </td>
+                                <td>
+                                    <%= purchaseBill.account ? purchaseBill.account.name : 'Account Not Found' %>
+                                </td>
+                                <td>
+                                    <%= purchaseBill.paymentMode %>
+                                </td>
+                                <td>
+                                    <%= purchaseBill.subTotal.toFixed(2) %>
+                                </td>
+                                <td>
+                                    <%= purchaseBill.discountPercentage.toFixed(2) %>% - Rs.<%= purchaseBill.discountAmount.toFixed(2) %>
+                                </td>
+                                <td>
+                                    <%= purchaseBill.taxableAmount.toFixed(2) %>
+                                </td>
+                                <td>
+                                    <%= purchaseBill.vatPercentage %>% - Rs.<%= purchaseBill.vatAmount.toFixed(2) %>
+                                </td>
+                                <td>
+                                    <%= purchaseBill.roundOffAmount.toFixed(2) %>
+                                </td>
+                                <td>
+                                    <%= purchaseBill.totalAmount.toFixed(2) %>
+                                </td>
+                                <td>
+                                    <%= purchaseBill.user?purchaseBill.user.name:'User Not Found' %>
+                                </td>
+                                <td>
 
-                                <a href="/purchase-bills/<%= purchaseBill._id %>/print" class="btn-sm btn-info"><i
-                                        class="fas fa-eye"></i></a>
-                                <a href="/purchase-bills/edit/<%=purchaseBill._id%>" class="btn-sm btn-warning"><i
-                                        class="fas fa-edit"></i></a>
+                                    <a href="/purchase-bills/<%= purchaseBill._id %>/print" class="btn-sm btn-info"><i
+                                            class="fas fa-eye"></i></a>
+                                    <a href="/purchase-bills/edit/<%=purchaseBill._id%>" class="btn-sm btn-warning"><i
+                                            class="fas fa-edit"></i></a>
 
-                            </td>
-                        </tr>
-                        <% }); %>
-                </tbody>
+                                </td>
+                            </tr>
+                            <% }); %>
+                    </tbody>
                 <!-- Totals row outside tbody -->
                 <tfoot>
                     <tr id="totalsRow">
@@ -147,5 +149,4 @@
             </table>
         </div>
     </div>
-    
-<script src="/javascript/purchase/allbills.js"></script>
+    <script src="/javascript/purchase/allbills.js"></script>

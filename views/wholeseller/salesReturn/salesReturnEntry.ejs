@@ -221,17 +221,17 @@
                     <div class="form-group row">
 
                         <% if (companyDateFormat==='nepali' ) { %>
-                            <div class="col d-flex align-items-center">
-                                <label for="transactionDateNepali" class="me-4">Tran.Date:</label>
+                            <div class="col">
+                                <label for="transactionDateNepali">Tran.Date:</label>
                                 <input type="text" name="transactionDateNepali" id="transactionDateNepali"
                                     class="form-control" value="<%= transactionDateNepali ||'' %>" autofocus required
-                                    onfocus="selectValue(this)" style="max-width: 150px;">
+                                    onfocus="selectValue(this)">
                             </div>
-                            <div class="col d-flex align-items-center">
-                                <label for="nepaliDate" class="me-4">Invoice Date:</label>
+                            <div class="col">
+                                <label for="nepaliDate">Invoice Date:</label>
                                 <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
                                     value="<%= nepaliDate || '' %>" onfocus="selectValue(this)"
-                                    style="max-width: 150px;">
+                                    >
                             </div>
                             <% } else { %>
                                 <div class="col">
@@ -250,23 +250,23 @@
                                 </div>
 
                                 <% } %>
-                                    <div class="col d-flex align-items-center">
-                                        <label for="billNumber" class="me-4">Vch. No:</label>
+                                    <div class="col">
+                                        <label for="billNumber">Vch. No:</label>
                                         <input type="number" name="billNumber" id="billNumber" class="form-control"
                                             value="<%=nextBillNumber %>" onfocus="selectValue(this)"
-                                            style="max-width: 150px;">
+                                            >
                                     </div>
-                                    <div class="col d-flex align-items-center">
-                                        <label for="paymentMode" class="me-4">Pay. Mode:</label>
+                                    <div class="col">
+                                        <label for="paymentMode">Pay. Mode:</label>
                                         <input type="text" class="form-control" id="paymentMode" name="paymentMode"
-                                            placeholder="" autocomplete="off" style="max-width: 150px;">
+                                            placeholder="" autocomplete="off">
                                     </div>
 
-                                    <div class="col d-flex align-items-center">
-                                        <label for="isVatExempt" class="me-4">VAT</label>
+                                    <div class="col">
+                                        <label for="isVatExempt">VAT</label>
                                         <select name="isVatExempt" id="isVatExempt" class="form-control"
                                             onchange="toggleVatInputs()" onfocus="openVatModal()" autocomplete="off"
-                                            style="max-width: 150px;">
+                                            >
                                             <% if (vatEnabled) {%>
                                                 <option value="all">All</option>
                                                 <option value="false">13%</option>
@@ -289,26 +289,25 @@
                                 <option value="Sales Return">Sales Return</option>
                             </select>
                         </div>
-                        <div class="col-6 d-flex align-items-center">
+                        <div class="col-6">
                             <!-- Account Selection Input -->
-                            <label for="account" class="me-4">Party Name:</label>
+                            <label for="account">Party Name:</label>
                             <input type="text" id="account" name="account" class="form-control" placeholder=""
-                                autocomplete="off" style="max-width: 600px;" required>
+                                autocomplete="off" required>
                             <input type="hidden" id="accountId" name="accountId">
                         </div>
-                        <div class="col d-flex align-items-center">
-                            <label for="address" class="me-4">Address:</label>
+                        <div class="col">
+                            <label for="address">Address:</label>
                             <input type="text" id="address" class="form-control" placeholder="" autocomplete="off"
-                                onfocus="selectValue(this)" style="max-width: 150;">
+                                onfocus="selectValue(this)">
                         </div>
-                        <div class="col d-flex align-items-center">
-                            <label for="pan" class="me-4">Vat:</label>
+                        <div class="col">
+                            <label for="pan">Vat:</label>
                             <input type="text" id="pan" name="pan" class="form-control" autocomplete="off"
-                                onfocus="selectValue(this)" style="max-width: 50;">
+                                onfocus="selectValue(this)">
                         </div>
 
                     </div>
-
                     <div id="bill-details-container">
                         <table class="table table-bordered compact-table" id="itemsTable">
                             <thead>
@@ -320,7 +319,7 @@
                                     <th>Qty</th>
                                     <th>Unit</th>
                                     <th>Batch</th>
-                                    <th>Exp. Date</th>
+                                    <th>Expiry</th>
                                     <th>Price</th>
                                     <th>Amount</th>
                                     <th>Action</th>
@@ -331,6 +330,7 @@
                             </tbody>
                         </table>
                     </div>
+                    
                     <div class="form-group row">
                         <div class="col">
                             <label for="itemSearch">Search Item</label>
@@ -339,51 +339,44 @@
                             <div id="dropdownMenu" class="dropdown-menu"></div>
                         </div>
                     </div>
-                    <!-- Bill Details Table -->
+
                     <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
-                                    <th colspan="4" class="text-center bg-light">Bill Details</th>
+                                    <th colspan="6" class="text-center bg-light">Bill Details</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Sub Total Row -->
+                                <!-- Sub Total, Discount % and Discount Amount in the same row -->
                                 <tr>
                                     <td><label for="subTotal">Sub Total:</label></td>
-                                    <td colspan="2" class="text-right">
+                                    <td class="text-right">
                                         <p class="form-control-plaintext">Rs. <span id="subTotal">0.00</span></p>
                                     </td>
-                                </tr>
-
-                                <!-- Discount Row -->
-                                <tr>
                                     <td><label for="discountPercentage">Discount %:</label></td>
                                     <td>
                                         <input type="number" step="any" name="discountPercentage"
                                             id="discountPercentage" class="form-control" value="0.00"
-                                            oninput="calculateTotal()">
+                                            oninput="calculateTotal()" onfocus="selectValue(this)">
                                     </td>
                                     <td><label for="discountAmount">Discount (Rs.):</label></td>
                                     <td>
                                         <input type="number" step="any" name="discountAmount" id="discountAmount"
-                                            value="0.00" class="form-control" oninput="calculateTotal()">
+                                            value="0.00" class="form-control" oninput="calculateTotal()" onfocus="selectValue(this)">
                                     </td>
                                 </tr>
 
-                                <!-- VAT Rows (Initially visible) -->
+                                <!-- Taxable Amount, VAT % and VAT Amount in the same row -->
                                 <tr id="taxableAmountRow">
                                     <td><label for="taxableAmount">Taxable Amount:</label></td>
-                                    <td colspan="2" class="text-right">
-                                        <p class="form-control-plaintext">Rs. <span id="taxableAmount">0.00</span>
-                                        </p>
+                                    <td class="text-right">
+                                        <p class="form-control-plaintext">Rs. <span id="taxableAmount">0.00</span></p>
                                     </td>
-                                </tr>
-                                <tr id="vatPercentageRow">
                                     <td><label for="vatPercentage">VAT (13%):</label></td>
                                     <td>
                                         <input type="number" name="vatPercentage" id="vatPercentage"
-                                            class="form-control" value="13.00" readonly>
+                                            class="form-control" value="13.00" readonly onfocus="selectValue(this)">
                                     </td>
                                     <td><label for="vatAmount">VAT Amount:</label></td>
                                     <td class="text-right">
@@ -391,17 +384,13 @@
                                     </td>
                                 </tr>
 
-                                <!-- Round Off & Total Row -->
+                                <!-- Round Off and Total Amount in the same row -->
                                 <tr>
                                     <td><label for="roundOffAmount">Round Off:</label></td>
-                                    <td colspan="2">
+                                    <td>
                                         <input type="number" class="form-control" step="any" id="roundOffAmount"
-                                            name="roundOffAmount" value="0.00" oninput="calculateTotal()">
+                                            name="roundOffAmount" value="0.00" oninput="calculateTotal()" onfocus="selectValue(this)">
                                     </td>
-                                </tr>
-
-                                <!-- Total Amount & In Words Row -->
-                                <tr>
                                     <td><label for="totalAmount">Total Amount:</label></td>
                                     <td>
                                         <p class="form-control-plaintext">Rs. <span id="totalAmount">0.00</span></p>
@@ -553,6 +542,7 @@
             width: 100%;
         }
     </style>
+
 
     <script src="https://nepalidatepicker.sajanmaharjan.com.np/nepali.datepicker/js/nepali.datepicker.v4.0.7.min.js"
         type="text/javascript"></script>
@@ -1440,12 +1430,12 @@
             // Toggle display based on VAT exemption
             if (isVatExempt) {
                 taxableAmountRow.style.display = 'none';
-                vatPercentageRow.style.display = 'none';
+                // vatPercentageRow.style.display = 'none';
                 // Move focus to the next available input field
                 moveToNextVisibleInput(document.getElementById('isVatExempt'));
             } else {
                 taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
-                vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
+                // vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
             }
             // Recalculate total when toggling VAT
             calculateTotal();
@@ -1595,7 +1585,7 @@
 
         async function fetchLastTransactions(itemId) {
             // const itemId = select.value;
-            const accountId = document.getElementById('account').value;
+            const accountId = document.getElementById('accountId').value;
             const purchaseSalesType = document.getElementById('purchaseSalesType').value; // Ensure this element exists and has a value
             const transactionList = document.getElementById('transactionList');
 

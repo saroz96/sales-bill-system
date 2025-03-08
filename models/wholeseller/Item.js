@@ -12,6 +12,9 @@ const stockEntrySchema = new mongoose.Schema({
         type: Date,
         default: () => new Date().toISOString
     },
+    WSUnit: {
+        type: Number, // Alternative unit name (e.g., "Box")
+    },
     quantity: {
         type: Number,
     },
@@ -23,14 +26,30 @@ const stockEntrySchema = new mongoose.Schema({
         type: String,
         default: getDefaultExpiryDate
     },
-    price: { type: Number, default: 0 },
-    puPrice: { type: Number, default: 0 },
-    mrp: { type: Number, default: 0 },
+    price: {
+        type: Number,
+        default: 0,
+    },
+    puPrice: {
+        type: Number,
+        default: 0,
+    },
+    mainUnitPuPrice: {
+        type: Number,
+        default: 0,
+    },
+    mrp: {
+        type: Number,
+        default: 0,
+    },
     marginPercentage: { type: Number, default: 0 },
+    currency: { type: String },
     fiscalYear: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'FiscalYear'
-    }
+    },
+    uniqueUuId: { type: String },
+    purchaseBillId: { type: mongoose.Schema.Types.ObjectId, ref: 'PurchaseBill' } // Add this field
 });
 
 
@@ -45,7 +64,22 @@ const itemSchema = new mongoose.Schema({
         required: true
     },
     price: Number,
-    puPrice: String,
+    puPrice: Number,
+
+    mainUnitPuPrice: {
+        type: Number,
+        default: 0,
+    },
+
+    mainUnit: {
+        type: mongoose.Schema.Types.ObjectId, ref: 'MainUnit',
+        required: true
+    },
+
+    WSUnit: {
+        type: Number, // Alternative unit name (e.g., "Box")
+        default: 0
+    },
     unit: {
         type: mongoose.Schema.Types.ObjectId, ref: 'Unit',
         required: true
@@ -57,7 +91,11 @@ const itemSchema = new mongoose.Schema({
     },
     stock: {
         type: Number,
-        default: 0
+        default: 0,
+        // set: function (value) {
+        //     // Calculate stock based on WSUnit and quantity
+        //     return this.WSUnit * value;
+        // }
     }, // Total stock
     openingStockByFiscalYear: [{
         fiscalYear: {

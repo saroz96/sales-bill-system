@@ -52,7 +52,8 @@
                                     <div class="col">
                                         <label for="billNumber">Vch. No:</label>
                                         <input type="number" name="billNumber" id="billNumber" class="form-control"
-                                            value="<%=nextBillNumber %>" onfocus="selectValue(this)">
+                                            value="<%=nextBillNumber %>" oninput="this.value='<%=nextBillNumber%>'"
+                                            onfocus="selectValue(this)">
                                     </div>
 
                                     <!-- <div class="col">
@@ -138,26 +139,28 @@
                     </div>
                     <hr style="border: 1px solid gray;">
 
-                    <table class="table table-bordered compact-table" id="itemsTable">
-                        <thead>
-                            <tr>
-                                <th>S.No.</th>
-                                <th>#</th>
-                                <th>HSN</th>
-                                <th>Description of Goods</th>
-                                <th>Qty</th>
-                                <th>Unit</th>
-                                <th>Batch</th>
-                                <th>Exp.Date</th>
-                                <th>Price</th>
-                                <th>Amount</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="items">
-                            <!-- Item rows will be dynamically added here -->
-                        </tbody>
-                    </table>
+                    <div id="bill-details-container">
+                        <table class="table table-bordered compact-table" id="itemsTable">
+                            <thead>
+                                <tr>
+                                    <th>S.No.</th>
+                                    <th>#</th>
+                                    <th>HSN</th>
+                                    <th>Description of Goods</th>
+                                    <th>Qty</th>
+                                    <th>Unit</th>
+                                    <th>Batch</th>
+                                    <th>Expiry</th>
+                                    <th>Price</th>
+                                    <th>Amount</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="items">
+                                <!-- Item rows will be dynamically added here -->
+                            </tbody>
+                        </table>
+                    </div>
 
                     <div class="form-group row">
                         <div class="col">
@@ -174,20 +177,16 @@
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
-                                    <th colspan="4" class="text-center bg-light">Bill Details</th>
+                                    <th colspan="6" class="text-center bg-light">Bill Details</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Sub Total Row -->
+                                <!-- Sub Total, Discount % and Discount Amount in the same row -->
                                 <tr>
-                                    <td><label>Sub Total:</label></td>
-                                    <td colspan="2" class="text-right">
+                                    <td><label for="subTotal">Sub Total:</label></td>
+                                    <td class="text-right">
                                         <p class="form-control-plaintext">Rs. <span id="subTotal">0.00</span></p>
                                     </td>
-                                </tr>
-
-                                <!-- Discount Row -->
-                                <tr>
                                     <td><label for="discountPercentage">Discount %:</label></td>
                                     <td>
                                         <input type="number" step="any" name="discountPercentage"
@@ -202,43 +201,36 @@
                                     </td>
                                 </tr>
 
-                                <!-- VAT Rows (Initially visible) -->
+                                <!-- Taxable Amount, VAT % and VAT Amount in the same row -->
                                 <tr id="taxableAmountRow">
-                                    <td><label>Taxable Amount:</label></td>
-                                    <td colspan="2" class="text-right">
-                                        <p class="form-control-plaintext">Rs. <span id="taxableAmount">0.00</span>
-                                        </p>
+                                    <td><label for="taxableAmount">Taxable Amount:</label></td>
+                                    <td class="text-right">
+                                        <p class="form-control-plaintext">Rs. <span id="taxableAmount">0.00</span></p>
                                     </td>
-                                </tr>
-                                <tr id="vatPercentageRow">
                                     <td><label for="vatPercentage">VAT (13%):</label></td>
                                     <td>
                                         <input type="number" name="vatPercentage" id="vatPercentage"
-                                            class="form-control" value="13.00" onfocus="selectValue(this)" readonly>
+                                            class="form-control" value="13.00" readonly onfocus="selectValue(this)">
                                     </td>
-                                    <td><label>VAT Amount:</label></td>
+                                    <td><label for="vatAmount">VAT Amount:</label></td>
                                     <td class="text-right">
                                         <p class="form-control-plaintext">Rs. <span id="vatAmount">0.00</span></p>
                                     </td>
                                 </tr>
 
-                                <!-- Round Off & Total Row -->
+                                <!-- Round Off and Total Amount in the same row -->
                                 <tr>
                                     <td><label for="roundOffAmount">Round Off:</label></td>
-                                    <td colspan="2">
+                                    <td>
                                         <input type="number" class="form-control" step="any" id="roundOffAmount"
                                             name="roundOffAmount" value="0.00" oninput="calculateTotal()"
                                             onfocus="selectValue(this)">
                                     </td>
-                                </tr>
-
-                                <!-- Total Amount & In Words Row -->
-                                <tr>
-                                    <td><label>Total Amount:</label></td>
+                                    <td><label for="totalAmount">Total Amount:</label></td>
                                     <td>
                                         <p class="form-control-plaintext">Rs. <span id="totalAmount">0.00</span></p>
                                     </td>
-                                    <td><label>In Words:</label></td>
+                                    <td><label for="amountInWords">In Words:</label></td>
                                     <td class="text-right">
                                         <p class="form-control-plaintext" id="amountInWords">Zero Only.</p>
                                     </td>
@@ -392,7 +384,19 @@
             </div>
         </div>
     </div>
+    <style>
+        #bill-details-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
 
+        #items {
+            table-layout: fixed;
+            width: 100%;
+        }
+    </style>
 
     <script src="/javascript/purchaseReturn/purchaseReturnEntry.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -424,6 +428,7 @@
 
         //for account
         $(document).ready(function () {
+
             if (isVatModalOpen) {
                 // Prevent opening the VAT modal if payment modal is open
                 return;
@@ -457,7 +462,22 @@
                     method: "GET",
                     success: function (data) {
                         allAccounts = data;
-                        renderAccounts();
+
+                        // Sort the accounts alphabetically by name (assuming `name` is the field you want to sort by)
+                        allAccounts.sort(function (a, b) {
+                            const nameA = a.name.toLowerCase(); // Convert to lowercase to handle case-insensitive comparison
+                            const nameB = b.name.toLowerCase();
+
+                            if (nameA < nameB) {
+                                return -1; // a should come before b
+                            }
+                            if (nameA > nameB) {
+                                return 1; // b should come before a
+                            }
+                            return 0; // a and b are equal
+                        });
+
+                        renderAccounts(); // Now render the accounts after sorting
                     },
                     error: function (err) {
                         console.error("Error fetching accounts:", err);
@@ -478,18 +498,19 @@
                 filtered.forEach((account, index) => {
                     const isActive = index === 0 ? "active" : "";
                     $accountList.append(`
-                <li class="list-group-item account-item ${isActive}" 
-                    data-id="${account._id}" 
-                    data-name="${account.name}" 
-                    data-address="${account.address || 'N/A'}" 
-                    data-pan="${account.pan || 'N/A'}"
-                    data-index="${index}">
-                    <div class="d-flex justify-content-between">
-                        <strong>${account.name}</strong>
-                        <span>📍 ${account.address || 'N/A'} | 🆔 PAN: ${account.pan || 'N/A'}</span>
-                    </div>
-                </li>
-            `);
+    <li class="list-group-item account-item ${isActive}" 
+        data-uniqueNumber="${account.uniqueNumber || 'N/A'}"
+        data-id="${account._id}" 
+        data-name="${account.name}" 
+        data-address="${account.address || 'N/A'}" 
+        data-pan="${account.pan || 'N/A'}"
+        data-index="${index}">
+        <div class="d-flex justify-content-between">
+            <strong> ${account.uniqueNumber || 'N/A'} ${account.name}</strong>
+            <span>📍 ${account.address || 'N/A'} | 🆔 PAN: ${account.pan || 'N/A'}</span>
+        </div>
+    </li>
+`);
                 });
 
                 selectedIndex = 0;
@@ -572,6 +593,95 @@
         //---------------------------------------------------------------------------------------------------
 
 
+        // window.onload = function () {
+        //     var transactionDateNepali = document.getElementById("transactionDateNepali");
+        //     var nepaliDate = document.getElementById("nepaliDate");
+
+        //     transactionDateNepali.nepaliDatePicker();
+        //     nepaliDate.nepaliDatePicker();
+
+        //     // Add validation for Transaction Date
+        //     transactionDateNepali.addEventListener("blur", function () {
+        //         validateNepaliDate(this, "transactionDateError");
+        //     });
+
+        //     // Add validation for Invoice Date
+        //     nepaliDate.addEventListener("blur", function () {
+        //         validateNepaliDate(this, "nepaliDateError");
+        //     });
+        // };
+
+        // // Function to validate Nepali date
+        // function validateNepaliDate(inputField, errorSpanId) {
+        //     var errorSpan = document.getElementById(errorSpanId);
+        //     var dateString = inputField.value.trim();
+
+        //     // Check if the date is valid
+        //     if (dateString && !isValidNepaliDate(dateString)) {
+        //         errorSpan.style.display = "inline"; // Show error message
+        //         // Prevent focus from moving to the next field
+        //         event.preventDefault();
+        //         inputField.focus(); // Keep focus on the current input field
+        //     } else {
+        //         errorSpan.style.display = "none"; // Hide error message
+        //     }
+        // }
+
+
+        // // Function to check if the Nepali date is valid
+        // function isValidNepaliDate(dateString) {
+        //     // Regular expression to match the Nepali date format (YYYY-MM-DD)
+        //     var datePattern = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+        //     if (!datePattern.test(dateString)) return false;
+
+        //     // Split the date string into year, month, and day
+        //     var parts = dateString.split("-");
+        //     var year = parseInt(parts[0], 10);
+        //     var month = parseInt(parts[1], 10);
+        //     var day = parseInt(parts[2], 10);
+
+        //     // Check if the month and day are valid
+        //     if (isNaN(year) || isNaN(month) || isNaN(day)) return false;
+        //     if (month < 1 || month > 12 || day < 1 || day > 32) return false;
+
+        //     // Manually validate the number of days in the month
+        //     var maxDays = getMaxDaysInNepaliMonth(year, month);
+        //     if (day > maxDays) return false;
+
+        //     return true;
+        // }
+
+        // // Function to get the maximum number of days in a Nepali month
+        // function getMaxDaysInNepaliMonth(year, month) {
+        //     // Define the number of days in each month for a given year
+        //     // This is a simplified example and may not cover all edge cases
+        //     var nepaliMonths = [
+        //         31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 30 // Example for year 2080
+        //     ];
+
+        //     // Adjust for leap years if necessary
+        //     if (year % 4 === 0 && month === 1) { // Check if it's a leap year and the month is Baisakh
+        //         nepaliMonths[0] = 31; // Baisakh has 31 days in a leap year
+        //     }
+
+        //     return nepaliMonths[month - 1]; // Return the number of days for the given month
+        // }
+
+        // //for english date validation
+        // function validateDate(input) {
+        //     const errorMessage = input.nextElementSibling; // Get the error message span
+        //     const dateValue = input.value;
+
+        //     // Check if the date is valid
+        //     if (!dateValue || isNaN(new Date(dateValue).getTime())) {
+        //         errorMessage.textContent = "Invalid date!";
+        //         errorMessage.style.display = "block";
+        //         input.focus(); // Prevent moving to the next field
+        //     } else {
+        //         errorMessage.style.display = "none"; // Hide error if valid
+        //     }
+        // }
+
         window.onload = function () {
             var transactionDateNepali = document.getElementById("transactionDateNepali");
             var nepaliDate = document.getElementById("nepaliDate");
@@ -580,32 +690,40 @@
             nepaliDate.nepaliDatePicker();
 
             // Add validation for Transaction Date
-            transactionDateNepali.addEventListener("blur", function () {
-                validateNepaliDate(this, "transactionDateError");
+            transactionDateNepali.addEventListener("blur", function (event) {
+                validateNepaliDate(this, "transactionDateError", event);
             });
 
             // Add validation for Invoice Date
-            nepaliDate.addEventListener("blur", function () {
-                validateNepaliDate(this, "nepaliDateError");
+            nepaliDate.addEventListener("blur", function (event) {
+                validateNepaliDate(this, "nepaliDateError", event);
             });
         };
 
         // Function to validate Nepali date
-        function validateNepaliDate(inputField, errorSpanId) {
+        function validateNepaliDate(inputField, errorSpanId, event) {
             var errorSpan = document.getElementById(errorSpanId);
             var dateString = inputField.value.trim();
 
-            // Check if the date is valid
-            if (dateString && !isValidNepaliDate(dateString)) {
+            // Check if the date is blank
+            if (!dateString) {
+                errorSpan.textContent = "Date cannot be blank!"; // Set error message
                 errorSpan.style.display = "inline"; // Show error message
-                // Prevent focus from moving to the next field
-                event.preventDefault();
+                event.preventDefault(); // Prevent moving to the next field
+                inputField.focus(); // Keep focus on the current input field
+                return;
+            }
+
+            // Check if the date is valid
+            if (!isValidNepaliDate(dateString)) {
+                errorSpan.textContent = "Invalid date!"; // Set error message
+                errorSpan.style.display = "inline"; // Show error message
+                event.preventDefault(); // Prevent moving to the next field
                 inputField.focus(); // Keep focus on the current input field
             } else {
                 errorSpan.style.display = "none"; // Hide error message
             }
         }
-
 
         // Function to check if the Nepali date is valid
         function isValidNepaliDate(dateString) {
@@ -761,9 +879,7 @@
             toggleVatInputs();
 
             // Move focus to the account input field after VAT selection
-            setTimeout(() => {
                 document.getElementById('account').focus();
-            }, 300); // Small delay to ensure modal closes before focusing
         }
 
         // Manage navigation and selected option

@@ -62,7 +62,9 @@
                                     <div class="col">
                                         <label for="billNumber">Vch. No:</label>
                                         <input type="number" name="billNumber" id="billNumber" class="form-control"
-                                            value="<%= purchaseInvoice.billNumber %>" onfocus="selectValue(this)">
+                                            value="<%= purchaseInvoice.billNumber %>"
+                                            oninput="this.value='<%=purchaseInvoice.billNumber%>'"
+                                            onfocus="selectValue(this)">
                                     </div>
                                     <div class="col">
                                         <label for="paymentMode">Payment Mode:</label>
@@ -109,7 +111,8 @@
                             <input type="text" id="account" name="account" class="form-control"
                                 value="<%=purchaseInvoice.account.name%>" required>
                             <!-- <input type="hidden" id="accountId" name="accountId"> -->
-                            <input type="hidden" id="accountId" name="accountId" value="<%= purchaseInvoice.account._id %>">
+                            <input type="hidden" id="accountId" name="accountId"
+                                value="<%= purchaseInvoice.account._id %>">
                         </div>
                         <div class="col">
                             <!-- New field for the address -->
@@ -132,10 +135,11 @@
                                 <th>#</th>
                                 <th>HSN</th>
                                 <th>Description of Goods</th>
+                                <th>WS Unit</th>
                                 <th>Qty</th>
                                 <th>Unit</th>
                                 <th>Batch</th>
-                                <th>Exp.Date</th>
+                                <th>Expiry</th>
                                 <th>Price</th>
                                 <th>Amount</th>
                                 <th>Action</th>
@@ -161,6 +165,11 @@
                                             <input type="hidden" name="items[<%= index %>][item]"
                                                 value="<%= item.item._id %>">
                                             <%= item.item.name || 'N/A' %>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="items[<%=index%>][WSUnit]"
+                                                value="<%=item.item.WSUnit%>" class="form-control item-WSUnit"
+                                                id="WSUnit-<%=index%>" step="any" onfocus="selectValue(this)">
                                         </td>
                                         <td>
                                             <input type="number" name="items[<%= index %>][quantity]"
@@ -206,6 +215,14 @@
                                         </td>
                                         <input type="hidden" name="items[<%= index %>][vatStatus]"
                                             value="<%= item.vatStatus %>">
+
+                                        <input type="hidden" id="marginPercentage-<%= index %>"
+                                            value="<%= item.marginPercentage || '' %>">
+                                        <input type="hidden" id="mrp-<%= index %>" value="<%= item.mrp || '' %>">
+                                        <input type="hidden" id="salesPrice-<%= index %>"
+                                            value="<%= item.price || '' %>">
+                                        <input type="hidden" id="currency-<%= index %>"
+                                            value="<%= item.currency || '' %>">
                                     </tr>
                                     <% }); %>
                                         <% } %>
@@ -228,22 +245,19 @@
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
-                                    <th colspan="4" class="text-center bg-light">Bill Details</th>
+                                    <th colspan="6" class="text-center bg-light">Bill Details</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <!-- Sub Total Row -->
                                 <tr>
                                     <td><label for="subTotal">Sub Total:</label></td>
-                                    <td colspan="2" class="text-right">
+                                    <td class="text-right">
                                         <p class="form-control-plaintext">Rs. <span id="subTotal">
                                                 <%= purchaseInvoice.subTotal.toFixed(2) %>
                                             </span></p>
                                     </td>
-                                </tr>
 
-                                <!-- Discount Row -->
-                                <tr>
                                     <td><label for="discountPercentage">Discount %:</label></td>
                                     <td>
                                         <input type="number" step="any" name="discountPercentage"
@@ -262,14 +276,12 @@
                                 <!-- VAT Rows (Initially visible) -->
                                 <tr id="taxableAmountRow">
                                     <td><label for="taxableAmount">Taxable Amount:</label></td>
-                                    <td colspan="2" class="text-right">
+                                    <td class="text-right">
                                         <p class="form-control-plaintext">Rs. <span id="taxableAmount">
                                                 <%= purchaseInvoice.taxableAmount.toFixed(2) %>
                                             </span>
                                         </p>
                                     </td>
-                                </tr>
-                                <tr id="vatPercentageRow">
                                     <td><label for="vatPercentage">VAT (13%):</label></td>
                                     <td>
                                         <input type="number" name="vatPercentage" id="vatPercentage"
@@ -282,19 +294,14 @@
                                             </span></p>
                                     </td>
                                 </tr>
-
                                 <!-- Round Off & Total Row -->
                                 <tr>
                                     <td><label for="roundOffAmount">Round Off:</label></td>
-                                    <td colspan="2">
+                                    <td>
                                         <input type="number" class="form-control" step="any" id="roundOffAmount"
                                             name="roundOffAmount" value="0.00" oninput="calculateTotal()"
                                             onfocus="selectValue(this)">
                                     </td>
-                                </tr>
-
-                                <!-- Total Amount & In Words Row -->
-                                <tr>
                                     <td><label for="totalAmount">Total Amount:</label></td>
                                     <td>
                                         <p class="form-control-plaintext">Rs. <span id="totalAmount">
@@ -302,7 +309,7 @@
                                             </span></p>
                                     </td>
                                     <td><label for="amountInWords">In Words:</label></td>
-                                    <td class="text-right">
+                                    <td class="col-3 text-right">
                                         <p class="form-control-plaintext" id="amountInWords">Zero Only.</p>
                                     </td>
                                 </tr>
@@ -396,43 +403,38 @@
                     <h5 class="modal-title" id="setSalesPriceModalLabel">Set Sales Price for New Batch</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <% if (items && items.length> 0) { %>
-                    <% items.forEach((item)=> { %>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="puPrice" class="form-label">Purchase Price</label>
-                                <input type="number" class="form-control" id="puPrice"
-                                    value="<%= item.item.puPrice || 'N/A' %>" step="any" readonly>
-                            </div>
-                            <div class="mb-3">
-                                <label for="marginPercentage" class="form-label">Margin Percentage (%)</label>
-                                <input type="number" class="form-control" id="marginPercentage" min="0" step="any"
-                                    placeholder="Enter margin percentage" onfocus="selectValue(this)">
-                            </div>
-                            <div class="mb-3">
-                                <label for="currency" class="form-label">Currency</label>
-                                <select class="form-select" id="currency" onfocus="selectValue(this)">
-                                    <option value="NPR">NPR</option>
-                                    <option value="INR">INR</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="mrp" class="form-label">MRP</label>
-                                <input type="number" class="form-control" id="mrp" step="any" placeholder="Enter MRP"
-                                    onfocus="selectValue(this)">
-                            </div>
-                            <div class="mb-3">
-                                <label for="salesPrice" class="form-label">Sales Price</label>
-                                <input type="number" class="form-control" id="salesPrice" step="any"
-                                    onfocus="selectValue(this)" required>
-                            </div>
-                            <% }); %>
-                                <% } %>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary" id="saveSalesPrice">Save Sales Price</button>
-                        </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="puPrice" class="form-label">Purchase Price</label>
+                        <input type="number" class="form-control" id="puPrice" step="any" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="marginPercentage" class="form-label">Margin Percentage (%)</label>
+                        <input type="number" class="form-control" id="marginPercentage" min="0" step="any"
+                            placeholder="Enter margin percentage" onfocus="selectValue(this)">
+                    </div>
+                    <div class="mb-3">
+                        <label for="currency" class="form-label">Currency</label>
+                        <select class="form-select" id="currency" onfocus="selectValue(this)">
+                            <option value="NPR">NPR</option>
+                            <option value="INR">INR</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mrp" class="form-label">MRP</label>
+                        <input type="number" class="form-control" id="mrp" step="any" placeholder="Enter MRP"
+                            onfocus="selectValue(this)">
+                    </div>
+                    <div class="mb-3">
+                        <label for="salesPrice" class="form-label">Sales Price</label>
+                        <input type="number" class="form-control" id="salesPrice" step="any" onfocus="selectValue(this)"
+                            required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveSalesPrice">Save Sales Price</button>
+                </div>
             </div>
         </div>
     </div>
@@ -660,6 +662,96 @@
         });
         //-----------------------------------------------------------------------------------------------
 
+        // window.onload = function () {
+        //     var transactionDateNepali = document.getElementById("transactionDateNepali");
+        //     var nepaliDate = document.getElementById("nepaliDate");
+
+        //     transactionDateNepali.nepaliDatePicker();
+        //     nepaliDate.nepaliDatePicker();
+
+        //     // Add validation for Transaction Date
+        //     transactionDateNepali.addEventListener("blur", function () {
+        //         validateNepaliDate(this, "transactionDateError");
+        //     });
+
+        //     // Add validation for Invoice Date
+        //     nepaliDate.addEventListener("blur", function () {
+        //         validateNepaliDate(this, "nepaliDateError");
+        //     });
+        // };
+
+        // // Function to validate Nepali date
+        // function validateNepaliDate(inputField, errorSpanId) {
+        //     var errorSpan = document.getElementById(errorSpanId);
+        //     var dateString = inputField.value.trim();
+
+        //     // Check if the date is valid
+        //     if (dateString && !isValidNepaliDate(dateString)) {
+        //         errorSpan.style.display = "inline"; // Show error message
+        //         // Prevent focus from moving to the next field
+        //         event.preventDefault();
+        //         inputField.focus(); // Keep focus on the current input field
+        //     } else {
+        //         errorSpan.style.display = "none"; // Hide error message
+        //     }
+        // }
+
+
+        // // Function to check if the Nepali date is valid
+        // function isValidNepaliDate(dateString) {
+        //     // Regular expression to match the Nepali date format (YYYY-MM-DD)
+        //     var datePattern = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+        //     if (!datePattern.test(dateString)) return false;
+
+        //     // Split the date string into year, month, and day
+        //     var parts = dateString.split("-");
+        //     var year = parseInt(parts[0], 10);
+        //     var month = parseInt(parts[1], 10);
+        //     var day = parseInt(parts[2], 10);
+
+        //     // Check if the month and day are valid
+        //     if (isNaN(year) || isNaN(month) || isNaN(day)) return false;
+        //     if (month < 1 || month > 12 || day < 1 || day > 32) return false;
+
+        //     // Manually validate the number of days in the month
+        //     var maxDays = getMaxDaysInNepaliMonth(year, month);
+        //     if (day > maxDays) return false;
+
+        //     return true;
+        // }
+
+        // // Function to get the maximum number of days in a Nepali month
+        // function getMaxDaysInNepaliMonth(year, month) {
+        //     // Define the number of days in each month for a given year
+        //     // This is a simplified example and may not cover all edge cases
+        //     var nepaliMonths = [
+        //         31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 30 // Example for year 2080
+        //     ];
+
+        //     // Adjust for leap years if necessary
+        //     if (year % 4 === 0 && month === 1) { // Check if it's a leap year and the month is Baisakh
+        //         nepaliMonths[0] = 31; // Baisakh has 31 days in a leap year
+        //     }
+
+        //     return nepaliMonths[month - 1]; // Return the number of days for the given month
+        // }
+
+        // //for english date validation
+        // function validateDate(input) {
+        //     const errorMessage = input.nextElementSibling; // Get the error message span
+        //     const dateValue = input.value;
+
+        //     // Check if the date is valid
+        //     if (!dateValue || isNaN(new Date(dateValue).getTime())) {
+        //         errorMessage.textContent = "Invalid date!";
+        //         errorMessage.style.display = "block";
+        //         input.focus(); // Prevent moving to the next field
+        //     } else {
+        //         errorMessage.style.display = "none"; // Hide error if valid
+        //     }
+        // }
+
+
         window.onload = function () {
             var transactionDateNepali = document.getElementById("transactionDateNepali");
             var nepaliDate = document.getElementById("nepaliDate");
@@ -668,32 +760,40 @@
             nepaliDate.nepaliDatePicker();
 
             // Add validation for Transaction Date
-            transactionDateNepali.addEventListener("blur", function () {
-                validateNepaliDate(this, "transactionDateError");
+            transactionDateNepali.addEventListener("blur", function (event) {
+                validateNepaliDate(this, "transactionDateError", event);
             });
 
             // Add validation for Invoice Date
-            nepaliDate.addEventListener("blur", function () {
-                validateNepaliDate(this, "nepaliDateError");
+            nepaliDate.addEventListener("blur", function (event) {
+                validateNepaliDate(this, "nepaliDateError", event);
             });
         };
 
         // Function to validate Nepali date
-        function validateNepaliDate(inputField, errorSpanId) {
+        function validateNepaliDate(inputField, errorSpanId, event) {
             var errorSpan = document.getElementById(errorSpanId);
             var dateString = inputField.value.trim();
 
-            // Check if the date is valid
-            if (dateString && !isValidNepaliDate(dateString)) {
+            // Check if the date is blank
+            if (!dateString) {
+                errorSpan.textContent = "Date cannot be blank!"; // Set error message
                 errorSpan.style.display = "inline"; // Show error message
-                // Prevent focus from moving to the next field
-                event.preventDefault();
+                event.preventDefault(); // Prevent moving to the next field
+                inputField.focus(); // Keep focus on the current input field
+                return;
+            }
+
+            // Check if the date is valid
+            if (!isValidNepaliDate(dateString)) {
+                errorSpan.textContent = "Invalid date!"; // Set error message
+                errorSpan.style.display = "inline"; // Show error message
+                event.preventDefault(); // Prevent moving to the next field
                 inputField.focus(); // Keep focus on the current input field
             } else {
                 errorSpan.style.display = "none"; // Hide error message
             }
         }
-
 
         // Function to check if the Nepali date is valid
         function isValidNepaliDate(dateString) {
@@ -804,7 +904,7 @@
             function selectOption(option) {
                 inputField.val(option.text());
                 modal.hide();
-                setTimeout(() => nextField.focus(), 300); // Focus next field
+                nextField.focus(); // Focus next field
             }
         });
         //-----------------------------------------------------------------------------------------
@@ -848,9 +948,7 @@
             toggleVatInputs();
 
             // Move focus to the account input field after VAT selection
-            setTimeout(() => {
-                document.getElementById('account').focus();
-            }, 300); // Small delay to ensure modal closes before focusing
+            document.getElementById('account').focus();
         }
 
         // Manage navigation and selected option

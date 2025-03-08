@@ -129,11 +129,12 @@ router.get("/api/accounts", async (req, res) => {
         // Convert relevant group IDs to an array of ObjectIds
         const relevantGroupIds = relevantGroups.map(group => group._id);
 
-        const accounts = await Account.find({ 
+        const accounts = await Account.find({
             company: companyId,
             fiscalYear: fiscalYear,
             isActive: true,
-            companyGroups: { $in: relevantGroupIds } });
+            companyGroups: { $in: relevantGroupIds }
+        });
         res.json(accounts);
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch accounts" });
@@ -380,9 +381,12 @@ router.get('/purchase-return/edit/billNumber', isLoggedIn, ensureAuthenticated, 
 // POST route to handle sales bill creation
 router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const { accountId, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, partyBillNumber, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount, } = req.body;
             const companyId = req.session.currentCompany;
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
             const currentFiscalYear = req.session.currentFiscalYear.id
             const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
             const userId = req.user._id;
@@ -401,28 +405,59 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
             let hasNonVatableItems = false;
 
             if (!companyId) {
-                return res.status(400).json({ error: 'Company ID is required' });
+                req.flash('error', `Company ID is required.`);
+                await session.abortTransaction();
+                return res.redirect(`/purchase-return`);
             }
-
             if (!isVatExempt) {
-                return res.status(400).json({ error: 'Invalid vat selection.' });
+                req.flash('error', `Invalid vat selection.`);
+                await session.abortTransaction();
+                return res.redirect(`/purchase-return`);
             }
             if (!paymentMode) {
-                return res.status(400).json({ error: 'Invalid payment mode.' });
+                req.flash('error', `Invalid payment mode.`);
+                await session.abortTransaction();
+                return res.redirect(`/purchase-return`);
             }
-
-            const accounts = await Account.findOne({ _id: accountId, company: companyId });
+            const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+            if (companyDateFormat === 'nepali') {
+                if (!transactionDateNepali) {
+                    req.flash('error', `Invalid transaction date.`);
+                    await session.abortTransaction();
+                    return res.redirect(`/purchase-return`);
+                }
+                if (!nepaliDate) {
+                    req.flash('error', `Invalid invoice date.`);
+                    await session.abortTransaction();
+                    return res.redirect(`/purchase-return`);
+                }
+            } else {
+                if (!transactionDateRoman) {
+                    req.flash('error', `Invalid transaction date.`);
+                    await session.abortTransaction();
+                    return res.redirect(`/purchase-return`);
+                }
+                if (!billDate) {
+                    req.flash('error', `Invalid invoice date.`);
+                    await session.abortTransaction();
+                    return res.redirect(`/purchase-return`);
+                }
+            }
+            const accounts = await Account.findOne({ _id: accountId, company: companyId }).session(session);
             if (!accounts) {
-                return res.status(400).json({ error: 'Invalid account for this company' });
+                req.flash('error', `Invalid account for this company`);
+                await session.abortTransaction();
+                return res.redirect('/purchase-return');
             }
 
             // Validate each item before processing
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
-                const product = await Item.findById(item.item);
+                const product = await Item.findById(item.item).session(session);
 
                 if (!product) {
                     req.flash('error', `Item with id ${item.item} not found`);
+                    await session.abortTransaction();
                     return res.redirect('/purchase-return');
                 }
 
@@ -441,6 +476,7 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                 const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
                 if (availableStock < item.quantity) {
                     req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
+                    await session.abortTransaction();
                     return res.redirect('/purchase-return');
                 }
             }
@@ -449,16 +485,16 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
             if (isVatExempt !== 'all') {
                 if (isVatExemptBool && hasVatableItems) {
                     req.flash('error', 'Cannot save VAT exempt bill with vatable items');
+                    await session.abortTransaction();
                     return res.redirect('/purchase-return');
                 }
 
                 if (!isVatExemptBool && hasNonVatableItems) {
                     req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
+                    await session.abortTransaction();
                     return res.redirect('/purchase-return');
                 }
             }
-
-            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'PurchaseReturn')
 
             // Apply discount proportionally to vatable and non-vatable items
             const discountForTaxable = (totalTaxableAmount * discount) / 100;
@@ -478,7 +514,7 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
             let finalAmount = totalAmount;
 
             // Check if round off is enabled in settings
-            const roundOffForPurchaseReturn = await Settings.findOne({ companyId, userId }); // Assuming you have a single settings document
+            const roundOffForPurchaseReturn = await Settings.findOne({ companyId, userId }).session(session); // Assuming you have a single settings document
 
             // Handle case where settings is null
             if (!roundOffForPurchaseReturn) {
@@ -493,13 +529,14 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                 roundOffAmount = parseFloat(manualRoundOffAmount);
                 finalAmount = totalAmount + roundOffAmount;
             }
+            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'PurchaseReturn');
 
             // Create new bill
             const newBill = new PurchaseReturn({
                 // billNumber: billCounter.count,
                 billNumber: billNumber,
                 partyBillNumber: partyBillNumber,
-                account:accountId,
+                account: accountId,
                 purchaseSalesReturnType: 'Purchase Return',
                 items: [], // We'll update this later
                 isVatExempt: isVatExemptBool,
@@ -529,37 +566,51 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                 previousBalance = accountTransaction.balance;
             }
 
-            // Batch - wise stock reduction function
-            async function reduceStockBatchWise(product, batchNumber, quantity) {
+            async function reduceStockBatchWise(product, batchNumber, quantity, uniqueUuId) {
                 let remainingQuantity = quantity;
-
-                // Find the batch entry with the specific batch number
-                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
-
-                if (!batchEntry) {
+            
+                // Find all batch entries with the specific batch number
+                const batchEntries = product.stockEntries.filter(entry => entry.batchNumber === batchNumber);
+            
+                if (batchEntries.length === 0) {
                     throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
                 }
-
-                // Reduce stock for the specific batch
-                if (batchEntry.quantity <= remainingQuantity) {
-                    remainingQuantity -= batchEntry.quantity;
-                    batchEntry.quantity = 0; // All stock from this batch is used
+            
+                // Find the specific stock entry using uniqueUuId
+                const selectedBatchEntry = batchEntries.find(entry => entry.uniqueUuId === uniqueUuId);
+            
+                if (!selectedBatchEntry) {
+                    throw new Error(`Selected stock entry with ID ${uniqueUuId} not found for batch number ${batchNumber}`);
+                }
+            
+                // Reduce stock for the selected batch entry
+                if (selectedBatchEntry.quantity <= remainingQuantity) {
+                    remainingQuantity -= selectedBatchEntry.quantity;
+                    selectedBatchEntry.quantity = 0; // All stock from this batch is used
                 } else {
-                    batchEntry.quantity -= remainingQuantity;
+                    selectedBatchEntry.quantity -= remainingQuantity;
                     remainingQuantity = 0; // Stock is fully reduced for this batch
                 }
-
+            
                 if (remainingQuantity > 0) {
-                    throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
+                    throw new Error(`Not enough stock in the selected stock entry for batch number ${batchNumber} of product: ${product.name}`);
                 }
-
+            
                 // Save the product with the updated stock entries
                 await product.save();
             }
 
-            // Create transactions
-            const billItems = await Promise.all(items.map(async item => {
-                const product = await Item.findById(item.item);
+            // **Updated processing for billItems to allow multiple entries of the same item**
+            const billItems = [];
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const product = await Item.findById(item.item).session(session);
+
+                if (!product) {
+                    req.flash('error', `Item with id ${item.item} not found`);
+                    await session.abortTransaction();
+                    return res.redirect('/purchase-return');
+                }
 
                 // Create the transaction for this item
                 const transaction = new Transaction({
@@ -590,12 +641,12 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                 console.log('Transaction', transaction);
 
                 // Assuming reduceStockBatchWise is called here
-                await reduceStockBatchWise(product, item.batchNumber, item.quantity);
+                await reduceStockBatchWise(product, item.batchNumber, item.quantity, item.uniqueUuId);
 
                 product.stock -= item.quantity;
                 await product.save();
 
-                return {
+                billItems.push({
                     item: product._id,
                     quantity: item.quantity,
                     price: item.price,
@@ -604,15 +655,14 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                     batchNumber: item.batchNumber,  // Add batch number
                     expiryDate: item.expiryDate,  // Add expiry date
                     vatStatus: product.vatStatus,
-                    fiscalYear: fiscalYearId
-                };
-            }));
-
+                    fiscalYear: fiscalYearId,
+                    uniqueUuId:item.uniqueUuId,
+                });
+            }
             // Update bill with items
             newBill.items = billItems;
             console.log('New Bill', newBill);
             console.log('billItems', billItems);
-            await newBill.save();
 
             // Create a transaction for the default Purchase Account
             const purchaseRtnAmount = finalTaxableAmount + finalNonTaxableAmount;
@@ -758,6 +808,10 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                     await cashTransaction.save();
                 }
             }
+            await newBill.save({session});
+            // If everything goes smoothly, commit the transaction
+            await session.commitTransaction();
+            session.endSession();
 
             if (req.query.print === 'true') {
                 // Redirect to the print route
@@ -1051,23 +1105,54 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
                 const product = await Item.findById(item.item);
 
                 // Batch-wise stock reduction function
+                // async function reduceStockBatchWise(product, batchNumber, quantity) {
+                //     let remainingQuantity = quantity;
+
+                //     // Find the batch entry with the specific batch number
+                //     const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
+
+                //     if (!batchEntry) {
+                //         throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
+                //     }
+
+                //     // Reduce stock for the specific batch
+                //     if (batchEntry.quantity <= remainingQuantity) {
+                //         remainingQuantity -= batchEntry.quantity;
+                //         batchEntry.quantity = 0; // All stock from this batch is used
+                //     } else {
+                //         batchEntry.quantity -= remainingQuantity;
+                //         remainingQuantity = 0; // Stock is fully reduced for this batch
+                //     }
+
+                //     if (remainingQuantity > 0) {
+                //         throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
+                //     }
+
+                //     // Save the product with the updated stock entries
+                //     await product.save();
+                // }
+
                 async function reduceStockBatchWise(product, batchNumber, quantity) {
                     let remainingQuantity = quantity;
 
-                    // Find the batch entry with the specific batch number
-                    const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
+                    // Find all batch entries with the specific batch number
+                    const batchEntries = product.stockEntries.filter(entry => entry.batchNumber === batchNumber);
 
-                    if (!batchEntry) {
+                    if (batchEntries.length === 0) {
                         throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
                     }
 
-                    // Reduce stock for the specific batch
-                    if (batchEntry.quantity <= remainingQuantity) {
-                        remainingQuantity -= batchEntry.quantity;
-                        batchEntry.quantity = 0; // All stock from this batch is used
-                    } else {
-                        batchEntry.quantity -= remainingQuantity;
-                        remainingQuantity = 0; // Stock is fully reduced for this batch
+                    // Iterate through all matching batch entries and reduce stock
+                    for (const batchEntry of batchEntries) {
+                        if (remainingQuantity <= 0) break; // Stop if the required quantity is fully reduced
+
+                        if (batchEntry.quantity <= remainingQuantity) {
+                            remainingQuantity -= batchEntry.quantity;
+                            batchEntry.quantity = 0; // All stock from this batch is used
+                        } else {
+                            batchEntry.quantity -= remainingQuantity;
+                            remainingQuantity = 0; // Stock is fully reduced for this batch
+                        }
                     }
 
                     if (remainingQuantity > 0) {
@@ -1077,6 +1162,7 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
                     // Save the product with the updated stock entries
                     await product.save();
                 }
+
 
                 await reduceStockBatchWise(product, item.batchNumber, item.quantity);
 

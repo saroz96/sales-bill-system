@@ -96,7 +96,6 @@
 
             <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
             <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
-            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
             <!-- Include Select2 JS -->
             <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
@@ -111,6 +110,9 @@
             <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"
                 integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
                 crossorigin="anonymous"></script>
+
+                <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+                <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
             <!--end::Required Plugin(Bootstrap 5)--><!--begin::Required Plugin(AdminLTE)-->
             <script>
                 function showLoader() {
@@ -137,20 +139,79 @@
                     }, 100); // Update every 100ms
                 }
 
-                document.addEventListener("DOMContentLoaded", function () {
+                // document.addEventListener("DOMContentLoaded", function () {
 
-                    // Check if the page was reloaded directly (by URL)
+                //     // Check if the page was reloaded directly (by URL)
+                //     if (performance.navigation.type === 1) {
+                //         // If the page was reloaded, don't show the loader
+                //         hideLoader();
+                //         return;
+                //     }
+
+                //     // Handle form submissions
+                //     const forms = document.querySelectorAll("form");
+
+                //     forms.forEach(function (form) {
+                //         form.addEventListener("submit", function () {
+                //             showLoader();
+                //         });
+                //     });
+
+                //     // Handle link clicks
+                //     const links = document.querySelectorAll("a[href]");
+                //     links.forEach(function (link) {
+                //         link.addEventListener("click", function (event) {
+                //             const href = link.getAttribute("href");
+
+                //             // Show loader only for valid links
+                //             if (
+                //                 href !== "#" &&
+                //                 href !== "#!" &&
+                //                 (!link.hasAttribute("target") || link.getAttribute("target") !== "_blank") &&
+                //                 link.hostname === window.location.hostname
+                //             ) {
+                //                 showLoader();
+                //             }
+                //         });
+                //     });
+                // });
+
+                // // Hide loader if user navigates back or the page is restored from cache
+                // window.onpageshow = function (event) {
+                //     if (event.persisted) {
+                //         hideLoader();  // Hide the loader when coming from cache (back button or forward)
+                //     }
+                // };
+
+                // // Show loader on page navigation (e.g., reload or back/forward)
+                // window.addEventListener("beforeunload", function () {
+                //     showLoader();
+                // });
+
+                document.addEventListener("DOMContentLoaded", function () {
+                    // Prevent loader on reload
                     if (performance.navigation.type === 1) {
-                        // If the page was reloaded, don't show the loader
                         hideLoader();
                         return;
                     }
 
                     // Handle form submissions
                     const forms = document.querySelectorAll("form");
+
                     forms.forEach(function (form) {
-                        form.addEventListener("submit", function () {
-                            showLoader();
+                        form.addEventListener("submit", function (event) {
+                            // Check if the form has a delete action
+                            if (form.action.includes("_method=DELETE")) {
+                                event.preventDefault(); // Stop immediate submission
+                                let userConfirmed = confirm("Are you sure you want to delete?");
+
+                                if (userConfirmed) {
+                                    showLoader(); // Show spinner only after confirmation
+                                    form.submit(); // Now submit the form
+                                }
+                            } else {
+                                showLoader(); // Normal forms should display loader
+                            }
                         });
                     });
 
@@ -160,7 +221,6 @@
                         link.addEventListener("click", function (event) {
                             const href = link.getAttribute("href");
 
-                            // Show loader only for valid links
                             if (
                                 href !== "#" &&
                                 href !== "#!" &&
@@ -173,17 +233,18 @@
                     });
                 });
 
-                // Hide loader if user navigates back or the page is restored from cache
+                // Hide loader if the page is restored from cache
                 window.onpageshow = function (event) {
                     if (event.persisted) {
-                        hideLoader();  // Hide the loader when coming from cache (back button or forward)
+                        hideLoader();
                     }
                 };
 
-                // Show loader on page navigation (e.g., reload or back/forward)
+                // Show loader on page navigation
                 window.addEventListener("beforeunload", function () {
                     showLoader();
                 });
+
             </script>
 
 </body>

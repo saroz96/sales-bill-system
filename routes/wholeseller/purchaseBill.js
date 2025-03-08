@@ -3,6 +3,7 @@ const router = express.Router();
 
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
+const { v4: uuidv4 } = require('uuid');
 const { ensureAuthenticated, ensureCompanySelected, isLoggedIn } = require("../../middleware/auth");
 const { ensureTradeType } = require("../../middleware/tradeType");
 const Account = require("../../models/wholeseller/Account");
@@ -81,8 +82,8 @@ router.get('/purchase-bills-list', isLoggedIn, ensureAuthenticated, ensureCompan
 router.get("/api/accounts", async (req, res) => {
     try {
         const companyId = req.session.currentCompany;
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
 
-        
         // Check if fiscal year is already in the session or available in the company
         let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
         let currentFiscalYear = null;
@@ -116,17 +117,18 @@ router.get("/api/accounts", async (req, res) => {
 
         // Fetch only the required company groups: Cash in Hand, Sundry Debtors, Sundry Creditors
         const relevantGroups = await CompanyGroup.find({
-            name: { $in: ['Cash in Hand', 'Sundry Debtors', 'Sundry Creditors'] }
+            name: { $in: ['Sundry Debtors', 'Sundry Creditors'] }
         }).exec();
 
         // Convert relevant group IDs to an array of ObjectIds
         const relevantGroupIds = relevantGroups.map(group => group._id);
 
-        const accounts = await Account.find({ 
+        const accounts = await Account.find({
             company: companyId,
             fiscalYear: fiscalYear,
             isActive: true,
-            companyGroups: { $in: relevantGroupIds } });
+            companyGroups: { $in: relevantGroupIds }
+        });
         res.json(accounts);
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch accounts" });
@@ -134,12 +136,118 @@ router.get("/api/accounts", async (req, res) => {
 });
 
 
+// Example: Fetch last values for an item
+
+// router.get('/api/last-item-values/:itemId', async (req, res) => {
+//     try {
+//         const itemId = req.params.itemId;
+
+//         // Validate itemId
+//         if (!mongoose.Types.ObjectId.isValid(itemId)) {
+//             return res.status(400).json({ message: 'Invalid itemId' });
+//         }
+
+//         // Use aggregation to fetch the latest entry for the selected item
+//         const result = await PurchaseBill.aggregate([
+//             // Unwind the items array to treat each item as a separate document
+//             { $unwind: "$items" },
+
+//             // Match the specific item by its itemId
+//             { $match: { "items.item": new mongoose.Types.ObjectId(itemId) } },
+
+//             // Sort by transactionDate in descending order (most recent first)
+//             { $sort: { transactionDate: -1 } },
+
+//             // Limit the result to 1 (latest entry)
+//             { $limit: 1 },
+
+//             // Project only the required fields
+//             {
+//                 $project: {
+//                     mrp: "$items.mrp",
+//                     marginPercentage: "$items.marginPercentage",
+//                     price: "$items.price",
+//                 },
+//             },
+//         ]);
+
+//         // Check if result is empty
+//         if (!result.length) {
+//             return res.status(404).json({ message: 'No purchase history found for this item.' });
+//         }
+
+//         // Extract the last values for the item
+//         const lastItemValues = result[0];
+//         res.json({
+//             mrp: lastItemValues.mrp,
+//             marginPercentage: lastItemValues.marginPercentage,
+//             price: lastItemValues.price,
+//         });
+//     } catch (error) {
+//         console.error('Error in /api/last-item-values:', error);
+//         res.status(500).json({ message: 'Internal server error', error: error.message });
+//     }
+// });
+
+router.get('/api/last-item-values/:itemId', async (req, res) => {
+    try {
+        const itemId = req.params.itemId;
+
+        // Validate itemId
+        if (!mongoose.Types.ObjectId.isValid(itemId)) {
+            return res.status(400).json({ message: 'Invalid itemId' });
+        }
+
+        // Use aggregation to fetch the latest entry for the selected item
+        const result = await PurchaseBill.aggregate([
+            // Unwind the items array to treat each item as a separate document
+            { $unwind: "$items" },
+
+            // Match the specific item by its itemId
+            { $match: { "items.item": new mongoose.Types.ObjectId(itemId) } },
+
+            // Sort by billNumber in descending order (most recent first)
+            { $sort: { billNumber: -1 } },
+
+            // Limit the result to 1 (latest entry)
+            { $limit: 1 },
+
+            // Project only the required fields
+            {
+                $project: {
+                    mrp: "$items.mrp",
+                    marginPercentage: "$items.marginPercentage",
+                    price: "$items.price",
+                    currency: "$items.currency"
+                },
+            },
+        ]);
+
+        // Check if result is empty
+        if (!result.length) {
+            return res.status(404).json({ message: 'No purchase history found for this item.' });
+        }
+
+        // Extract the last values for the item
+        const lastItemValues = result[0];
+        res.json({
+            mrp: lastItemValues.mrp,
+            marginPercentage: lastItemValues.marginPercentage,
+            price: lastItemValues.price,
+            currency: lastItemValues.currency,
+        });
+    } catch (error) {
+        console.error('Error in /api/last-item-values:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+});
+
 // Purchase Bill routes
 router.get('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
-        const items = await Item.find({ company: companyId }).populate('category').populate('unit');
-        const purchasebills = await PurchaseBill.find({ company: companyId }).populate('account').populate('items.item');
+        const items = await Item.find({ company: companyId }).populate('category').populate('unit').populate('mainUnit');
+        const purchasebills = await PurchaseBill.find({ company: companyId }).populate('account').populate('items.item').populate('items.unit');
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format the Nepali date as needed
         const transactionDateNepali = new NepaliDate(today).format('YYYY-MM-DD');
@@ -178,23 +286,6 @@ router.get('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySele
         if (!fiscalYear) {
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
-
-
-        // // Fetch only the required company groups: Cash in Hand, Sundry Debtors, Sundry Creditors
-        // const relevantGroups = await CompanyGroup.find({
-        //     name: { $in: ['Cash in Hand', 'Sundry Debtors', 'Sundry Creditors'] }
-        // }).exec();
-
-        // // Convert relevant group IDs to an array of ObjectIds
-        // const relevantGroupIds = relevantGroups.map(group => group._id);
-
-        // Fetch accounts that belong only to the specified groups
-        // const accounts = await Account.find({
-        //     company: companyId,
-        //     fiscalYear: fiscalYear,
-        //     isActive: true,
-        //     companyGroups: { $in: relevantGroupIds }
-        // }).exec();
 
         // Get the next bill number based on company, fiscal year, and transaction type ('sales')
         let billCounter = await BillCounter.findOne({
@@ -367,9 +458,12 @@ router.get('/purchase-bills/edit/billNumber', isLoggedIn, ensureAuthenticated, e
 
 router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const { accountId, items, vatPercentage, transactionDateNepali, transactionDateRoman, billDate, partyBillNumber, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount } = req.body;
             const companyId = req.session.currentCompany;
+            const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
             const userId = req.user._id;
             const currentFiscalYear = req.session.currentFiscalYear.id
             const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -388,28 +482,62 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
             let hasNonVatableItems = false;
 
             if (!companyId) {
-                return res.status(400).json({ error: 'Company ID is required.' });
+                req.flash('error', `Company ID is required.`);
+                await session.abortTransaction();
+                return res.redirect('/purchase-bills');
             }
             if (!isVatExempt) {
-                return res.status(400).json({ error: 'Invalid vat selection.' });
+                req.flash('error', `Invalid vat selection.`);
+                await session.abortTransaction();
+                return res.redirect('/purchase-bills');
             }
             if (!paymentMode) {
-                return res.status(400).json({ error: 'Invalid payment mode.' });
+                req.flash('error', `Invalid payment mode.`);
+                await session.abortTransaction();
+                return res.redirect('/purchase-bills');
+            }
+            const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+            if (companyDateFormat === 'nepali') {
+                if (!transactionDateNepali) {
+                    req.flash('error', `Invalid transaction date.`);
+                    await session.abortTransaction();
+                    return res.redirect('/purchase-bills');
+                }
+                if (!nepaliDate) {
+                    req.flash('error', `Invalid invoice date.`);
+                    await session.abortTransaction();
+                    return res.redirect('/purchase-bills');
+                }
+            } else {
+                if (!transactionDateRoman) {
+                    req.flash('error', `Invalid transaction date.`);
+                    await session.abortTransaction();
+                    return res.redirect('/purchase-bills');
+                }
+                if (!billDate) {
+                    req.flash('error', `Invalid invoice date.`);
+                    await session.abortTransaction();
+                    return res.redirect('/purchase-bills');
+                }
             }
 
-            const accounts = await Account.findOne({ _id: accountId, company: companyId });
+
+            const accounts = await Account.findOne({ _id: accountId, company: companyId }).session(session);
 
             if (!accounts) {
-                return res.status(400).json({ error: 'Invalid account for this company' });
+                req.flash('error', `Invalid account for this company`);
+                await session.abortTransaction();
+                return res.redirect('/purchase-bills');
             }
 
             // Validate each item before processing
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
-                const product = await Item.findById(item.item);
+                const product = await Item.findById(item.item).session(session);
 
                 if (!product) {
                     req.flash('error', `Item with id ${item.item} not found`);
+                    await session.abortTransaction();
                     return res.redirect('/purchase-bills');
                 }
 
@@ -425,18 +553,17 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
                 }
             }
 
-            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Purchase')
-
-
             // Check validation conditions after processing all items
             if (isVatExempt !== 'all') {
                 if (isVatExemptBool && hasVatableItems) {
                     req.flash('error', 'Cannot save VAT exempt bill with vatable items');
+                    await session.abortTransaction();
                     return res.redirect('/purchase-bills');
                 }
 
                 if (!isVatExemptBool && hasNonVatableItems) {
                     req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
+                    await session.abortTransaction();
                     return res.redirect('/purchase-bills');
                 }
             }
@@ -459,7 +586,7 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
             let finalAmount = totalAmount;
 
             // Check if round off is enabled in settings
-            let roundOffForPurchase = await Settings.findOne({ companyId, userId }); // Assuming you have a single settings document
+            let roundOffForPurchase = await Settings.findOne({ companyId, userId }).session(session); // Assuming you have a single settings document
 
             // Handle case where settings is null
             if (!roundOffForPurchase) {
@@ -474,13 +601,14 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
                 roundOffAmount = parseFloat(manualRoundOffAmount);
                 finalAmount = totalAmount + roundOffAmount;
             }
+            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Purchase')
 
             // Create new purchase bill
             const newBill = new PurchaseBill({
                 // billNumber: billCounter.count,
                 billNumber: billNumber,
                 partyBillNumber,
-                account:accountId,
+                account: accountId,
                 purchaseSalesType: 'Purchase',
                 items: [], // We'll update this later
                 isVatExempt: isVatExemptBool,
@@ -511,19 +639,33 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
 
 
             //FIFO stock addition function
-            async function addStock(product, batchNumber, expiryDate, quantity, price, puPrice, marginPercentage, mrp) {
+            async function addStock(product, batchNumber, expiryDate, WSUnit, quantity, price, puPrice, marginPercentage, mrp, currency) {
                 // Ensure quantity is treated as a number
                 const quantityNumber = Number(quantity);
+                const parsedPrice = price !== undefined && price !== "" ? parseFloat(price) : 0;
+                const parsedPuPrice = puPrice !== undefined && puPrice !== "" ? parseFloat(puPrice) : 0;
+                const parsedMrp = mrp !== undefined && mrp !== "" ? parseFloat(mrp) : 0;
+
+                // const WSUnitNumber = Number(WSUnit);
+                const WSUnitNumber = WSUnit !== undefined && WSUnit !== "" && WSUnit !== null ? Number(WSUnit) : 1
+
+                // Generate a unique ID for the stock entry
+                const uniqueId = uuidv4();
 
                 const stockEntry = {
                     date: nepaliDate ? nepaliDate : new Date(billDate),
-                    quantity: quantityNumber,
+                    WSUnit: WSUnitNumber,
+                    quantity: WSUnitNumber ? quantityNumber * WSUnitNumber : 0,
                     batchNumber: batchNumber,
                     expiryDate: expiryDate,
-                    price: price,
-                    puPrice: puPrice,
-                    mrp: mrp,
+                    price: WSUnitNumber ? parsedPrice / WSUnitNumber : 0,
+                    puPrice: WSUnitNumber ? parsedPuPrice / WSUnitNumber : 0,
+                    mainUnitPuPrice: parsedPuPrice, // Keeps the original value before division
+                    mrp: WSUnitNumber ? parsedMrp / WSUnitNumber : 0,
                     marginPercentage: marginPercentage,
+                    currency: currency,
+                    purchaseBillId: newBill._id, // Add the purchase bill ID
+                    uniqueUuId: uniqueId
                 };
 
 
@@ -531,27 +673,39 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
                 console.log('Stock Entry:', stockEntry);
                 product.stockEntries.push(stockEntry); // Add entry to stockEntries array
                 // Ensure stock is incremented correctly as a number
-                product.stock = (product.stock || 0) + quantityNumber;
+                product.stock = (product.stock || 0) + (quantityNumber * WSUnitNumber);
+
+                // Also update the WSUnit value in the product schema if it has changed
+                product.WSUnit = WSUnitNumber; // Update WSUnit in the database
+
                 await product.save();
             }
 
 
-            // Create transactions and update stock
-            const billItems = await Promise.all(items.map(async item => {
-                const product = await Item.findById(item.item);
+            // **Updated processing for billItems to allow multiple entries of the same item**
+            const billItems = [];
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const product = await Item.findById(item.item).session(session);
 
+                if (!product) {
+                    req.flash('error', `Item with id ${item.item} not found`);
+                    await session.abortTransaction();
+                    return res.redirect('/purchase-bills');
+                }
                 // Create the transaction for this item
                 const transaction = new Transaction({
                     item: product._id,
                     account: accountId,
-                    // purchaseBillNumber: billCounter.count,
-                    // billNumber: billCounter.count,
                     billNumber: billNumber,
                     partyBillNumber,
                     purchaseSalesType: 'Purchase',
+                    WSUnit: item.WSUnit,
                     quantity: item.quantity,
                     puPrice: item.puPrice,
                     unit: item.unit,  // Include the unit field
+                    currency: item.currency,
+                    mainUnit: item.mainUnit,
                     isType: 'Purc',
                     type: 'Purc',
                     purchaseBillId: newBill._id,  // Set billId to the new bill's ID
@@ -569,27 +723,31 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
                 console.log('Transaction', transaction);
 
                 // Increment stock quantity using FIFO
-                await addStock(product, item.batchNumber, item.expiryDate, item.quantity, item.price, item.puPrice, item.marginPercentage, item.mrp);
+                await addStock(product, item.batchNumber, item.expiryDate, item.WSUnit, item.quantity, item.price, item.puPrice, item.marginPercentage, item.mrp, item.currency);
 
-                return {
+                billItems.push({
                     item: product._id,
                     batchNumber: item.batchNumber,
                     expiryDate: item.expiryDate,
+                    WSUnit: item.WSUnit,
                     quantity: item.quantity,
                     price: item.price,
                     puPrice: item.puPrice,
+                    Altquantity: item.quantity,
+                    Altprice: item.price,
+                    AltpuPrice: item.puPrice,
+                    mainUnitPuPrice: item.puPrice,
                     mrp: item.mrp,
                     marginPercentage: item.marginPercentage,
+                    currency: item.currency,
                     unit: item.unit,
                     vatStatus: product.vatStatus
-                };
-            }));
+                });
+            }
 
             // Update bill with items
             newBill.items = billItems;
-            console.log('New Purchase Bill', newBill);
-            console.log('billItems', billItems);
-            await newBill.save();
+            await newBill.save({ session });
 
             // Create a transaction for the default Purchase Account
             const purchaseAmount = finalTaxableAmount + finalNonTaxableAmount;
@@ -737,6 +895,10 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
                 }
             }
 
+            // If everything goes smoothly, commit the transaction
+            await session.commitTransaction();
+            session.endSession();
+
             if (req.query.print === 'true') {
                 // Redirect to the print route
                 res.redirect(`/purchase-bills/${newBill._id}/direct-print`);
@@ -812,10 +974,9 @@ router.get('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
                 _id: billId,
                 company: companyId,
                 fiscalYear: currentFiscalYear._id,
-            })
-            .populate({ path: 'items.item' })
-            .populate('items.unit')
-            .populate('account');
+            }).populate('items.item')
+                .populate('items.unit')
+                .populate('account');
 
             if (!purchaseInvoice) {
                 req.flash('error', 'Purchase invoice not found or does not belong to the selected company');
@@ -897,81 +1058,171 @@ router.get('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
 //router.put logic should be here
 router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
         const billId = req.params.id;
-        const {
-            accountId,
-            items,
-            vatPercentage,
-            transactionDateRoman,
-            transactionDateNepali,
-            partyBillNumber,
-            billDate,
-            nepaliDate,
-            isVatExempt,
-            discountPercentage,
-            paymentMode,
-            roundOffAmount: manualRoundOffAmount,
-        } = req.body;
+        const { accountId, items, vatPercentage, transactionDateRoman, transactionDateNepali, partyBillNumber, billDate, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount, } = req.body;
 
         const companyId = req.session.currentCompany;
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
         const currentFiscalYear = req.session.currentFiscalYear.id;
         const userId = req.user._id;
 
         if (!companyId) {
-            return res.status(400).json({ error: 'Company ID is required.' });
+            req.flash('error', `Company ID is required.`);
+            await session.abortTransaction();
+            return res.redirect(`/purchase-bills/edit/${billId}`);
         }
         if (!isVatExempt) {
-            return res.status(400).json({ error: 'Invalid vat selection.' });
+            req.flash('error', `Invalid vat selection.`);
+            await session.abortTransaction();
+            return res.redirect(`/purchase-bills/edit/${billId}`);
         }
         if (!paymentMode) {
-            return res.status(400).json({ error: 'Invalid payment mode.' });
+            req.flash('error', `Invalid payment mode.`);
+            await session.abortTransaction();
+            return res.redirect(`/purchase-bills/edit/${billId}`);
         }
-
-        if (!partyBillNumber) {
-            return res.status(400).json({ error: 'Invalid suppliers invoice number.' });
-        }
-
-        const accounts = await Account.findOne({ _id: accountId, company: companyId });
-        if (!accounts) {
-            return res.status(400).json({ error: 'Invalid account for this company' });
-        }
-
-        try {
-            // Check if the purchase bill can be edited
-            const isEditable = await PurchaseBill.isEditable(billId);
-
-            if (!isEditable) {
-                req.flash('error', 'Could not edit, Stock is used!');
+        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+        if (companyDateFormat === 'nepali') {
+            if (!transactionDateNepali) {
+                req.flash('error', `Invalid transaction date.`);
+                await session.abortTransaction();
                 return res.redirect(`/purchase-bills/edit/${billId}`);
             }
+            if (!nepaliDate) {
+                req.flash('error', `Invalid invoice date.`);
+                await session.abortTransaction();
+                return res.redirect(`/purchase-bills/edit/${billId}`);
+            }
+        } else {
+            if (!transactionDateRoman) {
+                req.flash('error', `Invalid transaction date.`);
+                await session.abortTransaction();
+                return res.redirect(`/purchase-bills/edit/${billId}`);
+            }
+            if (!billDate) {
+                req.flash('error', `Invalid invoice date.`);
+                await session.abortTransaction();
+                return res.redirect(`/purchase-bills/edit/${billId}`);
+            }
+        }
 
-            const existingBill = await PurchaseBill.findOne({ _id: billId, company: companyId });
+        const accounts = await Account.findOne({ _id: accountId, company: companyId }).session(session);
+        if (!accounts) {
+            req.flash('error', `Invalid account for this company`);
+            await session.abortTransaction();
+            return res.redirect(`/purchase-bills/edit/${billId}`);
+        }
+
+
+        try {
+            const existingBill = await PurchaseBill.findOne({ _id: billId, company: companyId }).session(session);
             if (!existingBill) {
                 req.flash('error', 'Purchase not found');
+                await session.abortTransaction();
                 return res.redirect('/purchase-bills-list');
             }
 
-            try {
-                for (const existingItem of existingBill.items) {
-                    const product = await Item.findById(existingItem.item);
+            // Check if stock is used fully or partially
+            let isStockUsed = false;
 
-                    // Filter out the specific batch entry to completely remove it
-                    product.stockEntries = product.stockEntries.filter(entry => entry.batchNumber !== existingItem.batchNumber);
+            for (const existingItem of existingBill.items) {
+                const product = await Item.findById(existingItem.item).session(session);
 
-                    // Recalculate the product's stock based on the remaining entries
+                if (!product) continue; // Skip if product not found
+
+                // Find the exact stock entry matching the batch number and date
+                const stockEntry = product.stockEntries.find(entry =>
+                    entry.batchNumber === existingItem.batchNumber &&
+                    new Date(entry.date).toDateString() === new Date(existingBill.date).toDateString() &&
+                    entry.purchaseBillId.toString() === existingBill._id.toString() // Match the purchase bill ID
+                );
+
+                if (!stockEntry || stockEntry.quantity < existingItem.quantity * (existingItem.WSUnit || 1)) {
+                    isStockUsed = true;
+                    break;
+                }
+            }
+
+            // If stock is used, prevent editing
+            if (isStockUsed) {
+                req.flash('error', 'Could not edit, Stock is used!');
+                await session.abortTransaction();
+                return res.redirect(`/purchase-bills/edit/${billId}`);
+            }
+
+            // Process stock updates only if stock is not used
+            for (const existingItem of existingBill.items) {
+                const product = await Item.findById(existingItem.item).session(session);
+
+                if (!product) continue;
+
+                const stockEntryIndex = product.stockEntries.findIndex(entry =>
+                    entry.batchNumber === existingItem.batchNumber &&
+                    new Date(entry.date).toDateString() === new Date(existingBill.date).toDateString() &&
+                    entry.purchaseBillId.toString() === existingBill._id.toString() // Match the purchase bill ID
+                );
+
+                if (stockEntryIndex !== -1) {
+                    const stockEntry = product.stockEntries[stockEntryIndex];
+                    const convertedQuantity = existingItem.quantity * (existingItem.WSUnit || 1);
+                    stockEntry.quantity -= convertedQuantity;
+
+                    if (stockEntry.quantity <= 0) {
+                        product.stockEntries.splice(stockEntryIndex, 1);
+                    }
+
+                    product.stock = product.stockEntries.reduce((total, entry) => total + entry.quantity, 0);
+                    await product.save({ session });
+                }
+            }
+
+            const removedItems = existingBill.items.filter(existingItem => {
+                return !items.some(item => item.item.toString() === existingItem.item.toString());
+            });
+
+            for (const removedItem of removedItems) {
+                const product = await Item.findById(removedItem.item).session(session);
+
+                if (!product) continue;
+
+                // Find the stock entry for the removed item
+                const stockEntryIndex = product.stockEntries.findIndex(entry =>
+                    entry.batchNumber === removedItem.batchNumber &&
+                    new Date(entry.date).toDateString() === new Date(existingBill.date).toDateString() &&
+                    entry.purchaseBillId.toString() === existingBill._id.toString()
+                );
+
+                if (stockEntryIndex !== -1) {
+                    const stockEntry = product.stockEntries[stockEntryIndex];
+                    const convertedQuantity = removedItem.quantity * (removedItem.WSUnit || 1);
+
+                    // Add the removed quantity back to the stock entry
+                    stockEntry.quantity += convertedQuantity;
+
+                    // If the stock entry quantity is zero or negative, remove it
+                    if (stockEntry.quantity <= 0) {
+                        product.stockEntries.splice(stockEntryIndex, 1);
+                    }
+
+                    // Update the total stock
                     product.stock = product.stockEntries.reduce((total, entry) => total + entry.quantity, 0);
 
-                    await product.save(); // Save the updated product
+                    await product.save({ session });
                 }
-                console.log('Stock successfully reversed for existing bill items.');
-            } catch (e) {
-                console.error('Error during purchase bill update:', error.message);
-                req.flash('error', 'An error occurred while updating the purchase bill.');
-                res.redirect(`/purchase-bills/edit/${billId}`);
             }
+
+            // Delete removed items from the PurchaseBill
+            existingBill.items = existingBill.items.filter(existingItem => {
+                return items.some(item => item.item.toString() === existingItem.item.toString());
+            });
+
             // Delete all associated transactions
-            await Transaction.deleteMany({ purchaseBillId: billId });
+            await Transaction.deleteMany({ purchaseBillId: billId }).session(session);
             console.log('Existing transactions deleted successfully');
+
 
             // Calculate amounts based on the updated POST route logic
             const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
@@ -980,13 +1231,32 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
 
             let totalTaxableAmount = 0;
             let totalNonTaxableAmount = 0;
+            let hasVatableItems = false;
+            let hasNonVatableItems = false;
 
             for (const item of items) {
-                const product = await Item.findById(item.item);
-                if (product.vatStatus) {
+                const product = await Item.findById(item.item).session(session);
+                if (product.vatStatus === 'vatable') {
+                    hasVatableItems = true;
                     totalTaxableAmount += item.quantity * item.puPrice;
                 } else {
+                    hasNonVatableItems = true;
                     totalNonTaxableAmount += item.quantity * item.puPrice;
+                }
+            }
+
+            // Check validation conditions after processing all items
+            if (isVatExempt !== 'all') {
+                if (isVatExemptBool && hasVatableItems) {
+                    req.flash('error', 'Cannot save VAT exempt bill with vatable items');
+                    await session.abortTransaction();
+                    return res.redirect('/purchase-bills');
+                }
+
+                if (!isVatExemptBool && hasNonVatableItems) {
+                    req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
+                    await session.abortTransaction();
+                    return res.redirect('/purchase-bills');
                 }
             }
 
@@ -997,14 +1267,19 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
             const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
 
             let vatAmount = 0;
-            if (!isVatExemptBool || isVatExempt === 'all') {
+            // Calculate VAT only for vatable items
+            if (!isVatExemptBool || isVatAll || isVatExempt === 'all') {
                 vatAmount = (finalTaxableAmount * vatPercentage) / 100;
+            } else {
+                vatAmount = 0;
             }
+            // const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
 
-            const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
-
-            let finalAmount = totalAmount;
+            // let finalAmount = totalAmount;
             let roundOffAmount = 0;
+
+            let totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
+            let finalAmount = totalAmount;
 
             const roundOffForPurchase = await Settings.findOne({ companyId, userId, fiscalYear: currentFiscalYear, }) || { roundOffPurchase: false };
 
@@ -1034,88 +1309,181 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
             existingBill.date = nepaliDate || new Date(billDate);
             existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
 
-            //FIFO stock addition function
-            async function addStock(product, batchNumber, expiryDate, quantity, price, puPrice, marginPercentage, mrp) {
-                // Ensure quantity is treated as a number
+            async function addStock(product, batchNumber, expiryDate, WSUnit, quantity, price, puPrice, marginPercentage, mrp, currency, isUpdate = false) {
+                // Ensure numeric values
                 const quantityNumber = Number(quantity);
+                const WSUnitNumber = WSUnit !== undefined && WSUnit !== "" && WSUnit !== null ? Number(WSUnit) : 1;
+                const parsedPrice = price !== undefined && price !== "" ? parseFloat(price) : undefined; // Use undefined if not provided
+                const parsedPuPrice = puPrice !== undefined && puPrice !== "" ? parseFloat(puPrice) : 0;
+                const parsedMrp = mrp !== undefined && mrp !== "" ? parseFloat(mrp) : undefined; // Use undefined if not provided
+                const parsedMarginPercentage = marginPercentage !== undefined && marginPercentage !== "" ? parseFloat(marginPercentage) : undefined; // Use undefined if not provided
+
+                // Convert quantity to pieces
+                const convertedQuantity = quantityNumber * WSUnitNumber;
 
                 const stockEntry = {
                     date: nepaliDate ? nepaliDate : new Date(billDate),
-                    quantity: quantityNumber,
+                    WSUnit: WSUnitNumber,
+                    quantity: convertedQuantity, // Store in pieces
                     batchNumber: batchNumber,
                     expiryDate: expiryDate,
-                    price: price,
-                    puPrice: puPrice,
-                    mrp: mrp,
-                    marginPercentage: marginPercentage,
+                    price: parsedPrice !== undefined ? parsedPrice / WSUnitNumber : undefined, // Use undefined if not provided
+                    puPrice: parsedPuPrice / WSUnitNumber, // Per piece puPrice
+                    mainUnitPuPrice: parsedPuPrice, // Keeps original value before division
+                    mrp: parsedMrp !== undefined ? parsedMrp / WSUnitNumber : undefined, // Use undefined if not provided
+                    marginPercentage: parsedMarginPercentage !== undefined ? parsedMarginPercentage : undefined, // Use undefined if not provided
+                    currency: currency,
+                    purchaseBillId: existingBill._id // Add the purchase bill ID
                 };
 
+                console.log("Stock Entry:", stockEntry);
 
-                // Debug: log stock entry to ensure values are correct
-                console.log('Stock Entry:', stockEntry);
-                product.stockEntries.push(stockEntry); // Add entry to stockEntries array
-                // Ensure stock is incremented correctly as a number
-                product.stock = (product.stock || 0) + quantityNumber;
+                if (isUpdate) {
+                    // Find existing stock entry
+                    const stockEntryIndex = product.stockEntries.findIndex(
+                        (entry) => entry.batchNumber === batchNumber && entry.expiryDate === expiryDate
+                    );
+                    if (stockEntryIndex !== -1) {
+                        // Update existing stock entry (even if batch changed)
+                        const existingStockEntry = product.stockEntries[stockEntryIndex];
+                        product.stockEntries[stockEntryIndex] = {
+                            ...existingStockEntry, // Retain existing properties
+                            batchNumber: batchNumber, // Update batch number
+                            expiryDate: expiryDate,
+                            quantity: convertedQuantity, // Update stock correctly
+                            price: parsedPrice !== undefined ? parsedPrice / WSUnitNumber : existingStockEntry.price, // Retain existing price if not provided
+                            puPrice: parsedPuPrice / WSUnitNumber,
+                            mrp: parsedMrp !== undefined ? parsedMrp / WSUnitNumber : existingStockEntry.mrp, // Retain existing MRP if not provided
+                            marginPercentage: parsedMarginPercentage !== undefined ? parsedMarginPercentage : existingStockEntry.marginPercentage, // Retain existing margin if not provided
+                            currency: currency !== undefined ? currency : existingStockEntry.currency, // Retain existing margin if not provided
+                        };
+                    } else {
+                        // If no stock entry for this batch, add a new entry
+                        product.stockEntries.push(stockEntry);
+                    }
+                } else {
+                    // Add new stock entry for a new item
+                    product.stockEntries.push(stockEntry);
+                }
+
+                // **Ensure total stock is correctly updated**
+                product.stock = product.stockEntries.reduce((total, entry) => total + entry.quantity, 0);
+
+                // Also update WSUnit in the product schema
+                product.WSUnit = WSUnitNumber;
+
                 await product.save();
             }
 
-            const billItems = await Promise.all(items.map(async item => {
-                const product = await Item.findById(item.item);
-
-                // Increment stock quantity using FIFO
-                await addStock(product, item.batchNumber, item.expiryDate, item.quantity, item.price, item.puPrice, item.marginPercentage, item.mrp);
-
-                return {
-                    item: product._id,
-                    quantity: item.quantity,
-                    price: item.price,
-                    puPrice: item.puPrice,
-                    unit: item.unit,
-                    batchNumber: item.batchNumber,
-                    expiryDate: item.expiryDate,
-                    vatStatus: product.vatStatus,
-                    fiscalYear: currentFiscalYear,
-                };
-            }));
-
-            existingBill.items = billItems;
-
-            // After updating the existingBill.items, reinserting transactions
-            const billItemsTransactions = await Promise.all(existingBill.items.map(async item => {
-                const product = await Item.findById(item.item);
+            const billItems = [...existingBill.items]; // Retain existing items
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const product = await Item.findById(item.item).session(session);
 
                 if (!product) {
-                    throw new Error(`Product with ID ${item.item} not found`);
+                    req.flash('error', `Item with id ${item.item} not found`);
+                    await session.abortTransaction();
+                    return res.redirect('/purchase-bills');
                 }
 
-                // Create a transaction for each item
-                const transaction = new Transaction({
+                const existingBillItemIndex = billItems.findIndex(billItem =>
+                    billItem.item && billItem.item.toString() === item.item
+                );
+
+                if (existingBillItemIndex !== -1) {
+                    // If item exists, update fields but retain existing values if not provided
+                    const existingBillItem = billItems[existingBillItemIndex];
+                    billItems[existingBillItemIndex] = {
+                        ...existingBillItem, // Retain existing properties
+                        batchNumber: item.batchNumber, // Update to new batch number
+                        expiryDate: item.expiryDate,
+                        WSUnit: item.WSUnit,
+                        quantity: Number(item.quantity),
+                        price: item.price !== undefined && item.price !== "" ? item.price : existingBillItem.price, // Retain existing price if not provided
+                        puPrice: item.puPrice,
+                        Altquantity: Number(item.quantity),
+                        Altprice: item.price !== undefined && item.price !== "" ? item.price : existingBillItem.Altprice, // Retain existing Altprice if not provided
+                        AltpuPrice: item.puPrice,
+                        mainUnitPuPrice: item.puPrice,
+                        mrp: item.mrp !== undefined && item.mrp !== "" ? item.mrp : existingBillItem.mrp, // Retain existing MRP if not provided
+                        marginPercentage: item.marginPercentage !== undefined && item.marginPercentage !== "" ? item.marginPercentage : existingBillItem.marginPercentage, // Retain existing margin if not provided
+                        currency: item.currency !== undefined && item.currency !== "" ? item.currency : existingBillItem.currency,
+                        unit: item.unit,
+                        vatStatus: product.vatStatus
+                    };
+                } else {
+                    // Add new item to the bill
+                    billItems.push({
+                        item: product._id,
+                        batchNumber: item.batchNumber,
+                        expiryDate: item.expiryDate,
+                        WSUnit: item.WSUnit,
+                        quantity: item.quantity,
+                        price: item.price,
+                        puPrice: item.puPrice,
+                        Altquantity: item.quantity,
+                        Altprice: item.price,
+                        AltpuPrice: item.puPrice,
+                        mainUnitPuPrice: item.puPrice,
+                        mrp: item.mrp,
+                        marginPercentage: item.marginPercentage,
+                        currency: item.currency,
+                        unit: item.unit,
+                        vatStatus: product.vatStatus
+                    });
+                }
+
+                const existingTransaction = await Transaction.findOne({
                     item: product._id,
-                    account: accountId,
-                    billNumber: existingBill.billNumber,
-                    partyBillNumber: existingBill.partyBillNumber,
-                    quantity: item.quantity,
-                    puPrice: item.puPrice,
-                    unit: item.unit,
-                    isType: 'Purc',
-                    type: 'Purc',
                     purchaseBillId: existingBill._id,
-                    purchaseSalesType: 'Purchase',
-                    debit: 0, // Update as per your logic
-                    credit: finalAmount, // Since it's a sale
-                    paymentMode: paymentMode,
-                    balance: 0, // Update with the correct balance logic if needed
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-                await transaction.save();
-                console.log('Transaction created:', transaction);
+                }).session(session);
 
-                return transaction; // Optional, if you need to track the transactions created
-            }));
+                if (existingTransaction) {
+                    // If transaction exists, update it instead of adding a new row
+                    existingTransaction.batchNumber = item.batchNumber; // Update batch number
+                    existingTransaction.quantity = item.quantity;
+                    existingTransaction.puPrice = item.puPrice;
+                    existingTransaction.unit = item.unit;
+                    existingTransaction.credit = finalAmount;
+                    existingTransaction.paymentMode = paymentMode;
+                    existingTransaction.date = nepaliDate ? nepaliDate : new Date(billDate);
 
+                    await existingTransaction.save({ session });
+                } else {
+                    // If no existing transaction, create a new one
+                    const transaction = new Transaction({
+                        item: product._id,
+                        batchNumber: item.batchNumber, // Add batch number field
+                        account: accountId,
+                        billNumber: existingBill.billNumber,
+                        partyBillNumber: existingBill.partyBillNumber,
+                        quantity: item.quantity,
+                        puPrice: item.puPrice,
+                        unit: item.unit,
+                        isType: 'Purc',
+                        type: 'Purc',
+                        purchaseBillId: existingBill._id,
+                        purchaseSalesType: 'Purchase',
+                        debit: 0,
+                        credit: finalAmount,
+                        paymentMode: paymentMode,
+                        balance: 0,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+
+                    await transaction.save({ session });
+                }
+
+
+                // Increment stock quantity using FIFO
+                await addStock(product, item.batchNumber, item.expiryDate, item.WSUnit, item.quantity, item.price, item.puPrice, item.marginPercentage, item.mrp, item.currency);
+            }
+
+
+            existingBill.items = billItems;
 
             // Create a transaction for the default Purchase Account
             const purchaseAmount = finalTaxableAmount + finalNonTaxableAmount;
@@ -1239,7 +1607,7 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
 
             console.log('All transactions successfully created for updated bill.');
 
-            await existingBill.save();
+            await existingBill.save({ session });
             if (paymentMode === 'cash') {
                 const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
 
@@ -1268,8 +1636,9 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
                 }
             }
 
-            // req.flash('success', 'Purchase updated successfully');
-            // res.redirect(`/purchase-bills/edit/${billId}`);
+            // If everything goes smoothly, commit the transaction
+            await session.commitTransaction();
+            session.endSession();
 
             if (req.query.print === 'true') {
                 // Redirect to the print route
@@ -1280,14 +1649,14 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
                 res.redirect(`/purchase-bills/edit/${billId}`);
             }
 
+
         } catch (error) {
-            console.error('Error during purchase bill update:', error.message);
-            req.flash('error', 'An error occurred while updating the purchase bill.');
-            res.redirect(`/purchase-bills/edit/${billId}`);
+            console.error('Error during edit:', error);
+            req.flash('error', 'An error occurred while processing your request');
+            return res.redirect(`/purchase-bills/edit/${billId}`);
         }
     }
-
-})
+});
 
 
 router.get('/purchase-bills/:id/print', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {

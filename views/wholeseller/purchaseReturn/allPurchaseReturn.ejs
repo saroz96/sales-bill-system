@@ -158,7 +158,7 @@
                 </thead>
                 <tbody>
                     <% bills.forEach(purchaseReturn=> { %>
-                        <tr class="searchClass bill-row" data-payment-mode="<%= purchaseReturn.paymentMode %>">
+                        <tr class="searchClass bill-row" data-payment-mode="<%= purchaseReturn.paymentMode %>" id="data-id">
                             <td>
                                 <%= new Date(purchaseReturn.date).toLocaleDateString() %>
                             </td>

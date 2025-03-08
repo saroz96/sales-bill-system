@@ -530,6 +530,7 @@ function addItemToBill(item, dropdownMenu) {
             </button>
         </td>
         <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
+        <input type="hidden" name="items[${itemIndex}][uniqueUuId]" value="${selectedBatch.uniqueUuId}">
     `;
 
                 tbody.appendChild(tr);
@@ -564,8 +565,8 @@ function showBatchModal(item, callback) {
         <table class="table" id="batchTable">
             <thead>
                 <tr>
-                    <th>Batch Number</th>
-                    <th>Expiry Date</th>
+                    <th>Batch</th>
+                    <th>Expiry</th>
                     <th>Quantity</th>
                     <th>S.P</th>
                     <th>C.P</th>
@@ -587,6 +588,7 @@ function showBatchModal(item, callback) {
                     <td>${entry.puPrice}</td>
                     <td>${entry.marginPercentage}</td>
                     <td>${entry.mrp}</td>
+                    <td class="hidden">${entry.uniqueUuId}</td>
                 </tr>
             `;
             }
@@ -624,8 +626,8 @@ function showBatchModal(item, callback) {
                 const batchNumber = row.cells[0].textContent; // Assuming batch number is in the first cell
                 const expiryDate = row.cells[1].textContent; // Expiry date in the second cell
                 const price = row.cells[3].textContent;
-                callback({ batchNumber, expiryDate, price });
-
+                const uniqueUuId = row.cells[7].textContent;
+                callback({ batchNumber, expiryDate, price, uniqueUuId });
                 // Hide the modal after selection
                 $(modal).modal('hide');
             }
@@ -759,12 +761,12 @@ function toggleVatInputs() {
     // Toggle display based on VAT exemption
     if (isVatExempt) {
         taxableAmountRow.style.display = 'none';
-        vatPercentageRow.style.display = 'none';
+        // vatPercentageRow.style.display = 'none';
         // Move focus to the next available input field
         moveToNextVisibleInput(document.getElementById('isVatExempt'));
     } else {
         taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
-        vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
+        // vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
     }
 
     // Recalculate total when toggling VAT

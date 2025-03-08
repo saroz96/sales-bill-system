@@ -155,26 +155,28 @@
                         </div>
                     </div> -->
 
-                    <table class="table table-bordered compact-table" id="itemsTable">
-                        <thead>
-                            <tr>
-                                <th>S.No.</th>
-                                <th>#</th>
-                                <th>HSN</th>
-                                <th>Description of Goods</th>
-                                <th>Qty</th>
-                                <th>Unit</th>
-                                <th>Batch</th>
-                                <th>Exp. Date</th>
-                                <th>Price</th>
-                                <th>Amount</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="items">
-                            <!-- Item rows will be dynamically added here -->
-                        </tbody>
-                    </table>
+                    <div id="bill-details-container">
+                        <table class="table table-bordered compact-table" id="itemsTable">
+                            <thead>
+                                <tr>
+                                    <th>S.No.</th>
+                                    <th>#</th>
+                                    <th>HSN</th>
+                                    <th>Description of Goods</th>
+                                    <th>Qty</th>
+                                    <th>Unit</th>
+                                    <th>Batch</th>
+                                    <th>Exp. Date</th>
+                                    <th>Price</th>
+                                    <th>Amount</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="items">
+                                <!-- Item rows will be dynamically added here -->
+                            </tbody>
+                        </table>
+                    </div>
                     <hr style="border: 1px solid gray;">
 
                     <div class="form-group row">
@@ -191,20 +193,16 @@
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
-                                    <th colspan="4" class="text-center bg-light">Bill Details</th>
+                                    <th colspan="6" class="text-center bg-light">Bill Details</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Sub Total Row -->
+                                <!-- Sub Total, Discount % and Discount Amount in the same row -->
                                 <tr>
                                     <td><label for="subTotal">Sub Total:</label></td>
-                                    <td colspan="2" class="text-right">
+                                    <td class="text-right">
                                         <p class="form-control-plaintext">Rs. <span id="subTotal">0.00</span></p>
                                     </td>
-                                </tr>
-
-                                <!-- Discount Row -->
-                                <tr>
                                     <td><label for="discountPercentage">Discount %:</label></td>
                                     <td>
                                         <input type="number" step="any" name="discountPercentage"
@@ -219,15 +217,12 @@
                                     </td>
                                 </tr>
 
-                                <!-- VAT Rows (Initially visible) -->
+                                <!-- Taxable Amount, VAT % and VAT Amount in the same row -->
                                 <tr id="taxableAmountRow">
                                     <td><label for="taxableAmount">Taxable Amount:</label></td>
-                                    <td colspan="2" class="text-right">
-                                        <p class="form-control-plaintext">Rs. <span id="taxableAmount">0.00</span>
-                                        </p>
+                                    <td class="text-right">
+                                        <p class="form-control-plaintext">Rs. <span id="taxableAmount">0.00</span></p>
                                     </td>
-                                </tr>
-                                <tr id="vatPercentageRow">
                                     <td><label for="vatPercentage">VAT (13%):</label></td>
                                     <td>
                                         <input type="number" name="vatPercentage" id="vatPercentage"
@@ -239,18 +234,14 @@
                                     </td>
                                 </tr>
 
-                                <!-- Round Off & Total Row -->
+                                <!-- Round Off and Total Amount in the same row -->
                                 <tr>
                                     <td><label for="roundOffAmount">Round Off:</label></td>
-                                    <td colspan="2">
+                                    <td>
                                         <input type="number" class="form-control" step="any" id="roundOffAmount"
                                             name="roundOffAmount" value="0.00" oninput="calculateTotal()"
                                             onfocus="selectValue(this)">
                                     </td>
-                                </tr>
-
-                                <!-- Total Amount & In Words Row -->
-                                <tr>
                                     <td><label for="totalAmount">Total Amount:</label></td>
                                     <td>
                                         <p class="form-control-plaintext">Rs. <span id="totalAmount">0.00</span></p>
@@ -263,7 +254,6 @@
                             </tbody>
                         </table>
                     </div>
-
                     <!-- Action Buttons -->
                     <div class="d-flex justify-content-end mt-4">
                         <button type="button" class="btn btn-primary mr-2 p-3" id="saveBill"
@@ -581,6 +571,19 @@
             </div>
         </div>
     </div>
+    <style>
+        #bill-details-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        #items {
+            table-layout: fixed;
+            width: 100%;
+        }
+    </style>
 
     <script src="/javascript/sales/bills.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

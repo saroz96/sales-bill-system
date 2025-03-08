@@ -2,149 +2,210 @@
 
     <style>
         /* Styling for Select2 dropdown */
-        .select2-container .select2-selection--single {
+        /* .select2-container .select2-selection--single {
             height: 38px;
             padding: 5px;
             border-radius: 4px;
             border: 1px solid #ccc;
             display: flex;
             align-items: center;
+        } */
+        .card {
+            margin-bottom: 20px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            white-space: nowrap;
+            /* Prevents line breaks */
+
+        }
+
+        .table th {
+            background-color: #f2f2f2;
+        }
+
+        .searchClass strong {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            /* Ensures long names are truncated with "..." */
+        }
+
+        .searchClass small {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+            max-width: 200px;
         }
     </style>
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
-    <div class="container mt-4 wow-form">
-
-        <!-- Add Company Form -->
-        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
-
-            <h2 style="text-align: center;text-decoration: underline;">Accounts</h2>
-
-            <div class="card-header">
-                Add New Account
-            </div>
-            <div class="card-body">
-                <form action="/companies" method="post" class="wow-form">
-                    <div class="form-group row">
-                        <div class="form-group col-md-4">
-                            <label for="name">Account Name <i style="color: red;">*</i></label>
-                            <input type="text" class="form-control" id="name" name="name"
-                                placeholder="Enter account name" required autofocus autocomplete="off">
-                        </div>
-                        <div class="form-group col-md-4">
-                            <label for="companyGroup">Account Group <i style="color: red;">*</i></label>
-                            <select class="form-control w-100" id="companyGroup" name="companyGroups" required>
-                                <% if (companyGroups && companyGroups.length> 0) { %>
-                                    <option value="" disabled selected>Select a Group</option>
-                                    <% companyGroups.forEach(companyGroup=> { %>
-                                        <option value="<%= companyGroup._id %>">
-                                            <%= companyGroup.name %>
-                                        </option>
-                                        <% }); %>
-                                            <% } else { %>
-                                                <option disabled>No companies groups available</option>
-                                                <% } %>
-                            </select>
-                        </div>
-                        <div class="form-group col-md-4">
-                            <label for="openingBalance">Opening Balance</label>
-                            <input type="number" id="openingBalance" name="openingBalance[amount]" class="form-control"
-                                value="0">
-                            <select id="balanceType" name="openingBalance[type]" class="form-control">
-                                <option value="Dr">Dr.</option>
-                                <option value="Cr">Cr.</option>
-                            </select>
-                        </div>
+    <div class="container-fluid mt-4 wow-form">
+        <div class="row">
+            <div class="col">
+                <!-- Add Company Form -->
+                <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
+                    <h1 style="text-align: center;text-decoration: underline;">Create Accounts</h1>
+                    <div class="card-body">
+                        <form action="/companies" method="post" class="wow-form">
+                            <div class="form-group row">
+                                <div class="form-group col-md-5">
+                                    <label for="name">Account Name <i style="color: red;">*</i></label>
+                                    <input type="text" class="form-control" name="name" placeholder="Enter account name"
+                                        required autofocus autocomplete="off" onfocus="selectValue(this)"
+                                        id="searchValue">
+                                </div>
+                                <div class="form-group col-4">
+                                    <label for="companyGroup">Account Group <i style="color: red;">*</i></label>
+                                    <select class="form-control w-100" id="companyGroup" name="companyGroups"
+                                        onfocus="selectValue(this)" required>
+                                        <% if (companyGroups && companyGroups.length> 0) { %>
+                                            <option value="" disabled selected>Select a Group</option>
+                                            <% companyGroups.forEach(companyGroup=> { %>
+                                                <option value="<%= companyGroup._id %>">
+                                                    <%= companyGroup.name %>
+                                                </option>
+                                                <% }); %>
+                                                    <% } else { %>
+                                                        <option disabled>No companies groups available</option>
+                                                        <% } %>
+                                    </select>
+                                </div>
+                                <div class="form-group col-3">
+                                    <label for="openingBalance">Op. Balance</label>
+                                    <input type="number" id="openingBalance" name="openingBalance[amount]"
+                                        class="form-control" value="0" onfocus="selectValue(this)">
+                                    <select id="balanceType" name="openingBalance[type]" class="form-control"
+                                        onfocus="selectValue(this)">
+                                        <option value="Dr">Dr.</option>
+                                        <option value="Cr">Cr.</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="pan">Pan No.:</label>
+                                    <input type="text" class="form-control" id="pan" name="pan" minlength="9"
+                                        maxlength="9" placeholder="Enter pan/vat number" autocomplete="off"
+                                        onfocus="selectValue(this)">
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="address">Address</label>
+                                    <input type="text" class="form-control" id="address" name="address"
+                                        placeholder="Enter account address" autocomplete="off"
+                                        onfocus="selectValue(this)">
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="ward">Ward No.:</label>
+                                    <input type="number" class="form-control" id="ward" name="ward"
+                                        placeholder="Enter ward number" autocomplete="off" onfocus="selectValue(this)">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="phone">Phone</label>
+                                    <input type="text" class="form-control" id="phone" name="phone"
+                                        placeholder="Enter account phone" autocomplete="off"
+                                        onfocus="selectValue(this)">
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="email">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email"
+                                        placeholder="Enter email" autocomplete="off" style="text-transform: lowercase;"
+                                        onfocus="selectValue(this)">
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="contactperson">Contact Person</label>
+                                    <input type="text" class="form-control" id="contactperson" name="contactperson"
+                                        placeholder="Enter contact person" autocomplete="off"
+                                        onfocus="selectValue(this)">
+                                </div>
+                            </div>
+                            <!-- <input type="hidden" name="companyId" value="<%= companyId %>"> -->
+                            <button type="submit" class="btn btn-primary">Add A/c</button>
+                        </form>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group col-md-4">
-                            <label for="pan">Pan No.:</label>
-                            <input type="text" class="form-control" id="pan" name="pan" minlength="9" maxlength="9"
-                                placeholder="Enter pan/vat number" autocomplete="off">
-                        </div>
-                        <div class="form-group col-md-4">
-                            <label for="address">Address</label>
-                            <input type="text" class="form-control" id="address" name="address"
-                                placeholder="Enter account address" autocomplete="off">
-                        </div>
-                        <div class="form-group col-md-4">
-                            <label for="ward">Ward No.:</label>
-                            <input type="number" class="form-control" id="ward" name="ward"
-                                placeholder="Enter ward number" autocomplete="off">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group col-md-4">
-                            <label for="phone">Phone</label>
-                            <input type="text" class="form-control" id="phone" name="phone"
-                                placeholder="Enter account phone" autocomplete="off">
-                        </div>
-                        <div class="form-group col-md-4">
-                            <label for="email">Email</label>
-                            <input type="email" class="form-control" id="email" name="email" placeholder="Enter email"
-                                autocomplete="off" style="text-transform: lowercase;">
-                        </div>
-                        <div class="form-group col-md-4">
-                            <label for="contactperson">Contact Person</label>
-                            <input type="text" class="form-control" id="contactperson" name="contactperson"
-                                placeholder="Enter contact person" autocomplete="off">
-                        </div>
-                    </div>
-                    <!-- <input type="hidden" name="companyId" value="<%= companyId %>"> -->
-                    <button type="submit" class="btn btn-primary">Add A/c</button>
-                </form>
-            </div>
-        </div>
-
-        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
-            <h2 style="text-align: center;text-decoration: underline;">Existing Accounts</h2>
-            <!--print buttons-->
-            <div class="mb-3">
-                <div class="btn btn-primary" onclick="printAccounts()"><i class="bi bi-printer"></i></div>
-            </div>
-            <form class="mb-4">
-                <div class="form-group">
-                    <input type="text" class="form-control" id="searchInput" placeholder="Search accounts by name...">
                 </div>
-            </form>
-            <ul class="list-group mt-3" id="accountsList">
-                <% if (accounts && accounts.length> 0) { %>
-                    <% accounts.forEach((account, index)=> { %>
-                        <div class="searchClass">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>
-                                        <%= index + 1 %>. <%= account.name %>
-                                    </strong><br> <!-- Serial Number displayed here -->
-                                </div>
-                                <div>
-                                    <small>
-                                        <%= account.companyGroups ? account.companyGroups.name : 'No Group' %>
-                                    </small>
-                                </div>
-                                <div>
-                                    <a href="/companies/<%=account._id%>"><button class="btn btn-sm btn-info"><i
-                                                class="fas fa-eye"></i></button></a>
-                                    <button class="btn btn-sm btn-warning"
-                                        onclick="editCompany('<%= account._id %>', '<%= account.name %>', '<%= account.address %>', '<%= account.phone %>', '<%= account.contactperson %>', '<%= account.companyGroups._id %>', '<%= account.pan %>', '<%= account.ward %>', '<%= account.email %>', '<%= account.openingBalance.amount %>', '<%= account.openingBalance.type %>')">
-                                        <i class="fas fa-edit"></i></button>
-                                    <form action="/companies/<%= account._id %>?_method=DELETE" method="post"
-                                        class="d-inline" onsubmit="return confirmDeletion()">
-                                        <button type="submit" class="btn btn-sm btn-danger"><i
-                                                class="fas fa-trash"></i></button>
-                                    </form>
-                                </div>
-                            </li>
+            </div>
+
+            <div class="col">
+                <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
+                    <h2 style="text-align: center;text-decoration: underline;">Existing Accounts</h2>
+                    <!--print buttons-->
+                    <div class="row">
+                        <div class="col-1">
+                            <div class="btn btn-primary" onclick="printAccounts()"><i class="bi bi-printer"></i></div>
                         </div>
-                        <% }); %>
-                            <% } else { %>
-                                <li class="list-group-item">No accounts available</li>
-                                <% } %>
-
-            </ul>
+                        <div class="col">
+                            <form class="mb-4">
+                                <div class="form-group">
+                                    <input type="text" class="form-control" id="searchInput"
+                                        placeholder="Search accounts by name..." autocomplete="off">
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Account Name</th>
+                                    <th>Account Group</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accountsList">
+                                <% if (accounts && accounts.length> 0) { %>
+                                    <% accounts.sort((a, b)=> a.name.localeCompare(b.name)); %>
+                                        <% accounts.forEach((account, index)=> { %>
+                                            <tr class="searchClass">
+                                                <td>
+                                                    <strong>
+                                                        <%= index + 1 %>. <%= account.name %>
+                                                    </strong> <!-- Serial Number displayed here -->
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        <%= account.companyGroups ? account.companyGroups.name
+                                                            : 'No Group' %>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <a href="/companies/<%=account._id%>"><button
+                                                            class="btn btn-sm btn-info"><i
+                                                                class="fas fa-eye"></i></button></a>
+                                                    <button class="btn btn-sm btn-warning"
+                                                        onclick="editCompany('<%= account._id %>', '<%= account.name %>', '<%= account.address %>', '<%= account.phone %>', '<%= account.contactperson %>', '<%= account.companyGroups._id %>', '<%= account.pan %>', '<%= account.ward %>', '<%= account.email %>', '<%= account.openingBalance.amount %>', '<%= account.openingBalance.type %>')">
+                                                        <i class="fas fa-edit"></i></button>
+                                                    <form action="/companies/<%= account._id %>?_method=DELETE"
+                                                        method="post" class="d-inline"
+                                                        onsubmit="return confirmDeletion()">
+                                                        <button type="submit" class="btn btn-sm btn-danger"><i
+                                                                class="fas fa-trash"></i></button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            <% }); %>
+                                                <% } else { %>
+                                                    <li class="list-group-item">No accounts available</li>
+                                                    <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-
         <!-- Edit Account Modal -->
         <div class="modal fade" id="editCompanyModal" tabindex="-1" aria-labelledby="editCompanyModalLabel"
             aria-hidden="true">
@@ -233,16 +294,25 @@
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
     <script>
 
-        $(document).ready(function () {
-            // Initialize Select2 for searchable dropdown
-            $('#companyGroup').select2({
-                placeholder: "Select a Group",
-                allowClear: true,
-                width: '100%', // Ensure it takes the full width of the container
-            });
-        });
+        // $(document).ready(function () {
+        //     // Initialize Select2 for searchable dropdown
+        //     $('#companyGroup').select2({
+        //         placeholder: "Select a Group",
+        //         allowClear: true,
+        //         width: '100%', // Ensure it takes the full width of the container
+        //     });
+        // });
+
+        function selectValue(input) {
+            input.select(); // Select the value of the input field when it is focused
+        }
+
         function editCompany(id, name, address, phone, contactperson, companyGroupId, pan, ward, email, openingBalance, balanceType) {
             $('#editCompanyModal').modal('show');
             $('#editCompanyForm').attr('action', '/companies/' + id + '?_method=PUT');
@@ -266,20 +336,100 @@
             });
         });
 
-        // Function to handle search input changes
-        document.getElementById('searchInput').addEventListener('input', function () {
-            const searchQuery = this.value.toLowerCase();
-            const itemsList = document.getElementById('accountsList');
-            const items = itemsList.getElementsByClassName('searchClass');
+        // // Function to handle search input changes
+        // document.getElementById('searchInput').addEventListener('input', function () {
+        //     const searchQuery = this.value.toLowerCase();
+        //     const itemsList = document.getElementById('accountsList');
+        //     const items = itemsList.getElementsByClassName('searchClass');
 
-            Array.from(items).forEach(function (item) {
-                const itemName = item.textContent.toLowerCase();
-                if (itemName.includes(searchQuery)) {
-                    item.style.display = 'block';
+        //     Array.from(items).forEach(function (item) {
+        //         const itemName = item.textContent.toLowerCase();
+        //         if (itemName.includes(searchQuery)) {
+        //             item.style.display = 'block';
+        //         } else {
+        //             item.style.display = 'none';
+        //         }
+        //     });
+        // });
+
+        // // Function to handle search input changes
+        // document.getElementById('searchValue').addEventListener('input', function () {
+        //     const searchQuery = this.value.toLowerCase();
+        //     const itemsList = document.getElementById('accountsList');
+        //     const items = itemsList.getElementsByClassName('searchClass');
+
+        //     Array.from(items).forEach(function (item) {
+        //         const itemName = item.textContent.toLowerCase();
+        //         if (itemName.includes(searchQuery)) {
+        //             item.style.display = 'block';
+        //         } else {
+        //             item.style.display = 'none';
+        //         }
+        //     });
+        // });
+
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const searchTerm = this.value.toLowerCase();
+            const accountsList = document.querySelectorAll('.searchClass');
+            let hasResults = false;
+
+            accountsList.forEach(item => {
+                const itemName = item.querySelector('td strong').textContent.toLowerCase();
+                if (itemName.includes(searchTerm)) {
+                    item.style.display = '';
+                    hasResults = true;
                 } else {
                     item.style.display = 'none';
                 }
             });
+
+            // Handle "No items found" row
+            let noAccountsRow = document.getElementById('noAccountsRow');
+
+            if (!hasResults) {
+                if (!noAccountsRow) {
+                    noAccountsRow = document.createElement('tr');
+                    noAccountsRow.id = 'noAccountsRow';
+                    noAccountsRow.innerHTML = `<td colspan="6" class="text-center"><strong>No items found</strong></td>`;
+                    document.getElementById('accountsList').appendChild(noAccountsRow);
+                }
+            } else {
+                if (noAccountsRow) {
+                    noAccountsRow.remove(); // Remove "No items found" if results exist
+                }
+            }
+        });
+
+
+        document.getElementById('searchValue').addEventListener('input', function () {
+            const searchTerm = this.value.toLowerCase();
+            const accountsList = document.querySelectorAll('.searchClass');
+            let hasResults = false;
+
+            accountsList.forEach(item => {
+                const itemName = item.querySelector('td strong').textContent.toLowerCase();
+                if (itemName.includes(searchTerm)) {
+                    item.style.display = '';
+                    hasResults = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            // Handle "No items found" row
+            let noAccountsRow = document.getElementById('noAccountsRow');
+
+            if (!hasResults) {
+                if (!noAccountsRow) {
+                    noAccountsRow = document.createElement('tr');
+                    noAccountsRow.id = 'noAccountsRow';
+                    noAccountsRow.innerHTML = `<td colspan="6" class="text-center"><strong>No items found</strong></td>`;
+                    document.getElementById('accountsList').appendChild(noAccountsRow);
+                }
+            } else {
+                if (noAccountsRow) {
+                    noAccountsRow.remove(); // Remove "No items found" if results exist
+                }
+            }
         });
 
         document.addEventListener('DOMContentLoaded', function () {

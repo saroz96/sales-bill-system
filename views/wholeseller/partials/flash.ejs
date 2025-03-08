@@ -1,137 +1,3 @@
-<!-- Custom Styles for Right-Side Modal
-<style>
-    /* Apply only to this specific modal */
-    .custom-right-modal .modal-dialog {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        width: 500px;
-        margin: 0;
-        z-index: 1055;
-    }
-
-    .custom-right-modal .modal-content {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    /* Center the spinner and countdown in the modal */
-    .spinner-container {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        height: 100px;
-    }
-
-    /* Initially hide the spinner */
-    #spinner {
-        display: none;
-    }
-
-    /* Countdown timer styles */
-    .countdown {
-        margin-top: 10px;
-        font-size: 1.2rem;
-        font-weight: bold;
-        color: #007bff;
-    }
-</style>
-
-Modal Structure 
-<div class="modal fade custom-right-modal" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Message</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                Spinner -
-                <div class="spinner-container">
-                    <div id="spinner" class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    Countdown timer
-                    <div id="countdown" class="countdown"></div>
-                </div>
-
-                Dynamic message
-                <% if (messages && messages.length) { %>
-                    <div class="alert alert-success">
-                        <%= messages %>
-                    </div>
-                    <% } %>
-                        <% if (error && error.length) { %>
-                            <div class="alert alert-danger">
-                                <%= error %>
-                            </div>
-                            <% } %>
-            </div>
-        </div>
-    </div>
-</div>
-
-Bootstrap JS Bundle with Popper
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-
-Trigger Modal, Show Spinner, Countdown, and Auto-hide after a specified time
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        <% if (messages && messages.length || error && error.length) { %>
-            var messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
-
-            // Show modal
-            messageModal.show();
-
-            // Show spinner
-            document.getElementById('spinner').style.display = 'block';
-
-            // Countdown duration (in seconds)
-            var countdownTime = 2;
-            var countdownElement = document.getElementById('countdown');
-            countdownElement.innerHTML = countdownTime + ' seconds remaining';
-
-            // Start countdown
-            var countdownInterval = setInterval(function () {
-                countdownTime--;
-                countdownElement.innerHTML = countdownTime + ' seconds remaining';
-
-                // When countdown reaches 0, hide spinner and modal
-                if (countdownTime <= 0) {
-                    clearInterval(countdownInterval);
-                    document.getElementById('spinner').style.display = 'none';
-                    messageModal.hide();
-                }
-            }, 1000); // Update every second
-        <% } %>
-    });
-</script> -->
-
-<!-- Custom Styles for Right-Side Modal -->
-<style>
-    /* Apply only to this specific modal
-    .custom-right-modal .modal-dialog {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        width: 500px;
-        margin: 0;
-        z-index: 1055;
-    }
-
-    .custom-right-modal .modal-content {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .spinner-container {
-        display: none;
-        /* Hide spinner as it’s not needed */
-    /* } */
-
-    */
-</style>
-
 <!-- Modal Structure -->
 <div class="modal fade custom-right-modal" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel"
     aria-hidden="true">
@@ -169,35 +35,85 @@ Trigger Modal, Show Spinner, Countdown, and Auto-hide after a specified time
 
 <!-- JavaScript Logic for Handling OK and Cancel buttons -->
 <script>
+    // document.addEventListener('DOMContentLoaded', function () {
+    //     <% if (messages && messages.length || error && error.length) { %>
+    //         var messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+
+    //         // Show modal
+    //         messageModal.show();
+
+    //         // Automatically focus on the OK button
+    //         // var okButton = document.getElementById('okButton');
+    //         // okButton.focus();
+
+    //         // Handle 'Enter' key press to trigger OK button
+    //         document.addEventListener('keydown', function (event) {
+    //             if (event.key === 'Enter') {
+    //                 okButton.click();
+    //             }
+    //         });
+
+    //         // Prevent closing the modal until 'OK' is pressed
+    //         okButton.addEventListener('click', function () {
+    //             // Perform any additional actions if needed
+    //             messageModal.hide(); // Close modal only when OK is pressed
+    //         });
+
+    //         // Cancel button logic (optional, already handled by data-bs-dismiss)
+    //         var cancelButton = document.getElementById('cancelButton');
+    //         cancelButton.addEventListener('click', function () {
+    //             // Optional: Handle cancellation logic if needed
+    //         });
+    //     <% } %>
+    // });
+
     document.addEventListener('DOMContentLoaded', function () {
-        <% if (messages && messages.length || error && error.length) { %>
-            var messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+    <% if (messages && messages.length || error && error.length) { %>
+        var messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+        var okButton = document.getElementById('okButton');
+        var cancelButton = document.getElementById('cancelButton');
 
-            // Show modal
-            messageModal.show();
+        // Show the modal
+        messageModal.show();
 
-            // Automatically focus on the OK button
-            // var okButton = document.getElementById('okButton');
-            // okButton.focus();
+        // Flag to track if focus has been set after modal close
+        let isFocusSet = false;
 
-            // Handle 'Enter' key press to trigger OK button
-            document.addEventListener('keydown', function (event) {
-                if (event.key === 'Enter') {
-                    okButton.click();
+        // Handle 'Enter' key press to trigger OK button
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                okButton.click();
+            }
+        });
+
+        // Function to focus the first input field
+        function focusFirstInput() {
+            if (!isFocusSet) { // Only focus if not already set
+                let firstInput = document.querySelector('input, select, textarea');
+                if (firstInput) {
+                    firstInput.focus();
                 }
-            });
+                isFocusSet = true; // Mark focus as set
+            }
+        }
 
-            // Prevent closing the modal until 'OK' is pressed
-            okButton.addEventListener('click', function () {
-                // Perform any additional actions if needed
-                messageModal.hide(); // Close modal only when OK is pressed
-            });
+        // Close modal on OK button click and focus first input
+        okButton.addEventListener('click', function () {
+            messageModal.hide();
+            setTimeout(focusFirstInput, 300); // Delay to ensure modal is fully closed
+        });
 
-            // Cancel button logic (optional, already handled by data-bs-dismiss)
-            var cancelButton = document.getElementById('cancelButton');
-            cancelButton.addEventListener('click', function () {
-                // Optional: Handle cancellation logic if needed
-            });
-        <% } %>
-    });
+        // Close modal on Cancel button click and focus first input
+        cancelButton.addEventListener('click', function () {
+            messageModal.hide();
+            setTimeout(focusFirstInput, 300);
+        });
+
+        // Ensure focus returns when modal is completely hidden
+        document.getElementById('messageModal').addEventListener('hidden.bs.modal', function () {
+            focusFirstInput();
+        });
+    <% } %>
+});
+
 </script>
