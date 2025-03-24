@@ -359,7 +359,7 @@
             // Fetch accounts from server
             function fetchAccounts() {
                 $.ajax({
-                    url: "/api/receivedAccounts",
+                    url: "/api/accounts",
                     method: "GET",
                     success: function (data) {
                         allAccounts = data;
