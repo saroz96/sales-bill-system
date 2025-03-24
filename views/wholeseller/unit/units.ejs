@@ -2,76 +2,157 @@
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
-    <div class="container mt-4 wow-form">
-        <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
-            <h1 class="mt-5">Units</h1>
+    <style>
+        .table th {
+            background-color: #f2f2f2;
+        }
 
-            <!-- Add Units Form -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    Add New Unit
-                </div>
-                <div class="card-body">
-                    <form action="/units" method="post">
-                        <div class="form-group">
-                            <label for="name">Unit Name <i style="color: red;">*</i></label>
-                            <input type="text" class="form-control" id="name" name="name"
-                                placeholder="Enter unit (e.g., kg, liters, pieces)" autofocus required>
+        .back-button {
+            background-color: #007bff;
+            /* Blue background */
+            color: white;
+            /* White text */
+            border: none;
+            /* No border */
+            padding: 10px 20px;
+            /* Padding */
+            font-size: 16px;
+            /* Font size */
+            cursor: pointer;
+            /* Pointer cursor on hover */
+            border-radius: 5px;
+            /* Rounded corners */
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            /* Space between icon and text */
+        }
+
+        .back-button:hover {
+            background-color: #0056b3;
+            /* Darker blue on hover */
+        }
+
+        .icon {
+            font-size: 20px;
+            /* Icon size */
+        }
+    </style>
+    <div class="container-fluid mt-4 wow-form">
+        <div class="row">
+            <div class="col">
+                <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+                    <h1 class="mt-5">Units</h1>
+
+                    <!-- Add Units Form -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            Add New Unit
                         </div>
-                        <br>
-                        <button type="submit" class="btn btn-primary">Add Unit</button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Existing Units List -->
-            <h2 class="mt-5">Existing Units</h2>
-            <ul class="list-group mt-3">
-                <% if (units && units.length> 0) { %>
-                    <% units.forEach(unit=> { %>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <%= unit.name %>
-                                <div>
-                                    <button class="btn btn-sm btn-warning"
-                                        onclick="editUnit('<%= unit._id %>', '<%= unit.name %>')"><i
-                                            class="fas fa-edit"></i></button>
-                                    <form action="/units/<%= unit._id %>?_method=DELETE" method="post" class="d-inline"
-                                        onsubmit="return confirmDeletion()">
-                                        <button type="submit" class="btn btn-sm btn-danger"><i
-                                                class="fas fa-trash"></i></button>
-                                    </form>
-                                </div>
-                        </li>
-                        <% }); %>
-                            <% } else { %>
-                                <li class="list-group-item">No units available</li>
-                                <% } %>
-            </ul>
-
-            <!-- Edit Unit Modal -->
-            <div class="modal fade" id="editUnitModal" tabindex="-1" aria-labelledby="editUnitModalLabel"
-                aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="editUnitModalLabel">Edit Unit</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="editUnitForm" method="post">
+                        <div class="card-body">
+                            <form action="/units" method="post">
                                 <div class="form-group">
-                                    <label for="editName">Unit Name <i style="color: red;">*</i></label>
-                                    <input type="text" class="form-control" id="editName" name="name" required>
+                                    <label for="name">Unit Name <i style="color: red;">*</i></label>
+                                    <input type="text" class="form-control" id="name" name="name"
+                                        placeholder="Enter unit (e.g., kg, liters, pieces)" autocomplete="off" autofocus
+                                        required>
                                 </div>
-                                <button type="submit" class="btn btn-primary">Save changes</button>
+                                <br>
+                                <button type="submit" class="btn btn-primary">Add Unit</button>
                             </form>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Existing Units List -->
+            <div class="col">
+                <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp" style="height: 600px;">
+                    <h1 style="text-align: center; text-decoration: underline;">Existing Units</h1>
+                    <!-- Print and Back Buttons -->
+                    <div class="row">
+                        <div class="col-2">
+                            <button id="backButton" class="back-button">
+                                <span class="icon">←</span> Back
+                            </button>
+                        </div>
+                        <div class="col-1">
+                            <div class="btn btn-primary" onclick="printUnits()"><i class="bi bi-printer"></i></div>
+                        </div>
+                        <div class="col">
+                            <!-- Search Form -->
+                            <form class="mb-4">
+                                <div class="form-group">
+                                    <input type="text" class="form-control" id="searchUnitInput"
+                                        placeholder="Search units by name..." autocomplete="off">
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Unit Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unitsList">
+                                <% if (units && units.length> 0) { %>
+                                    <% units.sort((a, b)=> a.name.localeCompare(b.name)); %>
+                                        <!-- Sorting units alphabetically -->
+                                        <% units.forEach((unit, index)=> { %>
+                                            <tr class="searchUnitClass">
+                                                <td><strong>
+                                                        <%=index +1 %>. <%= unit.name %>
+                                                    </strong></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-warning"
+                                                        onclick="editUnit('<%= unit._id %>', '<%= unit.name %>')"><i
+                                                            class="fas fa-edit"></i></button>
+                                                    <form action="/units/<%= unit._id %>?_method=DELETE" method="post"
+                                                        class="d-inline" onsubmit="return confirmDeletion()">
+                                                        <button type="submit" class="btn btn-sm btn-danger"><i
+                                                                class="fas fa-trash"></i></button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            <% }); %>
+                                                <% } else { %>
+                                                    <tr>
+                                                        <td colspan="2">No units available</td>
+                                                    </tr>
+                                                    <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
+        <!-- Edit Unit Modal -->
+        <div class="modal fade" id="editUnitModal" tabindex="-1" aria-labelledby="editUnitModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editUnitModalLabel">Edit Unit</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editUnitForm" method="post">
+                            <div class="form-group">
+                                <label for="editName">Unit Name <i style="color: red;">*</i></label>
+                                <input type="text" class="form-control" id="editName" name="name" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save changes</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     </div>
 
     <!-- Exit Confirmation Modal
@@ -117,18 +198,64 @@
             return confirm("Are you sure you want to delete this unit?");
         }
 
-        // //Handle scape buttons
-        // document.addEventListener('keydown', function (event) {
-        //     if (event.key === 'Escape') {
-        //         event.preventDefault(); // Prevent default escape behavior
-        //         var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
-        //         exitModal.show();
-        //     }
-        // });
+        document.getElementById('backButton').addEventListener('click', function () {
+            // Navigate back twice to skip the success message page
+            window.history.go(-2);
+        });
 
-        // // Handle the exit confirmation
-        // document.getElementById('confirmExit').addEventListener('click', function () {
-        //     // Redirect to the home page
-        //     window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
-        // });
+        function moveToNextVisibleInput(currentElement) {
+            const formElements = Array.from(document.querySelectorAll('input, select, textarea, button'));
+
+            // Find the current element's index in the form
+            const currentIndex = formElements.indexOf(currentElement);
+
+            // Iterate through the remaining elements to find the next visible one
+            for (let i = currentIndex + 1; i < formElements.length; i++) {
+                if (formElements[i].offsetParent !== null) { // Check if the element is visible
+                    formElements[i].focus();
+                    break;
+                }
+            }
+        }
+
+        function moveToNextInput(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent form submission
+
+                // Move to the next visible input
+                moveToNextVisibleInput(event.target);
+            }
+        }
+
+        // Get all the input elements within the form
+        const inputs = document.querySelectorAll('form input, form select form group');
+
+        // Attach the moveToNextInput function to the keydown event for each input field
+        inputs.forEach(input => {
+            input.addEventListener('keydown', moveToNextInput);
+        });
+
+        // Search functionality for units
+        document.getElementById('searchUnitInput').addEventListener('input', function () {
+            const searchValue = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#unitsList .searchUnitClass');
+            rows.forEach(row => {
+                const unitName = row.querySelector('td').textContent.toLowerCase();
+                if (unitName.includes(searchValue)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+
+        // Print functionality for units
+        function printUnits() {
+            const printContents = document.querySelector('.card').innerHTML;
+            const originalContents = document.body.innerHTML;
+            document.body.innerHTML = printContents;
+            window.print();
+            document.body.innerHTML = originalContents;
+            window.location.reload(); // Reload to restore the original content
+        }
     </script>

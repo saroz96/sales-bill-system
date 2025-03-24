@@ -84,7 +84,7 @@
                                 <div class="form-group col-3">
                                     <label for="openingBalance">Op. Balance</label>
                                     <input type="number" id="openingBalance" name="openingBalance[amount]"
-                                        class="form-control" onfocus="selectValue(this)">
+                                        class="form-control" step="any">
                                     <select id="balanceType" name="openingBalance[type]" class="form-control">
                                         <option value="Dr">Dr.</option>
                                         <option value="Cr">Cr.</option>
@@ -458,11 +458,6 @@
                 input.addEventListener('keydown', moveToNextInput);
             });
         });
-
-
-        function confirmDeletion() {
-            return confirm("Are you sure you want to delete this account?");
-        }
 
         // Function to print the list of accounts in table format
         function printAccounts() {

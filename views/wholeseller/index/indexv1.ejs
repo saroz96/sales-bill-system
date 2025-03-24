@@ -117,8 +117,8 @@
             </a>
           </li>
           <li class="nav-item d-none d-md-block"><a href="#" class="nav-link">Home</a></li>
-          <li class="nav-item d-none d-md-block"><a href="#" class="nav-link">Contact</a></li>
-          <li class="nav-item d-none d-md-block"> <a href="#" class="nav-link" id="productsButton">Products</a>
+          <li class="nav-item d-none d-md-block"><a href="#" class="nav-link" id="contactsButton">Contact(F4)</a></li>
+          <li class="nav-item d-none d-md-block"> <a href="#" class="nav-link" id="productsButton">Products(F9)</a>
           </li>
         </ul>
         <!--end::Start Navbar Links-->
@@ -1764,6 +1764,87 @@
     </div>
   </div>
 
+  <!-- Contact Modal
+  <div class="modal fade" id="contactsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Contact Information</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="table table-striped" id="contactsTable">
+              <thead>
+                <tr>
+                  <th>Party Name</th>
+                  <th>Address</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Contact Person</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div> -->
+
+  <!-- Contact Modal -->
+  <div class="modal fade" id="contactsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-light sticky-top">
+          <h5 class="modal-title fw-bold">Contact Information</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-0">
+          <!-- Search Bar -->
+          <!-- Search Bar -->
+          <div class="sticky-top bg-white p-3 border-bottom">
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-search"></i>
+              </span>
+              <input type="text" id="contactSearch" class="form-control" placeholder="Search contacts...">
+              <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Result Count (add to modal footer) -->
+          <div class="text-muted small me-auto" id="resultCount"></div>
+          <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
+            <table class="table table-striped table-hover mb-0" id="contactsTable">
+              <thead class="sticky-top bg-white" style="top: 0; z-index: 1;">
+                <tr>
+                  <th class="bg-primary text-white">Name</th>
+                  <th class="bg-primary text-white">Address</th>
+                  <th class="bg-primary text-white">Phone</th>
+                  <th class="bg-primary text-white">Email</th>
+                  <th class="bg-primary text-white">Contact Person</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Data will be loaded here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer sticky-bottom bg-light">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <!--end:: Modal for Product Details-->
   <!--begin::Script-->
@@ -2181,6 +2262,10 @@
       $('#productsModal').on('shown.bs.modal', function () { $('#searchInput').focus(); });
     });
 
+    $(document).ready(function () {
+      $('#contactsModal').on('shown.bs.modal', function () { $('#contactSearch').focus(); });
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
       let products = [];
       let currentFocus = 0;
@@ -2330,6 +2415,111 @@
     function selectValue(input) {
       input.select(); // Select the value of the input field when it is focused
     }
+
+
+    //----for contacts--------------------------
+    document.addEventListener('DOMContentLoaded', function () {
+      // Get elements
+      const contactsButton = document.getElementById('contactsButton');
+      const contactsModal = new bootstrap.Modal(document.getElementById('contactsModal'));
+      const contactsTableBody = document.querySelector('#contactsTable tbody');
+      const contactSearch = document.getElementById('contactSearch'); // Add this input field to your modal
+      const clearSearch = document.getElementById('clearSearch'); // Add clear button next to search
+      const resultCount = document.getElementById('resultCount'); // Add this element to show count
+
+      let allContacts = []; // Store all contacts for filtering
+
+      // Function to filter and display contacts
+      function filterContacts(searchTerm = '') {
+        if (!allContacts.length) return;
+
+        const term = searchTerm.toLowerCase();
+        let filteredContacts = allContacts;
+
+        if (term) {
+          filteredContacts = allContacts.filter(contact => {
+            return (
+              (contact.name && contact.name.toLowerCase().includes(term)) ||
+              (contact.address && contact.address.toLowerCase().includes(term)) ||
+              (contact.phone && contact.phone.toLowerCase().includes(term)) ||
+              (contact.email && contact.email.toLowerCase().includes(term)) ||
+              (contact.contactPerson && contact.contactPerson.toLowerCase().includes(term))
+            );
+          });
+        }
+
+        // Render filtered results
+        contactsTableBody.innerHTML = '';
+
+        if (filteredContacts.length === 0) {
+          contactsTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No matching contacts found</td></tr>';
+        } else {
+          filteredContacts.forEach(contact => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+          <td>${contact.name || 'N/A'}</td>
+          <td>${contact.address || 'N/A'}</td>
+          <td>${contact.phone || 'N/A'}</td>
+          <td>${contact.email || 'N/A'}</td>
+          <td>${contact.contactPerson || 'N/A'}</td>
+        `;
+            contactsTableBody.appendChild(row);
+          });
+        }
+
+        // Update result count
+        resultCount.textContent = `${filteredContacts.length} contact${filteredContacts.length !== 1 ? 's' : ''} found`;
+      }
+
+      // Function to fetch and display contacts
+      async function showContacts() {
+        try {
+          // Show loading state
+          contactsTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Loading contacts...</td></tr>';
+
+          // Fetch data from server
+          const response = await fetch('/api/contacts');
+          allContacts = await response.json();
+
+          // Filter and render (initial load shows all)
+          filterContacts();
+
+          // Show modal and focus search
+          contactsModal.show();
+          contactSearch.focus();
+        } catch (error) {
+          console.error('Error loading contacts:', error);
+          contactsTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Failed to load contacts</td></tr>';
+          contactsModal.show();
+        }
+      }
+
+      // Button click handler
+      contactsButton.addEventListener('click', function (e) {
+        e.preventDefault();
+        showContacts();
+      });
+
+      // F4 key handler
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'F4') {
+          e.preventDefault();
+          showContacts();
+        }
+      });
+
+      // Search input handler
+      contactSearch.addEventListener('input', function () {
+        filterContacts(this.value);
+      });
+
+      // Clear search handler
+      clearSearch.addEventListener('click', function () {
+        contactSearch.value = '';
+        filterContacts();
+        contactSearch.focus();
+      });
+    });
   </script>
   <style>
     #productDetailsHeader {
@@ -2408,6 +2598,37 @@
     #productDetailsList {
       list-style-type: none;
       padding: 0;
+    }
+
+    /* Add to your stylesheet if needed */
+    #contactsTable {
+      font-size: 0.9rem;
+    }
+
+    #contactsTable th {
+      white-space: nowrap;
+    }
+
+    /* Smooth scrolling */
+    #contactsModal .modal-body {
+      scroll-behavior: smooth;
+    }
+
+    /* Better table cell spacing */
+    #contactsTable td,
+    #contactsTable th {
+      padding: 0.75rem 1rem;
+      vertical-align: middle;
+    }
+
+    /* Zebra striping for better readability */
+    #contactsTable tbody tr:nth-child(even) {
+      background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    /* Hover effect enhancement */
+    #contactsTable tbody tr:hover {
+      background-color: rgba(0, 123, 255, 0.05);
     }
   </style>
 </body>

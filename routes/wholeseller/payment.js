@@ -10,7 +10,7 @@ const CompanyGroup = require('../../models/wholeseller/CompanyGroup')
 const Transaction = require('../../models/wholeseller/Transaction')
 const NepaliDate = require('nepali-date');
 // const BillCounter = require('../../models/wholeseller/paymentBillCounter');
-const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware/auth');
+const { ensureAuthenticated, ensureCompanySelected, isLoggedIn } = require('../../middleware/auth');
 const { ensureTradeType } = require('../../middleware/tradeType');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
 const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
@@ -76,7 +76,7 @@ router.get('/payments-list', ensureAuthenticated, ensureCompanySelected, ensureT
 });
 
 // Get payment form
-router.get('/payments', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/payments', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
         const today = new Date();
@@ -266,17 +266,17 @@ router.get('/payments/finds', ensureAuthenticated, ensureCompanySelected, ensure
 router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
-            const { billDate, nepaliDate, paymentAccount, account, debit, InstType, InstNo, description } = req.body;
+            const { billDate, nepaliDate, paymentAccount, accountId, debit, InstType, InstNo, description } = req.body;
             const companyId = req.session.currentCompany;
             const currentFiscalYear = req.session.currentFiscalYear.id
             const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
             const userId = req.user._id;
 
-            if (!account || !debit || !paymentAccount) {
+            if (!accountId || !debit || !paymentAccount) {
                 return res.status(400).json({ message: 'All fields are required' });
             }
 
-            if (!mongoose.Types.ObjectId.isValid(account) || !mongoose.Types.ObjectId.isValid(paymentAccount)) {
+            if (!mongoose.Types.ObjectId.isValid(accountId) || !mongoose.Types.ObjectId.isValid(paymentAccount)) {
                 return res.status(400).json({ message: 'Invalid account ID.' });
             }
 
@@ -293,7 +293,7 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
 
             const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Payment')
 
-            const debitedAccount = await Account.findById(account);
+            const debitedAccount = await Account.findById(accountId);
             if (!debitedAccount) {
                 return res.status(404).json({ message: 'Debited account not found.' });
             }
@@ -304,7 +304,7 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
             }
 
             let previousDebitBalance = 0;
-            const lastDebitTransaction = await Transaction.findOne({ account }).sort({ transactionDate: -1 });
+            const lastDebitTransaction = await Transaction.findOne({ accountId }).sort({ transactionDate: -1 });
             if (lastDebitTransaction) {
                 previousDebitBalance = lastDebitTransaction.balance;
             }
@@ -313,7 +313,7 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 // billNumber: billCounter.count,
                 billNumber: billNumber,
                 date: nepaliDate ? new Date(nepaliDate) : new Date(billDate),
-                account,
+                account: accountId,
                 InstType,
                 InstNo,
                 debit,
@@ -329,7 +329,7 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
             });
 
             const debitTransaction = new Transaction({
-                account: account,
+                account: accountId,
                 type: 'Pymt',
                 paymentAccountId: payment._id,
                 drCrNoteAccountTypes: 'Debit',
@@ -351,7 +351,7 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
             });
 
             await debitTransaction.save();
-            await Account.findByIdAndUpdate(account, { $push: { transactions: debitTransaction._id } });
+            await Account.findByIdAndUpdate(accountId, { $push: { transactions: debitTransaction._id } });
 
             let previousCreditBalance = 0;
             const lastCreditTransaction = await Transaction.findOne({ account: creditAccount._id }).sort({ transactionDate: -1 });
@@ -367,7 +367,7 @@ router.post('/payments', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 drCrNoteAccountTypes: 'Credit',
                 // billNumber: bizllCounter.count,
                 billNumber: billNumber,
-                accountType: account,
+                accountType: accountId,
                 debit: 0,
                 credit: debit,
                 paymentMode: 'Payment',

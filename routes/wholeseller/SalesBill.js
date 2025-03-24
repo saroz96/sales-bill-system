@@ -4370,7 +4370,7 @@ router.get('/statement', isLoggedIn, ensureAuthenticated, ensureCompanySelected,
                 company: companyId,
                 fiscalYear: fiscalYear,
                 isActive: true // Filter for active accounts
-            });
+            }).sort({ name: 1 });
 
             if (!selectedCompany) {
                 return res.render('wholeseller/statements/statement', {

@@ -6,16 +6,6 @@
             margin-bottom: 20px;
         }
 
-        /* Styling for Select2 dropdown */
-        /* .select2-container .select2-selection--single {
-            height: 38px;
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            display: flex;
-            align-items: center;
-        } */
-
         .table {
             width: 100%;
             border-collapse: collapse;
@@ -152,7 +142,7 @@
                                 </div>
                                 <div class="col">
                                     <label for="puPrice">Purchase Price</label>
-                                    <input type="number" class="form-control" id="puPrice" name="puPrice" step="0.01"
+                                    <input type="number" class="form-control" id="puPrice" name="puPrice" step="any"
                                         oninput="calculateTotalOpeningStockBalance()">
                                 </div>
                                 <div class="col">
@@ -163,7 +153,7 @@
                                 <div class="col">
                                     <label for="openingStockBalance">Op. Stock Value</label>
                                     <input type="number" class="form-control" id="openingStockBalance"
-                                        name="openingStockBalance" value="0.00" onfocus="selectValue(this)">
+                                        name="openingStockBalance" value="0.00" step="any" onfocus="selectValue(this)">
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-primary" id="saveItem">Add Item</button>
@@ -245,6 +235,11 @@
                                                         <button type="submit" class="btn btn-sm btn-danger"><i
                                                                 class="fas fa-trash"></i></button>
                                                     </form>
+
+                                                    <!-- Add the Select button -->
+                                                    <button class="btn btn-sm btn-success" onclick="selectItem('<%= item.name %>', '<%= item.hscode %>', '<%= item.category._id %>', 
+        '<%=item.mainUnit._id%>','<%=item.WSUnit%>','<%= item.unit._id %>','<%= item.vatStatus %>','<%= item.reorderLevel %>', '<%= item.price %>','<%= item.puPrice %>',
+        '<%= item.openingStock %>','<%= item.openingStockBalance %>')"><i class="fas fa-check"></i> Select</button>
                                                 </td>
                                             </tr>
                                             <% }); %>
@@ -389,6 +384,22 @@
             </div>
         </div>
 
+        <script>
+            function selectItem(name, hscode, categoryId, mainUnitId, WSUnit, unitId, vatStatus, reorderLevel, price, puPrice, openingStock, openingStockBalance) {
+                // Populate the form fields with the selected item data
+                document.getElementById('searchValue').value = name;
+                document.getElementById('hscode').value = hscode;
+                document.getElementById('category').value = categoryId;
+                document.getElementById('mainUnit').value = mainUnitId;
+                document.getElementById('WSUnit').value = WSUnit;
+                document.getElementById('unit').value = unitId;
+                document.getElementById('vatStatus').value = vatStatus;
+                document.getElementById('reorderLevel').value = reorderLevel;
+                document.getElementById('price').value = price;
+                document.getElementById('puPrice').value = puPrice;
+            }
+        </script>
+
         <style>
             .back-button {
                 background-color: #007bff;
@@ -423,10 +434,6 @@
         </style>
 
         <script>
-            // document.getElementById('backButton').addEventListener('click', function () {
-            //     window.history.back(); // Navigate to the previous page
-            // });
-
             document.getElementById('backButton').addEventListener('click', function () {
                 // Navigate back twice to skip the success message page
                 window.history.go(-2);
@@ -438,41 +445,6 @@
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
         <script>
-            // $(document).ready(function () {
-            //     // Initialize Select2 for searchable dropdown
-            //     $('#category').select2({
-            //         placeholder: "Select",
-            //         allowClear: true,
-            //         width: '100%', // Ensure it takes the full width of the container
-            //     });
-            // });
-
-            // $(document).ready(function () {
-            //     // Initialize Select2 for searchable dropdown
-            //     $('#unit').select2({
-            //         placeholder: "Select",
-            //         allowClear: true,
-            //         width: '100%', // Ensure it takes the full width of the container
-            //     });
-            // });
-
-            // $(document).ready(function () {
-            //     // Initialize Select2 for searchable dropdown
-            //     $('#mainUnit').select2({
-            //         placeholder: "Select",
-            //         allowClear: true,
-            //         width: '100%', // Ensure it takes the full width of the container
-            //     });
-            // });
-
-            // $(document).ready(function () {
-            //     // Initialize Select2 for searchable dropdown
-            //     $('#vatStatus').select2({
-            //         placeholder: "Select",
-            //         allowClear: true,
-            //         width: '100%', // Ensure it takes the full width of the container
-            //     });
-            // });
 
             function selectValue(input) {
                 input.select(); // Select the value of the input field when it is focused
@@ -501,20 +473,6 @@
                     $('#editItemForm').attr('action', '');
                 });
             });
-
-            // document.getElementById('searchInput').addEventListener('input', function () {
-            //     const searchTerm = this.value.toLowerCase();
-            //     const itemsList = document.querySelectorAll('.searchClass');
-
-            //     itemsList.forEach(item => {
-            //         const itemName = item.querySelector('td strong').textContent.toLowerCase();
-            //         if (itemName.includes(searchTerm)) {
-            //             item.style.display = '';
-            //         } else {
-            //             item.style.display = 'none';
-            //         }
-            //     });
-            // });
 
             document.getElementById('searchInput').addEventListener('input', function () {
                 const searchTerm = this.value.toLowerCase();
@@ -625,12 +583,6 @@
                 // Update the Opening Stock Balance field
                 document.getElementById('editOpeningStockBalance').value = totalOpeningStockBalance.toFixed(2);
             }
-
-
-            // function confirmDeletion() {
-            //     return confirm("Are you sure you want to delete this item?");
-            // }
-
 
             // Function to print the list of accounts in table format
             function printItems() {
