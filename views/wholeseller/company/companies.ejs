@@ -63,8 +63,7 @@
                                 <div class="form-group col-md-5">
                                     <label for="name">Account Name <i style="color: red;">*</i></label>
                                     <input type="text" class="form-control" name="name" placeholder="Enter account name"
-                                        required autofocus autocomplete="off" onfocus="selectValue(this)"
-                                        id="searchValue">
+                                        required autofocus autocomplete="off" id="searchValue">
                                 </div>
                                 <div class="form-group col-4">
                                     <label for="companyGroup">Account Group <i style="color: red;">*</i></label>
@@ -85,9 +84,8 @@
                                 <div class="form-group col-3">
                                     <label for="openingBalance">Op. Balance</label>
                                     <input type="number" id="openingBalance" name="openingBalance[amount]"
-                                        class="form-control" value="0" onfocus="selectValue(this)">
-                                    <select id="balanceType" name="openingBalance[type]" class="form-control"
-                                        onfocus="selectValue(this)">
+                                        class="form-control" onfocus="selectValue(this)">
+                                    <select id="balanceType" name="openingBalance[type]" class="form-control">
                                         <option value="Dr">Dr.</option>
                                         <option value="Cr">Cr.</option>
                                     </select>
@@ -97,39 +95,34 @@
                                 <div class="form-group col-md-4">
                                     <label for="pan">Pan No.:</label>
                                     <input type="text" class="form-control" id="pan" name="pan" minlength="9"
-                                        maxlength="9" placeholder="Enter pan/vat number" autocomplete="off"
-                                        onfocus="selectValue(this)">
+                                        maxlength="9" placeholder="Enter pan/vat number" autocomplete="off">
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label for="address">Address</label>
                                     <input type="text" class="form-control" id="address" name="address"
-                                        placeholder="Enter account address" autocomplete="off"
-                                        onfocus="selectValue(this)">
+                                        placeholder="Enter account address" autocomplete="off">
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label for="ward">Ward No.:</label>
                                     <input type="number" class="form-control" id="ward" name="ward"
-                                        placeholder="Enter ward number" autocomplete="off" onfocus="selectValue(this)">
+                                        placeholder="Enter ward number" autocomplete="off">
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label for="phone">Phone</label>
                                     <input type="text" class="form-control" id="phone" name="phone"
-                                        placeholder="Enter account phone" autocomplete="off"
-                                        onfocus="selectValue(this)">
+                                        placeholder="Enter account phone" autocomplete="off">
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label for="email">Email</label>
                                     <input type="email" class="form-control" id="email" name="email"
-                                        placeholder="Enter email" autocomplete="off" style="text-transform: lowercase;"
-                                        onfocus="selectValue(this)">
+                                        placeholder="Enter email" autocomplete="off" style="text-transform: lowercase;">
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label for="contactperson">Contact Person</label>
                                     <input type="text" class="form-control" id="contactperson" name="contactperson"
-                                        placeholder="Enter contact person" autocomplete="off"
-                                        onfocus="selectValue(this)">
+                                        placeholder="Enter contact person" autocomplete="off">
                                 </div>
                             </div>
                             <!-- <input type="hidden" name="companyId" value="<%= companyId %>"> -->

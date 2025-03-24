@@ -20,11 +20,11 @@ const stockEntrySchema = new mongoose.Schema({
     },
     batchNumber: {
         type: String,
-        default: 'XXX'
+        default: 'XXX',
     },
     expiryDate: {
         type: String,
-        default: getDefaultExpiryDate
+        default: getDefaultExpiryDate,
     },
     price: {
         type: Number,
@@ -97,6 +97,10 @@ const itemSchema = new mongoose.Schema({
         //     return this.WSUnit * value;
         // }
     }, // Total stock
+    openingStock: {
+        type: Number,
+        default: 0
+    },
     openingStockByFiscalYear: [{
         fiscalYear: {
             type: mongoose.Schema.Types.ObjectId,

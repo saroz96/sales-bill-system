@@ -303,10 +303,10 @@ function addItemToBill(item, dropdownMenu) {
     <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
 </td>
 <td>
-    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" oninput="this.value='${selectedBatch.batchNumber}'" onfocus="selectValue(this)">
 </td>
 <td>
-    <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+    <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" oninput="this.value='${selectedBatch.expiryDate}'" onfocus="selectValue(this)">
 </td>
 <td><input type="number" name="items[${itemIndex}][puPrice]" value="${selectedBatch.puPrice}" class="form-control item-puPrice" id="puPrice-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
 <td class="item-amount">0.00</td>
@@ -316,7 +316,7 @@ function addItemToBill(item, dropdownMenu) {
     </button>
 </td>
 <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
-<input type="hidden" name="items[${itemIndex}][uniqueUuId]" value="${selectedBatch.uniqueUuId}">
+<input type="text" name="items[${itemIndex}][uniqueUuId]" value="${selectedBatch.uniqueUuId}">
 
 `;
 
@@ -360,10 +360,10 @@ function addItemToBill(item, dropdownMenu) {
 </td>
 <!-- Hidden fields for batch and expiry -->
 <td>
-    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" oninput="this.value='${selectedBatch.batchNumber}'" onfocus="selectValue(this)">
 </td>
 <td>
-    <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+    <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" oninput="this.value='${selectedBatch.expiryDate}'" onfocus="selectValue(this)">
 </td>
 <td><input type="number" name="items[${itemIndex}][puPrice]" value="${selectedBatch.puPrice}" class="form-control item-puPrice" id="puPrice-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
 <td class="item-amount">0.00</td>
@@ -688,14 +688,10 @@ function submitBillForm(print) {
         billForm.action = url.toString();
     }
 
-    // Simulate form submission (replace this with actual form submission logic)
-    setTimeout(() => {
-        billForm.submit();
+    billForm.submit();
 
-        // Reset button text and enable it after submission
-        saveButton.innerText = 'Save Bill';
-        saveButton.disabled = false;
-    }, 2000); // Simulating a delay; adjust or remove as needed
+    // Reset button text and enable it after submission
+    saveButton.disabled = false;
 }
 
 document.getElementById('billForm').addEventListener('submit', function (event) {

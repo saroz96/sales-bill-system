@@ -189,7 +189,7 @@ async function showAllItems(input) {
     <div><strong>Name</strong></div>
     <div><strong>Stock</strong></div>
     <div><strong>Unit</strong></div>
-    <div><strong>S.Rate</strong></div>
+    <div><strong>Rate</strong></div>
     `;
         headerRow.style.backgroundColor = '#f0f0f0';
         headerRow.style.fontWeight = 'bold';
@@ -215,7 +215,7 @@ async function showAllItems(input) {
     <div>${item.name}</div>
     <div>${totalStock}</div>
     <div>${item.unit ? item.unit.name : ''}</div>
-    <div>Rs.${item.price.toFixed()}</div>
+    <div>Rs.${item.price}</div>
     `;
 
             dropdownItem.addEventListener('click', () => {
@@ -296,7 +296,7 @@ document.getElementById('itemSearch').addEventListener('input', function () {
                     <div>${item.category ? item.category.name : 'No Category'}</div>
                     <div>${totalStock}</div>
                     <div>${item.unit ? item.unit.name : ''}</div>
-                    <div>Rs.${item.price.toFixed()}</div>
+                    <div>Rs.${item.price}</div>
                 `;
 
                 dropdownItem.addEventListener('click', () => {
@@ -490,16 +490,16 @@ function addItemToBill(item, dropdownMenu) {
     //             });
     //         });
     //     } else {
-            // Directly show the batch modal without fetching transactions
-            showBatchModal(item, (batchInfo) => {
-                // This callback will be triggered when the user selects a batch from the modal
-                selectedBatch = batchInfo;
+    // Directly show the batch modal without fetching transactions
+    showBatchModal(item, (batchInfo) => {
+        // This callback will be triggered when the user selects a batch from the modal
+        selectedBatch = batchInfo;
 
-                const tr = document.createElement('tr');
-                tr.classList.add('item', item.vatStatus ? 'vatable-item' : 'non-vatable-item');
+        const tr = document.createElement('tr');
+        tr.classList.add('item', item.vatStatus ? 'vatable-item' : 'non-vatable-item');
 
-                const serialNumber = tbody.rows.length + 1;  // Calculate the serial number based on the number of rows already in the table
-                tr.innerHTML = `
+        const serialNumber = tbody.rows.length + 1;  // Calculate the serial number based on the number of rows already in the table
+        tr.innerHTML = `
             <td>${serialNumber}</td>
             <td>${item.uniqueNumber}</td>
         <td>
@@ -517,10 +517,10 @@ function addItemToBill(item, dropdownMenu) {
         </td>
         <!-- Hidden fields for batch and expiry -->
         <td>
-            <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+            <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" oninput="this.value='${selectedBatch.batchNumber}'" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
         </td>
         <td>
-            <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+            <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" oninput="this.value='${selectedBatch.expiryDate}'" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
         </td>
         <td><input type="number" name="items[${itemIndex}][price]" value="${selectedBatch.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
         <td class="item-amount">0.00</td>
@@ -533,17 +533,17 @@ function addItemToBill(item, dropdownMenu) {
         <input type="hidden" name="items[${itemIndex}][uniqueUuId]" value="${selectedBatch.uniqueUuId}">
     `;
 
-                tbody.appendChild(tr);
-                itemIndex++;
-                calculateTotal();
+        tbody.appendChild(tr);
+        itemIndex++;
+        calculateTotal();
 
-                // Focus on the newly added row's quantity input
-                document.getElementById(`quantity-${itemIndex - 1}`).focus();
+        // Focus on the newly added row's quantity input
+        document.getElementById(`quantity-${itemIndex - 1}`).focus();
 
-                // Hide the dropdown menu after selecting an item
-                dropdownMenu.classList.remove('show');
-            });
-        }
+        // Hide the dropdown menu after selecting an item
+        dropdownMenu.classList.remove('show');
+    });
+}
 //     });
 // }
 
@@ -808,13 +808,10 @@ function submitBillForm(print) {
     }
 
     // Simulate form submission (replace this with actual form submission logic)
-    setTimeout(() => {
-        billForm.submit();
+    billForm.submit();
 
-        // Reset button text and enable it after submission
-        saveButton.innerText = 'Save Bill';
-        saveButton.disabled = false;
-    }, 2000); // Simulating a delay; adjust or remove as needed
+    // Reset button text and enable it after submission
+    saveButton.disabled = false;
 }
 
 

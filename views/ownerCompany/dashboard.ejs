@@ -166,7 +166,6 @@
                         <th>Company Name</th>
                         <th>Trade Type</th>
                         <th>Date Format</th>
-                        <th>Size</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -177,7 +176,6 @@
                             <td><strong><%= company.name %></strong></td>
                             <td><small><b><%= company.tradeType %></b></small></td>
                             <td><small><b><%= company.dateFormat.charAt(0).toUpperCase() + company.dateFormat.slice(1) %></b></small></td>
-                            <td><%= companyDataSizes[company._id] || 'N/A' %> KB</td>
                             <td>
                                 <form action="/switch/<%= company._id %>" method="GET" style="display:inline;">
                                     <button type="submit" class="btn btn-primary btn-sm switch-button">Open</button>

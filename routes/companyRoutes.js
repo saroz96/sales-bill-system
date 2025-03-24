@@ -40,7 +40,7 @@ router.get('/company/new', ensureAuthenticated, ensureNotAdministrator, async (r
 router.get('/dashboard', isLoggedIn, storeReturnTo, ensureAuthenticated, catchAsync(async (req, res) => {
     try {
         let userCompanies;
-        const companyDataSizes = {};
+        // const companyDataSizes = {};
 
         // Check if the user is an admin
         if (req.user.isAdmin) {
@@ -61,53 +61,53 @@ router.get('/dashboard', isLoggedIn, storeReturnTo, ensureAuthenticated, catchAs
             throw new Error('Database connection not established.');
         }
 
-        // Calculate data size for each company
-        for (const company of userCompanies) {
-            let totalSize = 0;
+        // // Calculate data size for each company
+        // for (const company of userCompanies) {
+        //     let totalSize = 0;
 
-            // List of collections related to the company
-            const relatedCollections = [
-                'sales',
-                'purchases',
-                'transactions',
-                'accounts',
-                'billcounters',
-                'categories',
-                'companies',
-                'companygroups',
-                'creditnotes',
-                'debitnotes',
-                'fiscalyears',
-                'items',
-                'journalvouchers',
-                'payments',
-                'receipts',
-                'settings',
-                'stockadjustments',
-                'units',
-                'users'
-            ]; // Add your relevant collections
+        //     // List of collections related to the company
+        //     const relatedCollections = [
+        //         'sales',
+        //         'purchases',
+        //         'transactions',
+        //         'accounts',
+        //         'billcounters',
+        //         'categories',
+        //         'companies',
+        //         'companygroups',
+        //         'creditnotes',
+        //         'debitnotes',
+        //         'fiscalyears',
+        //         'items',
+        //         'journalvouchers',
+        //         'payments',
+        //         'receipts',
+        //         'settings',
+        //         'stockadjustments',
+        //         'units',
+        //         'users'
+        //     ]; // Add your relevant collections
 
-            for (const collectionName of relatedCollections) {
-                const collection = db.collection(collectionName);
+        //     for (const collectionName of relatedCollections) {
+        //         const collection = db.collection(collectionName);
 
-                // Use db.command to get collection stats
-                const stats = await db.command({ collStats: collectionName });
+        //         // Use db.command to get collection stats
+        //         const stats = await db.command({ collStats: collectionName });
 
-                // Count documents for the specific company
-                const companyDocsCount = await collection.countDocuments({ company: company._id });
+        //         // Count documents for the specific company
+        //         const companyDocsCount = await collection.countDocuments({ company: company._id });
 
-                // Approximate size: (total size of the collection) * (docs for this company) / (total docs)
-                const companySize = (stats.size * companyDocsCount) / stats.count;
-                totalSize += companySize || 0;
-            }
+        //         // Approximate size: (total size of the collection) * (docs for this company) / (total docs)
+        //         const companySize = (stats.size * companyDocsCount) / stats.count;
+        //         totalSize += companySize || 0;
+        //     }
 
-            companyDataSizes[company._id] = Math.round(totalSize / 1024); // Convert to KB
-        }
+        //     companyDataSizes[company._id] = Math.round(totalSize / 1024); // Convert to KB
+        // }
 
         res.render('ownerCompany/dashboard', {
             companies: userCompanies,
-            companyDataSizes,
+            // companyDataSizes,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
     } catch (err) {
@@ -154,51 +154,51 @@ const defaultCashAccount = {
     openingBalance: { amount: 0, type: 'Dr' }
 };
 
-const defaultVatAccount={
-    name:'VAT',
-    groupName:'Duties & Taxes',
+const defaultVatAccount = {
+    name: 'VAT',
+    groupName: 'Duties & Taxes',
     groupType: 'Current Liabilities',
-    openingBalance: {amount:0,type:'Dr'}
+    openingBalance: { amount: 0, type: 'Dr' }
 }
 
-const otherDefaultAccounts=[
-    {name: 'Advertisement & Publicity', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Bad Debts Written Off', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Bank Charges', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Books & Periodicals', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Capital Equipments', groupName:'Fixed Assets', groupType:'Fixed Assets', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Charity & Donations', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Commission on Sales', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Computers', groupName:'Fixed Assets', groupType:'Fixed Assets', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Conveyance Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Customer Entertainment Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Depreciation A/c', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Earnest Money', groupName:'Securities & Deposits', groupType:'Current Assets', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Freight & Forwarding Charges', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Furniture & Fixture', groupName:'Fixed Assets', groupType:'Fixed Assets', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Legal Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Miscellaneous Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Office Equipments', groupName:'Fixed Assets', groupType:'Fixed Assets', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Office Maintenance Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Office Rent', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Plant & Machinery', groupName:'Fixed Assets', groupType:'Fixed Assets', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Postal Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Printing & Stationery', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Profit & Loss', groupName:'Profit & Loss', groupType:'Primary', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Purchase', groupName:'Purchase', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Rounded Off', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Salary', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Salary & Bonus Payable', groupName:'Provisions/Expenses Payable', groupType:'Current Liabilities', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Sales', groupName:'Sale', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Sales Promotion Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Service Charges Paid', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Service Charges Receipts', groupName:'Income (Indirect)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Staff Welfare Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Telephone Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Travelling Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'VAT Refund A/c', groupName:'Income (Direct/Opr.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'VAT Refundable From Govt.', groupName:'Current Assets', groupType:'Primary', openingBalance: {amount:0,type:'Dr'}},
-    {name: 'Water & Electricity Expenses', groupName:'Expenses (Indirect/Admn.)', groupType:'Revenue Accounts', openingBalance: {amount:0,type:'Dr'}},
+const otherDefaultAccounts = [
+    { name: 'Advertisement & Publicity', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Bad Debts Written Off', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Bank Charges', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Books & Periodicals', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Capital Equipments', groupName: 'Fixed Assets', groupType: 'Fixed Assets', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Charity & Donations', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Commission on Sales', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Computers', groupName: 'Fixed Assets', groupType: 'Fixed Assets', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Conveyance Expenses', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Customer Entertainment Expenses', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Depreciation A/c', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Earnest Money', groupName: 'Securities & Deposits', groupType: 'Current Assets', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Freight & Forwarding Charges', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Furniture & Fixture', groupName: 'Fixed Assets', groupType: 'Fixed Assets', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Legal Expenses', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Miscellaneous Expenses', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Office Equipments', groupName: 'Fixed Assets', groupType: 'Fixed Assets', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Office Maintenance Expenses', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Office Rent', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Plant & Machinery', groupName: 'Fixed Assets', groupType: 'Fixed Assets', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Postal Expenses', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Printing & Stationery', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Profit & Loss', groupName: 'Profit & Loss', groupType: 'Primary', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Purchase', groupName: 'Purchase', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Rounded Off', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Salary', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Salary & Bonus Payable', groupName: 'Provisions/Expenses Payable', groupType: 'Current Liabilities', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Sales', groupName: 'Sale', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Sales Promotion Expenses', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Service Charges Paid', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Service Charges Receipts', groupName: 'Income (Indirect)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Staff Welfare Expenses', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Telephone Expenses', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Travelling Expenses', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'VAT Refund A/c', groupName: 'Income (Direct/Opr.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'VAT Refundable From Govt.', groupName: 'Current Assets', groupType: 'Primary', openingBalance: { amount: 0, type: 'Dr' } },
+    { name: 'Water & Electricity Expenses', groupName: 'Expenses (Indirect/Admn.)', groupType: 'Revenue Accounts', openingBalance: { amount: 0, type: 'Dr' } },
 ];
 
 // Default account groups
@@ -331,48 +331,48 @@ async function addOtherDefaultAccounts(companyId) {
 
 //function to add other default accounts:
 async function addDefaultVatAccount(companyId) {
-    try{
- // Find the company by ID and populate its fiscalYear
- const company = await Company.findById(companyId).populate('fiscalYear');
+    try {
+        // Find the company by ID and populate its fiscalYear
+        const company = await Company.findById(companyId).populate('fiscalYear');
 
- if (!company) {
-     throw new Error('Company not found');
- }
+        if (!company) {
+            throw new Error('Company not found');
+        }
 
- // Fetch the fiscal year directly from the newly created company
- let currentFiscalYear = company.fiscalYear;
+        // Fetch the fiscal year directly from the newly created company
+        let currentFiscalYear = company.fiscalYear;
 
- // Ensure that the fiscal year exists
- if (!currentFiscalYear) {
-     throw new Error('No fiscal year found for the newly created company.');
- }
+        // Ensure that the fiscal year exists
+        if (!currentFiscalYear) {
+            throw new Error('No fiscal year found for the newly created company.');
+        }
 
- const dutiesAndTaxGroup = await AccountGroup.findOne({
-    name: defaultVatAccount.groupName,
-    type: defaultVatAccount.groupType,
-    company: companyId,
-});
+        const dutiesAndTaxGroup = await AccountGroup.findOne({
+            name: defaultVatAccount.groupName,
+            type: defaultVatAccount.groupType,
+            company: companyId,
+        });
 
-if (dutiesAndTaxGroup) {
-    const vatAccount = new Account({
-        _id: new mongoose.Types.ObjectId(),
-        name: defaultVatAccount.name,
-        companyGroups: dutiesAndTaxGroup._id, // Correct field for group reference
-        openingBalance: {
-            amount: defaultVatAccount.openingBalance.amount,
-            type: defaultVatAccount.openingBalance.type
-        },
-        company: companyId,
-        fiscalYear: currentFiscalYear._id, // Associate the fiscal year directly from company
-        defaultVatAccount: true,
-    });
+        if (dutiesAndTaxGroup) {
+            const vatAccount = new Account({
+                _id: new mongoose.Types.ObjectId(),
+                name: defaultVatAccount.name,
+                companyGroups: dutiesAndTaxGroup._id, // Correct field for group reference
+                openingBalance: {
+                    amount: defaultVatAccount.openingBalance.amount,
+                    type: defaultVatAccount.openingBalance.type
+                },
+                company: companyId,
+                fiscalYear: currentFiscalYear._id, // Associate the fiscal year directly from company
+                defaultVatAccount: true,
+            });
 
-    await vatAccount.save();
-    console.log(`Default VAT account "${defaultVatAccount.name}" added successfully.`);
-} else {
-    console.error('Error: "Duties & Taxes" group not found for the company.');
-}
-    }catch (error) {
+            await vatAccount.save();
+            console.log(`Default VAT account "${defaultVatAccount.name}" added successfully.`);
+        } else {
+            console.error('Error: "Duties & Taxes" group not found for the company.');
+        }
+    } catch (error) {
         console.error('Error adding default VAT account:', error);
     }
 }
@@ -715,6 +715,9 @@ router.get('/switch/:id/', ensureAuthenticated, async (req, res) => {
 router.get('/company/:id', async (req, res) => {
     try {
         const companyId = req.params.id;
+        let userCompanies;
+        const companyDataSizes = {};
+
         const company = await Company.findById(companyId)
             .populate('owner', 'name email') // Populate owner details (name, email)
             .populate('users', 'name email') // Populate user details (name, email)
@@ -725,8 +728,74 @@ router.get('/company/:id', async (req, res) => {
             return res.status(404).send('Company not found');
         }
 
+        // Check if the user is an admin
+        if (req.user.isAdmin) {
+            // Check if the admin has a company
+            userCompanies = await Company.find({ owner: req.user._id });
+
+            if (userCompanies.length === 0) {
+                // Admin has no companies, prompt to create one
+                return res.redirect('/company/new');
+            }
+        } else {
+            // Non-admin users can only see the company they are associated with
+            userCompanies = await Company.find({ _id: req.user.company });
+        }
+
+
+        const db = mongoose.connection.db;
+        if (!db) {
+            throw new Error('Database connection not established.');
+        }
+
+        // Calculate data size for each company
+        for (const company of userCompanies) {
+            let totalSize = 0;
+
+            // List of collections related to the company
+            const relatedCollections = [
+                'sales',
+                'purchases',
+                'transactions',
+                'accounts',
+                'billcounters',
+                'categories',
+                'companies',
+                'companygroups',
+                'creditnotes',
+                'debitnotes',
+                'fiscalyears',
+                'items',
+                'journalvouchers',
+                'payments',
+                'receipts',
+                'settings',
+                'stockadjustments',
+                'units',
+                'users'
+            ]; // Add your relevant collections
+
+            for (const collectionName of relatedCollections) {
+                const collection = db.collection(collectionName);
+
+                // Use db.command to get collection stats
+                const stats = await db.command({ collStats: collectionName });
+
+                // Count documents for the specific company
+                const companyDocsCount = await collection.countDocuments({ company: company._id });
+
+                // Approximate size: (total size of the collection) * (docs for this company) / (total docs)
+                const companySize = (stats.size * companyDocsCount) / stats.count;
+                totalSize += companySize || 0;
+            }
+
+            companyDataSizes[company._id] = Math.round(totalSize / 1024); // Convert to KB
+        }
+
+
         res.render('ownerCompany/view', {
             company,
+            companyDataSizes,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
 
         });

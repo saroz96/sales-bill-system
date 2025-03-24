@@ -164,7 +164,7 @@ async function showAllItems(input) {
             <div><strong>Name</strong></div>
             <div><strong>Stock</strong></div>
             <div><strong>Unit</strong></div>
-            <div><strong>S.Rate</strong></div>
+            <div><strong>Rate</strong></div>
         `;
         headerRow.style.backgroundColor = '#f0f0f0';
         headerRow.style.fontWeight = 'bold';
@@ -275,7 +275,7 @@ document.getElementById('itemSearch').addEventListener('input', function () {
                     <div>${item.category ? item.category.name : 'No Category'}</div>
                     <div>${totalStock}</div>
                     <div>${item.unit ? item.unit.name : ''}</div>
-                    <div>Rs.${item.price.toFixed()}</div>
+                    <div>Rs.${item.price}</div>
                 `;
 
                 dropdownItem.addEventListener('click', () => {
@@ -349,19 +349,24 @@ function addItemToBill(item, dropdownMenu) {
             <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
         </td>
              <td>
-                    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+                    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" oninput="this.value='${selectedBatch.batchNumber}'" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
                 </td>
                   <td>
-                    <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+                    <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" oninput="this.value='${selectedBatch.expiryDate}'" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
                 </td>
         <td><input type="number" name="items[${itemIndex}][price]" value="${selectedBatch.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
         <td class="item-amount">0.00</td>
+                 <td>
+                <input type="hidden" name="items[${itemIndex}][uniqueUuId]" value="${selectedBatch.uniqueUuId}">
+        </td>
         <td>
              <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
                 <span aria-hidden="true">&times;</span>
             </button>
         </td>
         <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
+                <input type="hidden" name="items[${itemIndex}][uniqueUuId]" value="${selectedBatch.uniqueUuId}">
+
     `;
 
                         tbody.appendChild(tr);
@@ -411,6 +416,9 @@ function addItemToBill(item, dropdownMenu) {
                 </td>
         <td><input type="number" name="items[${itemIndex}][price]" value="${selectedBatch.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
         <td class="item-amount">0.00</td>
+                 <td>
+                <input type="hidden" name="items[${itemIndex}][uniqueUuId]" value="${selectedBatch.uniqueUuId}">
+        </td>
         <td>
              <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
                 <span aria-hidden="true">&times;</span>
@@ -474,6 +482,7 @@ function showBatchModal(item, callback) {
                     <td>${entry.puPrice}</td>
                     <td>${entry.marginPercentage}</td>
                     <td>${entry.mrp}</td>
+                    <td class="hidden">${entry.uniqueUuId}</td>
                 </tr>
             `;
             }
@@ -511,7 +520,8 @@ function showBatchModal(item, callback) {
                 const batchNumber = row.cells[0].textContent; // Assuming batch number is in the first cell
                 const expiryDate = row.cells[1].textContent; // Expiry date in the second cell
                 const price = row.cells[3].textContent;
-                callback({ batchNumber, expiryDate, price });
+                const uniqueUuId = row.cells[7].textContent;
+                callback({ batchNumber, expiryDate, price, uniqueUuId });
 
                 // Hide the modal after selection
                 $(modal).modal('hide');
@@ -740,19 +750,19 @@ function toggleVatInputs() {
     // VAT-related fields
     // const vatInputs = document.getElementById('vatInputs'); // Group for VAT-related inputs
     const taxableAmountRow = document.getElementById('taxableAmountRow');
-    const vatPercentageRow = document.getElementById('vatPercentageRow');
+    // const vatPercentageRow = document.getElementById('vatPercentageRow');
     // const vatAmountRow = document.getElementById('vatAmountRow');
 
     // Toggle display based on VAT exemption
     if (isVatExempt) {
         taxableAmountRow.style.display = 'none';
-        vatPercentageRow.style.display = 'none';
+        // vatPercentageRow.style.display = 'none';
         // vatAmountRow.style.display = 'none';
         moveToNextVisibleInput(document.getElementById('isVatExempt'));
 
     } else {
         taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
-        vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
+        // vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
         // vatAmountRow.style.display = 'table-row'; // Show VAT amount row
     }
 
@@ -791,13 +801,10 @@ function submitBillForm(print) {
     }
 
     // Simulate form submission (replace this with actual form submission logic)
-    setTimeout(() => {
-        billForm.submit();
+    billForm.submit();
 
-        // Reset button text and enable it after submission
-        saveButton.innerText = 'Save Bill';
-        saveButton.disabled = false;
-    }, 2000); // Simulating a delay; adjust or remove as needed
+    // Reset button text and enable it after submission
+    saveButton.disabled = false;
 }
 
 
@@ -932,9 +939,8 @@ async function fetchLastTransactions(itemId) {
             <table class="table table-sm">
                 <thead>
                     <tr>
-                        <th>Trans. Id</th>
                         <th>Date</th>
-                        <th>Bill No.</th>
+                        <th>Inv No.</th>
                         <th>Type</th>
                         <th>A/c Type</th>
                         <th>Pay.Mode</th>
@@ -950,7 +956,6 @@ async function fetchLastTransactions(itemId) {
         tableHtml += transactions.map(transaction => {
             return `
                 <tr onclick="window.location.href='/bills/${transaction.billId._id}/print'" style="cursor: pointer;">
-                    <td>${transaction._id}</td>
                     <td>${new Date(transaction.date).toLocaleDateString()}</td>
                     <td>${transaction.billNumber}</td>
                     <td>${transaction.type}</td>

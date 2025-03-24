@@ -162,13 +162,13 @@ router.post('/companies', isLoggedIn, ensureAuthenticated, ensureCompanySelected
                 companyGroups,
                 openingBalance: {
                     date: currentFiscalYear.startDate,
-                    amount: parseFloat(openingBalance.amount),
+                    amount: parseFloat(openingBalance.amount || 0),
                     type: openingBalance.type,
                     fiscalYear: fiscalYear // Record stock entry with fiscal year
                 },
                 openingBalanceByFiscalYear: [
                     {
-                        amount: parseFloat(openingBalance.amount), // Ensure the amount is stored as a number
+                        amount: parseFloat(openingBalance.amount || 0), // Ensure the amount is stored as a number
                         type: openingBalance.type, // 'Dr' or 'Cr'
                         date: currentFiscalYear.startDate,
                         fiscalYear: fiscalYear // Record stock entry with fiscal year

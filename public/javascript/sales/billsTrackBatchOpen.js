@@ -189,7 +189,7 @@ async function showAllItems(input) {
     <div><strong>Name</strong></div>
     <div><strong>Stock</strong></div>
     <div><strong>Unit</strong></div>
-    <div><strong>S.Rate</strong></div>
+    <div><strong>Rate</strong></div>
     `;
         headerRow.style.backgroundColor = '#f0f0f0';
         headerRow.style.fontWeight = 'bold';
@@ -215,7 +215,7 @@ async function showAllItems(input) {
     <div>${item.name}</div>
     <div>${totalStock}</div>
     <div>${item.unit ? item.unit.name : ''}</div>
-    <div>Rs.${item.price.toFixed()}</div>
+    <div>Rs.${item.price}</div>
     `;
 
             dropdownItem.addEventListener('click', () => {
@@ -296,7 +296,7 @@ document.getElementById('itemSearch').addEventListener('input', function () {
                     <div>${item.category ? item.category.name : 'No Category'}</div>
                     <div>${totalStock}</div>
                     <div>${item.unit ? item.unit.name : ''}</div>
-                    <div>Rs.${item.price.toFixed()}</div>
+                    <div>Rs.${item.price}</div>
                 `;
 
                 dropdownItem.addEventListener('click', () => {
@@ -323,98 +323,6 @@ document.addEventListener('click', function (event) {
         dropdownMenu.classList.remove('show'); // Close the dropdown if clicked outside
     }
 });
-
-
-
-//     async function filterItems(input) {
-//         const query = input.value.trim().toLowerCase();
-//         const vatStatus = document.getElementById('isVatExempt').value; // Get the VAT status from the select input
-//         const dropdownMenu = input.nextElementSibling;
-
-//         // To exclude already present items from search
-//         const existingItemIds = Array.from(document.querySelectorAll('input[name^="items["]'))
-//             .filter(input => input.name.includes('[item]'))
-//             .map(input => input.value);
-
-//         // To exclude already present items from search
-//         if (query.length === 0) {
-//             dropdownMenu.innerHTML = '';
-//             dropdownMenu.classList.remove('show'); // Hide the dropdown if input is blank
-//             return;
-//         }
-
-//         const items = await fetchItems(query, vatStatus, existingItemIds);
-//         console.log('Filtered items:', items);
-
-//         // Clear existing dropdown items
-//         dropdownMenu.innerHTML = '';
-
-//         if (items.length === 0) {
-//             // Display a "No items found" message
-//             const noItemsMessage = document.createElement('div');
-//             noItemsMessage.classList.add('dropdown-item');
-//             noItemsMessage.textContent = 'No items found';
-//             noItemsMessage.style.textAlign = 'center'; // Center-align the message
-//             noItemsMessage.style.color = 'white';
-//             noItemsMessage.style.backgroundColor = 'blue';
-//             dropdownMenu.appendChild(noItemsMessage);
-//             dropdownMenu.classList.add('show');
-//         } else {
-
-//             // Create and add table header
-//             const header = document.createElement('div');
-//             header.classList.add('dropdown-header');
-//             header.innerHTML = `
-//     <div><strong>Item Code</strong></div>
-//     <div><strong>H.S. Code</strong></div>
-//     <div><strong>Item Name</strong></div>
-//     <div><strong>Category</strong></div>
-//     <div><strong>Quantity</strong></div>
-//     <div><strong>Unit</strong></div>
-//     <div><strong>S.Price</strong></div>
-//     <div><strong>Pu.Price</strong></div>
-// `;
-//             dropdownMenu.appendChild(header);
-
-//             // Create and add dropdown items
-//             items.forEach(item => {
-//                 const dropdownItem = document.createElement('div');
-//                 dropdownItem.classList.add('dropdown-item');
-//                 dropdownItem.tabIndex = 0; // Make the item focusable
-
-//                 // Add class based on VAT status
-//                 if (item.vatStatus === 'vatable') {
-//                     dropdownItem.classList.add('vatable-item');
-//                 } else {
-//                     dropdownItem.classList.add('non-vatable-item');
-//                 }
-
-//                 // Calculate the total available stock from stockEntries
-//                 const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
-
-//                 dropdownItem.innerHTML = `
-//         <div>${item.uniqueNumber || 'N/A'}</div>
-//         <div>${item.hscode || 'N/A'}</div>
-//         <div>${item.name}</div>
-//         <div>${item.category ? item.category.name : 'No Category'}</div>
-//         <div>${totalStock}</div> <!-- Display total available stock -->
-//         <div>${item.unit ? item.unit.name : ''}</div>
-//         <div>Rs.${item.price.toFixed()}</div>
-//         <div>Rs.${item.puPrice.toFixed()}</div>
-//     `;
-
-//                 dropdownItem.addEventListener('click', () => addItemToBill(item, dropdownMenu));
-//                 dropdownMenu.appendChild(dropdownItem);
-//             });
-
-//             // Show or hide the dropdown menu based on the number of items
-//             if (items.length > 0) {
-//                 dropdownMenu.classList.add('show');
-//             } else {
-//                 dropdownMenu.classList.remove('show');
-//             }
-//         }
-//     }
 
 let selectedBatch = {}; // Store the selected batch information
 
@@ -462,10 +370,10 @@ function addItemToBill(item, dropdownMenu) {
             <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
         </td>
              <td>
-                    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+                    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" oninput="this.value='${selectedBatch.batchNumber}'" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
                 </td>
                 <td>
-            <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+            <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" oninput="this.value='${selectedBatch.expiryDate}'" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
         </td>
         <td><input type="number" name="items[${itemIndex}][price]" value="${selectedBatch.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
         <td class="item-amount">0.00</td>
@@ -475,6 +383,8 @@ function addItemToBill(item, dropdownMenu) {
             </button>
         </td>
         <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
+        <input type="hidden" name="items[${itemIndex}][uniqueUuId]" value="${selectedBatch.uniqueUuId}">
+
     `;
 
                         tbody.appendChild(tr);
@@ -517,10 +427,10 @@ function addItemToBill(item, dropdownMenu) {
         </td>
         <!-- Hidden fields for batch and expiry -->
         <td>
-            <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+            <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" oninput="this.value='${selectedBatch.batchNumber}'" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
         </td>
         <td>
-            <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+            <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" oninput="this.value='${selectedBatch.expiryDate}'" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
         </td>
         <td><input type="number" name="items[${itemIndex}][price]" value="${selectedBatch.price}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
         <td class="item-amount">0.00</td>
@@ -809,13 +719,10 @@ function submitBillForm(print) {
     }
 
     // Simulate form submission (replace this with actual form submission logic)
-    setTimeout(() => {
-        billForm.submit();
+    billForm.submit();
 
-        // Reset button text and enable it after submission
-        saveButton.innerText = 'Save Bill';
-        saveButton.disabled = false;
-    }, 2000); // Simulating a delay; adjust or remove as needed
+    // Reset button text and enable it after submission
+    saveButton.disabled = false;
 }
 
 

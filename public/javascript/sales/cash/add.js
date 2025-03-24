@@ -31,7 +31,7 @@ $(document).ready(function () {
         allowClear: true,
         width: '100%', // Ensure it takes the full width of the container
     });
-    
+
     $('#isVatExempt').select2({
         placeholder: "Select",
         allowClear: true,
@@ -158,7 +158,7 @@ async function showAllItems(input) {
             <div><strong>Name</strong></div>
             <div><strong>Stock</strong></div>
             <div><strong>Unit</strong></div>
-            <div><strong>S.Rate</strong></div>
+            <div><strong>Rate</strong></div>
         `;
         headerRow.style.backgroundColor = '#f0f0f0';
         headerRow.style.fontWeight = 'bold';
@@ -264,7 +264,7 @@ document.getElementById('itemSearch').addEventListener('input', function () {
                     <div>${item.category ? item.category.name : 'No Category'}</div>
                     <div>${totalStock}</div>
                     <div>${item.unit ? item.unit.name : ''}</div>
-                    <div>Rs.${item.price.toFixed()}</div>
+                    <div>Rs.${item.price}</div>
                 `;
 
                 dropdownItem.addEventListener('click', () => {
@@ -440,15 +440,16 @@ function addItemToBill(item, dropdownMenu) {
             <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
         </td>
         <td>
-            <input type="text" name="items[${itemIndex}][batchNumber]" value="${firstStockEntry.batchNumber || ''}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})">
+            <input type="text" name="items[${itemIndex}][batchNumber]" value="${firstStockEntry.batchNumber || ''}" oninput="this.value='${firstStockEntry.batchNumber}'" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})">
         </td>
         <td>
-            <input type="date" name="items[${itemIndex}][expiryDate]" value="${firstStockEntry.expiryDate || ''}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})">
+            <input type="date" name="items[${itemIndex}][expiryDate]" value="${firstStockEntry.expiryDate || ''}" oninput="this.value='${firstStockEntry.expiryDate}'" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})">
         </td>
         <td>
             <input type="number" name="items[${itemIndex}][price]" value="${batchPrice}" class="form-control item-price" id="price-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
         </td>
         <td class="item-amount">0.00</td>
+                <input type="hidden" name="items[${itemIndex}][uniqueUuId]" value="${firstStockEntry.uniqueUuId}">
         <td>
              <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
                 <span aria-hidden="true">&times;</span>
@@ -642,13 +643,10 @@ function submitBillForm(print) {
     }
 
     // Simulate form submission (replace this with actual form submission logic)
-    setTimeout(() => {
-        billForm.submit();
+    billForm.submit();
 
-        // Reset button text and enable it after submission
-        saveButton.innerText = 'Save Bill';
-        saveButton.disabled = false;
-    }, 2000); // Simulating a delay; adjust or remove as needed
+    // Reset button text and enable it after submission
+    saveButton.disabled = false;
 }
 
 

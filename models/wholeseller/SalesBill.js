@@ -42,7 +42,9 @@ const SalesBillSchema = new Schema({
             type: String,
             required: true,
             enum: ['vatable', 'vatExempt']
-        }
+        },
+        uniqueUuId: { type: String },
+        purchaseBillId: { type: String }
     }],
     subTotal: { type: Number, default: 0 },
     nonVatSales: { type: Number, default: 0 },

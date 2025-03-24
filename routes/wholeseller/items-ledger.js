@@ -11,13 +11,13 @@ const PurchaseBill = require('../../models/wholeseller/PurchaseBill');
 const NepaliDate = require('nepali-date');
 const Company = require('../../models/wholeseller/Company');
 
-const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware/auth');
+const { ensureAuthenticated, ensureCompanySelected, isLoggedIn } = require('../../middleware/auth');
 const { ensureTradeType } = require('../../middleware/tradeType');
 const SalesReturn = require('../../models/wholeseller/SalesReturn');
 const purchaseReturn = require('../../models/wholeseller/PurchaseReturns');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
 
-router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+router.get('/items-ledger/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const companyId = req.session.currentCompany;
@@ -185,8 +185,7 @@ router.get('/items-ledger/:id', ensureAuthenticated, ensureCompanySelected, ensu
                     if (itemEntry.item._id.toString() === itemId) {
                         itemsLedger[itemId].entries.push({
                             date: salesBill.date,
-                            partyName: salesBill.account ? salesBill.account.name : 'N/A',
-                            billNumber: salesBill.billNumber,
+                            partyName: salesBill.account ? salesBill.account.name : salesBill.cashAccount || 'N/A',                            billNumber: salesBill.billNumber,
                             type: 'Sale',
                             qtyIn: 0,
                             qtyOut: itemEntry.quantity,

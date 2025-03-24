@@ -4,7 +4,7 @@ const router = express.Router();
 const Item = require('../../models/wholeseller/Item');
 const Category = require('../../models/wholeseller/Category');
 const Unit = require('../../models/wholeseller/Unit');
-
+const { v4: uuidv4 } = require('uuid');
 const { ensureAuthenticated, ensureCompanySelected, isLoggedIn } = require('../../middleware/auth');
 const { ensureTradeType } = require('../../middleware/tradeType');
 const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
@@ -118,6 +118,21 @@ router.put('/update-batch/:itemId/:batchIndex', async (req, res) => {
 
         // Save changes to database
         await item.save();
+
+        // Update batch details in all PurchaseBill documents that reference this item
+        await PurchaseBill.updateMany(
+            { 'items.item': itemId }, // Find all PurchaseBills that contain this item
+            {
+                $set: {
+                    'items.$[elem].batchNumber': batchNumber,
+                    'items.$[elem].expiryDate': expiryDate,
+                    'items.$[elem].price': price
+                }
+            },
+            {
+                arrayFilters: [{ 'elem.item': itemId }] // Filter to update only the matching items
+            }
+        );
 
         res.status(200).json({ message: 'Batch updated successfully', item });
 
@@ -519,6 +534,9 @@ router.post('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
             return res.status(400).json({ error: 'Item already exists for the current fiscal year.' });
         }
 
+        // Generate a unique ID for the stock entry
+        const uniqueId = uuidv4();
+
         // Create the new item with the fiscal year in openingStockByFiscalYear
         const newItem = new Item({
             name,
@@ -530,6 +548,7 @@ router.post('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
             price,
             puPrice,
             vatStatus,
+            openingStock: openingStock,
             stock: openingStock, // Set total stock to opening stock initially
             company: companyId,
             reorderLevel,
@@ -546,6 +565,7 @@ router.post('/items', ensureAuthenticated, ensureCompanySelected, ensureTradeTyp
                 price: price,
                 puPrice: puPrice,
                 date: new Date(),
+                uniqueUuId: uniqueId,
                 fiscalYear: fiscalYear // Record stock entry with fiscal year
             }] : [],
             fiscalYear: fiscalYear, // Associate the item with the current fiscal year
@@ -887,7 +907,7 @@ router.get('/items/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected,
 router.put('/items/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
-            const { name, hscode, category, price, puPrice, vatStatus, openingStock, reorderLevel, mainUnit,WSUnit, unit, openingStockBalance } = req.body;
+            const { name, hscode, category, price, puPrice, vatStatus, openingStock, reorderLevel, mainUnit, WSUnit, unit, openingStockBalance } = req.body;
             const companyId = req.session.currentCompany;
 
             // Fetch the company and populate the fiscalYear
@@ -951,7 +971,8 @@ router.put('/items/:id', ensureAuthenticated, ensureCompanySelected, ensureTrade
 
             // Calculate the updated stock by adjusting opening stock
             const currentStock = itemStock - oldOpeningStock + newOpeningStock;
-
+            // Generate a unique ID for the stock entry
+            const newUniqueId = uuidv4();
             // Update the item details, including the fiscal year data for stock entries
             await Item.findByIdAndUpdate(req.params.id, {
                 name,
@@ -969,11 +990,12 @@ router.put('/items/:id', ensureAuthenticated, ensureCompanySelected, ensureTrade
                 maxStock: reorderLevel,
                 openingStockBalance: openingStockBal,
                 stockEntries: newOpeningStock > 0 ? [{
-                    quantity: newOpeningStock,
+                    quantity: currentStock,
                     price: price,
                     puPrice: puPrice,
                     date: new Date(),
-                    fiscalYear: fiscalYear // Record stock entry with fiscal year
+                    fiscalYear: fiscalYear, // Record stock entry with fiscal year
+                    uniqueUuId: newUniqueId
                 }] : [],
                 company: companyId,
                 openingStockByFiscalYear: [{

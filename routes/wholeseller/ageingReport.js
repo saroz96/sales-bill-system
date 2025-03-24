@@ -47,38 +47,53 @@ router.get('/aging/accounts', isLoggedIn, ensureAuthenticated, ensureCompanySele
         if (!fiscalYear) {
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
-        const cashGroups = await CompanyGroup.find({ name: 'Cash in Hand' }).exec();
-        const bankGroups = await CompanyGroup.find({ name: { $in: ['Bank Accounts', 'Bank O/D Account'] } }).exec();
+        // const debtorsCreditorsGroups = await CompanyGroup.find({ name: {$in: ['Sundry Debtors', 'Sundry Creditors']} }).exec();
+        // // const bankGroups = await CompanyGroup.find({ name: { $in: ['Bank Accounts', 'Bank O/D Account'] } }).exec();
 
-        if (!cashGroups) {
-            console.warn('Cash in Hand group not found');
-        }
-        if (bankGroups.length === 0) {
-            console.warn('No bank groups found');
-        }
-        // Convert bank group IDs to an array of ObjectIds
-        const bankGroupIds = bankGroups.map(group => group._id);
-        const cashGroupIds = cashGroups.map(group => group._id);
+        // if (!debtorsCreditorsGroups) {
+        //     console.warn('Cash in Hand group not found');
+        // }
+        // // if (bankGroups.length === 0) {
+        // //     console.warn('No bank groups found');
+        // // }
+        // // Convert bank group IDs to an array of ObjectIds
+        // // const bankGroupIds = bankGroups.map(group => group._id);
+        // const debtorsCreditorsGroupsIds = debtorsCreditorsGroups.map(group => group._id);
 
-        // Fetch accounts excluding 'Cash in Hand' and 'Bank Accounts'
+        // // Fetch accounts excluding 'Cash in Hand' and 'Bank Accounts'
+        // const accounts = await Account.find({
+        //     company: companyId,
+        //     fiscalYear: fiscalYear,
+        //     isActive: true,
+        //     companyGroups: { $nin: [...debtorsCreditorsGroupsIds ? debtorsCreditorsGroupsIds : null] }
+        // })
+        //     .populate('companyGroups')
+        //     .exec();
+
+        // const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear }).populate('companyGroups');
+
+        // Fetch only the required company groups: Cash in Hand, Sundry Debtors, Sundry Creditors
+        const relevantGroups = await CompanyGroup.find({
+            name: { $in: ['Sundry Debtors', 'Sundry Creditors'] }
+        }).exec();
+
+        // Convert relevant group IDs to an array of ObjectIds
+        const relevantGroupIds = relevantGroups.map(group => group._id);
+
         const accounts = await Account.find({
             company: companyId,
             fiscalYear: fiscalYear,
             isActive: true,
-            companyGroups: { $nin: [...cashGroupIds ? cashGroupIds : null, ...bankGroupIds] }
-        })
-            .populate('companyGroups')
-            .exec();
-
-        // const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear }).populate('companyGroups');
+            companyGroups: { $in: relevantGroupIds }
+        });
 
         res.render('wholeseller/outstanding/accounts', {
             company,
             currentFiscalYear,
             accounts,
             currentCompanyName: req.session.currentCompanyName,
-            title: 'Accounts',
-            body: 'wholeseller >> account >> accounts',
+            title: '',
+            body: '',
             user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });

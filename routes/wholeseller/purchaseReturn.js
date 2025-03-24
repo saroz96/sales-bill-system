@@ -471,11 +471,23 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                     hasNonVatableItems = true;
                     totalNonTaxableAmount += itemTotal;
                 }
-
+                // Find the specific batch entry
+                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === item.batchNumber && entry.uniqueUuId === item.uniqueUuId);
+                if (!batchEntry) {
+                    req.flash('error', `Batch number ${item.batchNumber} not found for item: ${product.name}`);
+                    await session.abortTransaction();
+                    return res.redirect('/purchase-return');
+                }
                 // Check stock quantity using FIFO
-                const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
-                if (availableStock < item.quantity) {
-                    req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
+                // const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+                // if (availableStock < item.quantity) {
+                //     req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
+                //     await session.abortTransaction();
+                //     return res.redirect('/purchase-return');
+                // }
+                // Check if the batch has enough stock
+                if (batchEntry.quantity < item.quantity) {
+                    req.flash('error', `Not enough stock in batch ${item.batchNumber} for item: ${product.name}. Available: ${batchEntry.quantity}, Required: ${item.quantity}`);
                     await session.abortTransaction();
                     return res.redirect('/purchase-return');
                 }
@@ -568,21 +580,21 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
 
             async function reduceStockBatchWise(product, batchNumber, quantity, uniqueUuId) {
                 let remainingQuantity = quantity;
-            
+
                 // Find all batch entries with the specific batch number
                 const batchEntries = product.stockEntries.filter(entry => entry.batchNumber === batchNumber);
-            
+
                 if (batchEntries.length === 0) {
                     throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
                 }
-            
+
                 // Find the specific stock entry using uniqueUuId
                 const selectedBatchEntry = batchEntries.find(entry => entry.uniqueUuId === uniqueUuId);
-            
+
                 if (!selectedBatchEntry) {
                     throw new Error(`Selected stock entry with ID ${uniqueUuId} not found for batch number ${batchNumber}`);
                 }
-            
+
                 // Reduce stock for the selected batch entry
                 if (selectedBatchEntry.quantity <= remainingQuantity) {
                     remainingQuantity -= selectedBatchEntry.quantity;
@@ -591,11 +603,11 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                     selectedBatchEntry.quantity -= remainingQuantity;
                     remainingQuantity = 0; // Stock is fully reduced for this batch
                 }
-            
+
                 if (remainingQuantity > 0) {
                     throw new Error(`Not enough stock in the selected stock entry for batch number ${batchNumber} of product: ${product.name}`);
                 }
-            
+
                 // Save the product with the updated stock entries
                 await product.save();
             }
@@ -656,14 +668,9 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                     expiryDate: item.expiryDate,  // Add expiry date
                     vatStatus: product.vatStatus,
                     fiscalYear: fiscalYearId,
-                    uniqueUuId:item.uniqueUuId,
+                    uniqueUuId: item.uniqueUuId,
                 });
             }
-            // Update bill with items
-            newBill.items = billItems;
-            console.log('New Bill', newBill);
-            console.log('billItems', billItems);
-
             // Create a transaction for the default Purchase Account
             const purchaseRtnAmount = finalTaxableAmount + finalNonTaxableAmount;
             if (purchaseRtnAmount > 0) {
@@ -808,7 +815,11 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                     await cashTransaction.save();
                 }
             }
-            await newBill.save({session});
+            // Update bill with items
+            newBill.items = billItems;
+            console.log('New Bill', newBill);
+            console.log('billItems', billItems);
+            await newBill.save({ session });
             // If everything goes smoothly, commit the transaction
             await session.commitTransaction();
             session.endSession();
@@ -823,6 +834,8 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
             }
         } catch (error) {
             console.error("Error creating bill:", error);
+            await session.abortTransaction();
+            session.endSession();
             req.flash('error', 'Error creating bill');
             res.redirect('/purchase-return');
         }
@@ -894,14 +907,15 @@ router.get('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
 
             // Find the bill by ID and populate relevant data
             const purchaseReturn = await PurchaseReturn.findById({ _id: billId, company: companyId, fiscalYear: fiscalYear })
-                .populate({ path: 'items.item' })
+                .populate('items.item')
                 .populate('items.unit')
                 .populate('account')
                 .exec();
-            if (!purchaseReturn || purchaseReturn.company.toString() !== companyId) {
+            if (!purchaseReturn) {
                 req.flash('error', 'Bill not found or does not belong to the selected company');
                 return res.redirect('/purchase-return/list');
             }
+
             console.log('Bill Account:', purchaseReturn.account);
 
             // Ensure selectedAccountId is set to the ID of the account linked to the purchaseReturn
@@ -957,36 +971,558 @@ router.get('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
     }
 });
 
+// router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
+//     if (req.tradeType === 'Wholeseller') {
+//         const session = await mongoose.startSession();
+//         session.startTransaction();
+//         const billId = req.params.id;
+
+//         const { accountId, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, nepaliDate, isVatExempt, discountPercentage, paymentMode, partyBillNumber, roundOffAmount: manualRoundOffAmount, } = req.body;
+//         const companyId = req.session.currentCompany;
+//         const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
+//         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+//         const currentFiscalYear = req.session.currentFiscalYear.id;
+//         const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+//         const userId = req.user._id;
+
+//         if (!companyId) {
+//             req.flash('error', `Company ID is required.`);
+//             // await session.abortTransaction();
+//             return res.redirect(`/purchase-return/edit/${billId}`);
+//         }
+//         if (!isVatExempt) {
+//             req.flash('error', `Invalid vat selection.`);
+//             // await session.abortTransaction();
+//             return res.redirect(`/purchase-return/edit/${billId}`);
+//         }
+//         if (!paymentMode) {
+//             req.flash('error', `Invalid payment mode.`);
+//             // await session.abortTransaction();
+//             return res.redirect(`/purchase-return/edit/${billId}`);
+//         }
+
+//         if (companyDateFormat === 'nepali') {
+//             if (!transactionDateNepali) {
+//                 req.flash('error', `Invalid transaction date.`);
+//                 // await session.abortTransaction();
+//                 return res.redirect(`/purchase-return/edit/${billId}`);
+//             }
+//             if (!nepaliDate) {
+//                 req.flash('error', `Invalid invoice date.`);
+//                 // await session.abortTransaction();
+//                 return res.redirect(`/purchase-return/edit/${billId}`);
+//             }
+//         } else {
+//             if (!transactionDateRoman) {
+//                 req.flash('error', `Invalid transaction date.`);
+//                 // await session.abortTransaction();
+//                 return res.redirect(`/purchase-return/edit/${billId}`);
+//             }
+//             if (!billDate) {
+//                 req.flash('error', `Invalid invoice date.`);
+//                 // await session.abortTransaction();
+//                 return res.redirect(`/purchase-return/edit/${billId}`);
+//             }
+//         }
+
+//         const accounts = await Account.findOne({ _id: accountId, company: companyId });
+//         if (!accounts) {
+//             req.flash('error', `Invalid account for this company`);
+//             // await session.abortTransaction();
+//             return res.redirect(`/purchase-return/edit/${billId}`);
+//         }
+
+//         try {
+//             const existingBill = await PurchaseReturn.findOne({ _id: billId, company: companyId });
+//             if (!existingBill) {
+//                 req.flash('error', 'Purchase return not found!');
+//                 return res.redirect('/purchase-return/list');
+//             }
+
+//             // Step 1: Validate New Quantities BEFORE Reversing Old Stock
+//             for (let i = 0; i < items.length; i++) {
+//                 const item = items[i];
+//                 const product = await Item.findById(item.item);
+
+//                 if (!product) {
+//                     req.flash('error', `Item with ID ${item.item} not found`);
+//                     return res.redirect(`/purchase-return/edit/${billId}`);
+//                 }
+
+//                 // Calculate current stock availability
+//                 const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+
+//                 // Find the existing item from the bill
+//                 const existingItem = existingBill.items.find(existing => existing.item.toString() === item.item.toString());
+
+//                 let previousQuantity = existingItem ? existingItem.quantity : 0; // Stock being reversed
+//                 let potentialStockAfterReversal = availableStock + previousQuantity; // Simulated stock after reversal
+
+//                 // If the new requested quantity is more than what would be available, do NOT allow reversal
+//                 if (potentialStockAfterReversal < item.quantity) {
+//                     req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
+//                     return res.redirect(`/purchase-return/edit/${billId}`);
+//                 }
+//             }
+
+//             // Step 2: Reverse stock for existing bill items (Only if all validations pass)
+//             for (const existingItem of existingBill.items) {
+//                 const product = await Item.findById(existingItem.item);
+//                 const batchEntry = product.stockEntries.find(entry => entry.batchNumber === existingItem.batchNumber);
+
+//                 if (batchEntry) {
+//                     batchEntry.quantity += existingItem.quantity; // Restore stock
+//                 } else {
+//                     console.warn(`Batch number ${existingItem.batchNumber} not found for product: ${product.name}`);
+//                 }
+
+//                 await product.save(); // Save updated stock
+//             }
+
+//             console.log('Stock successfully reversed for existing bill items.');
+
+//             // Delete removed items from the PurchaseBill
+//             existingBill.items = existingBill.items.filter(existingItem => {
+//                 return items.some(item =>
+//                     item.item.toString() === existingItem.item.toString());
+//             });
+
+//             // Delete all associated transactions
+//             await Transaction.deleteMany({ purchaseReturnBillId: billId });
+//             console.log('Existing transactions deleted successfully');
+
+//             // Calculate amounts based on the updated POST route logic
+//             const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
+//             const isVatAll = isVatExempt === 'all';
+//             const discount = parseFloat(discountPercentage) || 0;
+
+//             let subTotal = 0;
+//             let vatAmount = 0;
+//             let totalTaxableAmount = 0;
+//             let totalNonTaxableAmount = 0;
+//             let hasVatableItems = false;
+//             let hasNonVatableItems = false;
+
+//             // Validate each item before processing
+//             for (let i = 0; i < items.length; i++) {
+//                 const item = items[i];
+//                 const product = await Item.findById(item.item);
+
+//                 if (!product) {
+//                     req.flash('error', `Item with id ${item.item} not found`);
+//                     return res.redirect('/purchase-return');
+//                 }
+
+//                 const itemTotal = parseFloat(item.puPrice) * parseFloat(item.quantity, 10);
+//                 subTotal += itemTotal;
+
+//                 if (product.vatStatus === 'vatable') {
+//                     hasVatableItems = true;
+//                     totalTaxableAmount += itemTotal;
+//                 } else {
+//                     hasNonVatableItems = true;
+//                     totalNonTaxableAmount += itemTotal;
+//                 }
+
+//                 // // Find the specific batch entry
+//                 // const batchEntry = product.stockEntries.find(entry => entry.batchNumber === item.batchNumber);
+//                 // if (!batchEntry) {
+//                 //     req.flash('error', `Batch number ${item.batchNumber} not found for item: ${product.name}`);
+//                 //     // await session.abortTransaction();
+//                 //     return res.redirect('/purchase-return');
+//                 // }
+//                 // // Check if the batch has enough stock
+//                 // if (batchEntry.quantity < item.quantity) {
+//                 //     req.flash('error', `Not enough stock in batch ${item.batchNumber} for item: ${product.name}. Available: ${batchEntry.quantity}, Required: ${item.quantity}`);
+//                 //     // await session.abortTransaction();
+//                 //     return res.redirect('/purchase-return');
+//                 // }
+//             }
+
+//             // Check validation conditions after processing all items
+//             if (isVatExempt !== 'all') {
+//                 if (isVatExemptBool && hasVatableItems) {
+//                     req.flash('error', 'Cannot save VAT exempt bill with vatable items');
+//                     // await session.abortTransaction();
+//                     return res.redirect(`/purchase-return/edit/${billId}`);
+//                 }
+
+//                 if (!isVatExemptBool && hasNonVatableItems) {
+//                     req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
+//                     // await session.abortTransaction();
+//                     return res.redirect(`/purchase-return/edit/${billId}`);
+//                 }
+//             }
+
+//             // Apply discount proportionally to vatable and non-vatable items
+//             const discountForTaxable = (totalTaxableAmount * discount) / 100;
+//             const discountForNonTaxable = (totalNonTaxableAmount * discount) / 100;
+
+//             const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
+//             const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
+
+//             // Calculate VAT only for vatable items
+//             if (!isVatExemptBool || isVatAll || isVatExempt === 'all') {
+//                 vatAmount = (finalTaxableAmount * vatPercentage) / 100;
+//             } else {
+//                 vatAmount = 0;
+//             }
+
+//             let totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
+//             let finalAmount = totalAmount;
+
+//             // Check if round off is enabled in settings
+//             const roundOffForPurchaseReturn = await Settings.findOne({ companyId, userId }); // Assuming you have a single settings document
+
+//             // Handle case where settings is null
+//             if (!roundOffForPurchaseReturn) {
+//                 console.log('No settings found, using default settings or handling as required');
+//                 roundOffForPurchaseReturn = { roundOffPurchaseReturn: false }; // Provide default settings or handle as needed
+//             }
+//             let roundOffAmount = 0;
+//             if (roundOffForPurchaseReturn.roundOffPurchaseReturn) {
+//                 finalAmount = Math.round(finalAmount.toFixed(2)); // Round off final amount
+//                 roundOffAmount = finalAmount - totalAmount;
+//             } else if (manualRoundOffAmount && !roundOffForPurchaseReturn.roundOffPurchaseReturn) {
+//                 roundOffAmount = parseFloat(manualRoundOffAmount);
+//                 finalAmount = totalAmount + roundOffAmount;
+//             }
+
+
+//             // Update existing bill
+//             existingBill.account = accountId;
+//             existingBill.partyBillNumber = partyBillNumber;
+//             existingBill.isVatExempt = isVatExemptBool;
+//             existingBill.vatPercentage = isVatExemptBool ? 0 : vatPercentage;
+//             existingBill.subTotal = totalTaxableAmount + totalNonTaxableAmount;
+//             existingBill.discountPercentage = discount;
+//             existingBill.discountAmount = discountForTaxable + discountForNonTaxable;
+//             existingBill.nonVatPurchaseReturn = finalNonTaxableAmount;
+//             existingBill.taxableAmount = finalTaxableAmount;
+//             existingBill.vatAmount = vatAmount;
+//             existingBill.totalAmount = finalAmount;
+//             existingBill.roundOffAmount = roundOffAmount;
+//             existingBill.isVatAll = isVatAll;
+//             existingBill.paymentMode = paymentMode;
+//             existingBill.date = nepaliDate || new Date(billDate);
+//             existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
+
+//             async function reduceStockBatchWise(product, batchNumber, quantity) {
+//                 let remainingQuantity = quantity;
+
+//                 // Find all batch entries with the specific batch number
+//                 const batchEntries = product.stockEntries.filter(entry => entry.batchNumber === batchNumber);
+
+//                 if (batchEntries.length === 0) {
+//                     throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
+//                 }
+
+//                 // Iterate through all matching batch entries and reduce stock
+//                 for (const batchEntry of batchEntries) {
+//                     if (remainingQuantity <= 0) break; // Stop if the required quantity is fully reduced
+
+//                     if (batchEntry.quantity <= remainingQuantity) {
+//                         remainingQuantity -= batchEntry.quantity;
+//                         batchEntry.quantity = 0; // All stock from this batch is used
+//                     } else {
+//                         batchEntry.quantity -= remainingQuantity;
+//                         remainingQuantity = 0; // Stock is fully reduced for this batch
+//                     }
+//                 }
+
+//                 // if (remainingQuantity > 0) {
+//                 //     throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
+//                 // }
+
+//                 // Save the product with the updated stock entries
+//                 await product.save();
+//             }
+//             // **Updated processing for billItems to allow multiple entries of the same item**
+//             const billItems = [];
+//             for (let i = 0; i < items.length; i++) {
+//                 const item = items[i];
+//                 const product = await Item.findById(item.item);
+
+//                 if (!product) {
+//                     req.flash('error', `Item with id ${item.item} not found`);
+//                     // await session.abortTransaction();
+//                     return res.redirect(`/purchase-return/edit/${billId}`);
+//                 }
+
+//                 // Create the transaction for this item
+//                 const transaction = new Transaction({
+//                     item: product._id,
+//                     account: accountId,
+//                     billNumber: existingBill.billNumber,
+//                     partyBillNumber: existingBill.partyBillNumber,
+//                     quantity: item.quantity,
+//                     puPrice: item.puPrice,
+//                     unit: item.unit,  // Include the unit field                    type: 'Sale',
+//                     purchaseReturnBillId: existingBill._id,  // Set billId to the new bill's ID
+//                     purchaseSalesReturnType: 'Purchase Return',
+//                     isType: 'PrRt',
+//                     type: 'PrRt',
+//                     debit: finalAmount,  // Set debit to the item's total amount
+//                     credit: 0,        // Credit is 0 for sales transactions
+//                     paymentMode: paymentMode,
+//                     balance: 0, // Update the balance based on item total
+//                     date: nepaliDate ? nepaliDate : new Date(billDate),
+//                     company: companyId,
+//                     user: userId,
+//                     fiscalYear: currentFiscalYear,
+
+//                 });
+
+//                 await transaction.save();
+//                 console.log('Transaction created:', transaction);
+
+//                 await reduceStockBatchWise(product, item.batchNumber, item.quantity);
+
+//                 billItems.push({
+//                     item: product._id,
+//                     quantity: item.quantity,
+//                     price: item.price,
+//                     puPrice: item.puPrice,
+//                     unit: item.unit,
+//                     batchNumber: item.batchNumber,  // Add batch number
+//                     expiryDate: item.expiryDate,  // Add expiry date
+//                     vatStatus: product.vatStatus,
+//                     fiscalYear: fiscalYearId,
+//                 });
+//             }
+
+//             existingBill.items = billItems;
+
+//             // Create a transaction for the default Purchase Account
+//             const purchaseRtnAmount = finalTaxableAmount + finalNonTaxableAmount;
+//             if (purchaseRtnAmount > 0) {
+//                 const purchaseRtnAccount = await Account.findOne({ name: 'Purchase', company: companyId });
+//                 if (purchaseRtnAccount) {
+//                     const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+//                     if (!partyAccount) {
+//                         return res.status(400).json({ error: 'Party account not found.' });
+//                     }
+//                     const purchaseRtnTransaction = new Transaction({
+//                         account: purchaseRtnAccount._id,
+//                         billNumber: existingBill.billNumber,
+//                         partyBillNumber: existingBill.partyBillNumber,
+//                         type: 'PrRt',
+//                         purchaseReturnBillId: existingBill._id,
+//                         purchaseSalesReturnType: partyAccount.name,  // Save the party account name in purchaseSalesType,
+//                         debit: 0,  // Debit the VAT account
+//                         credit: purchaseRtnAmount,// Credit is 0 for VAT transactions
+//                         paymentMode: paymentMode,
+//                         balance: 0, // Update the balance
+//                         date: nepaliDate ? nepaliDate : new Date(billDate),
+//                         company: companyId,
+//                         user: userId,
+//                         fiscalYear: currentFiscalYear
+//                     });
+//                     await purchaseRtnTransaction.save();
+//                     console.log('Purchase Return Transaction: ', purchaseRtnTransaction);
+//                 }
+//             }
+
+//             // Create a transaction for the VAT amount
+//             if (vatAmount > 0) {
+//                 const vatAccount = await Account.findOne({ name: 'VAT', company: companyId });
+//                 if (vatAccount) {
+//                     const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+//                     if (!partyAccount) {
+//                         return res.status(400).json({ error: 'Party account not found.' });
+//                     }
+//                     const vatTransaction = new Transaction({
+//                         account: vatAccount._id,
+//                         billNumber: existingBill.billNumber,
+//                         partyBillNumber: existingBill.partyBillNumber,
+//                         isType: 'VAT',
+//                         type: 'PrRt',
+//                         purchaseReturnBillId: existingBill._id,
+//                         purchaseSalesReturnType: partyAccount.name,  // Save the party account name in purchaseSalesType,
+//                         debit: 0,  // Debit the VAT account
+//                         credit: vatAmount,         // Credit is 0 for VAT transactions
+//                         paymentMode: paymentMode,
+//                         balance: 0, // Update the balance
+//                         date: nepaliDate ? nepaliDate : new Date(billDate),
+//                         company: companyId,
+//                         user: userId,
+//                         fiscalYear: currentFiscalYear
+//                     });
+//                     await vatTransaction.save();
+//                     console.log('Vat Transaction: ', vatTransaction);
+//                 }
+//             }
+
+//             // Create a transaction for the round-off amount
+//             if (roundOffAmount > 0) {
+//                 const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
+//                 if (roundOffAccount) {
+//                     const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+//                     if (!partyAccount) {
+//                         return res.status(400).json({ error: 'Party account not found.' });
+//                     }
+//                     const roundOffTransaction = new Transaction({
+//                         account: roundOffAccount._id,
+//                         billNumber: existingBill.billNumber,
+//                         partyBillNumber: existingBill.partyBillNumber,
+//                         isType: 'RoundOff',
+//                         type: 'PrRt',
+//                         purchaseReturnBillId: existingBill._id,
+//                         purchaseSalesReturnType: partyAccount.name,  // Save the party account name in purchaseSalesType,
+//                         debit: roundOffAmount,  // Debit the VAT account
+//                         credit: 0,         // Credit is 0 for VAT transactions
+//                         paymentMode: paymentMode,
+//                         balance: 0, // Update the balance
+//                         date: nepaliDate ? nepaliDate : new Date(billDate),
+//                         company: companyId,
+//                         user: userId,
+//                         fiscalYear: currentFiscalYear
+//                     });
+//                     await roundOffTransaction.save();
+//                     console.log('Round-off Transaction: ', roundOffTransaction);
+//                 }
+//             }
+
+//             if (roundOffAmount < 0) {
+//                 const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
+//                 if (roundOffAccount) {
+//                     const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+//                     if (!partyAccount) {
+//                         return res.status(400).json({ error: 'Party account not found.' });
+//                     }
+//                     const roundOffTransaction = new Transaction({
+//                         account: roundOffAccount._id,
+//                         billNumber: existingBill.billNumber,
+//                         partyBillNumber: existingBill.partyBillNumber,
+//                         isType: 'RoundOff',
+//                         type: 'PrRt',
+//                         purchaseReturnBillId: existingBill._id,
+//                         purchaseSalesReturnType: partyAccount.name,  // Save the party account name in purchaseSalesType,
+//                         debit: 0,  // Debit the VAT account
+//                         credit: Math.abs(roundOffAmount), // Ensure roundOffAmount is not saved as a negative value
+//                         paymentMode: paymentMode,
+//                         balance: 0, // Update the balance
+//                         date: nepaliDate ? nepaliDate : new Date(billDate),
+//                         company: companyId,
+//                         user: userId,
+//                         fiscalYear: currentFiscalYear
+//                     });
+//                     await roundOffTransaction.save();
+//                     console.log('Round-off Transaction: ', roundOffTransaction);
+//                 }
+//             }
+
+//             console.log('All transactions successfully created for updated bill.');
+//             await existingBill.save();
+
+//             // If payment mode is cash, also create a transaction for the "Cash in Hand" account
+//             if (paymentMode === 'cash') {
+//                 const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
+//                 if (cashAccount) {
+//                     const cashTransaction = new Transaction({
+//                         account: cashAccount._id,
+//                         // billNumber: billCounter.count,
+//                         billNumber: existingBill.billNumber,
+//                         partyBillNumber: existingBill.partyBillNumber,
+//                         isType: 'PrRt',
+//                         type: 'PrRt',
+//                         purchaseReturnBillId: existingBill._id,  // Set billId to the new bill's ID
+//                         purchaseSalesReturnType: 'Purchase Return',
+//                         debit: finalAmount,  // Debit is 0 for cash-in-hand as we're receiving cash
+//                         credit: 0,  // Credit is the total amount since we're receiving cash
+//                         paymentMode: paymentMode,
+//                         balance: 0, // Update the balance
+//                         date: nepaliDate ? nepaliDate : new Date(billDate),
+//                         company: companyId,
+//                         user: userId,
+//                         fiscalYear: currentFiscalYear,
+//                     });
+//                     await cashTransaction.save();
+//                     console.log('Cash transaction created:', cashTransaction);
+//                 }
+//             }
+
+//             // // If everything goes smoothly, commit the transaction
+//             // await session.commitTransaction();
+//             // session.endSession();
+
+//             if (req.query.print === 'true') {
+//                 // Redirect to the print route
+//                 res.redirect(`/purchase-return/${existingBill._id}/edit/direct-print`);
+//             } else {
+//                 // Redirect to the bills list or another appropriate page
+//                 req.flash('success', 'Purchase return updated successfully.');
+//                 res.redirect(`/purchase-return/edit/${billId}`);
+//             }
+//         } catch (error) {
+//             console.error("Error creating bill:", error);
+//             await session.abortTransaction();
+//             session.endSession();
+//             req.flash('error', 'Error creating bill');
+//             res.redirect(`/purchase-return/edit/${billId}`);
+//         }
+//     }
+// });
+
+
 router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        const billId = req.params.id;
+
+        const { accountId, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, nepaliDate, isVatExempt, discountPercentage, paymentMode, partyBillNumber, roundOffAmount: manualRoundOffAmount } = req.body;
+        const companyId = req.session.currentCompany;
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
+        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+        const currentFiscalYear = req.session.currentFiscalYear.id;
+        const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        const userId = req.user._id;
+
+        if (!companyId) {
+            req.flash('error', `Company ID is required.`);
+            return res.redirect(`/purchase-return/edit/${billId}`);
+        }
+        if (!isVatExempt) {
+            req.flash('error', `Invalid vat selection.`);
+            return res.redirect(`/purchase-return/edit/${billId}`);
+        }
+        if (!paymentMode) {
+            req.flash('error', `Invalid payment mode.`);
+            return res.redirect(`/purchase-return/edit/${billId}`);
+        }
+
+        if (companyDateFormat === 'nepali') {
+            if (!transactionDateNepali) {
+                req.flash('error', `Invalid transaction date.`);
+                return res.redirect(`/purchase-return/edit/${billId}`);
+            }
+            if (!nepaliDate) {
+                req.flash('error', `Invalid invoice date.`);
+                return res.redirect(`/purchase-return/edit/${billId}`);
+            }
+        } else {
+            if (!transactionDateRoman) {
+                req.flash('error', `Invalid transaction date.`);
+                return res.redirect(`/purchase-return/edit/${billId}`);
+            }
+            if (!billDate) {
+                req.flash('error', `Invalid invoice date.`);
+                return res.redirect(`/purchase-return/edit/${billId}`);
+            }
+        }
+
+        const accounts = await Account.findOne({ _id: accountId, company: companyId });
+        if (!accounts) {
+            req.flash('error', `Invalid account for this company`);
+            return res.redirect(`/purchase-return/edit/${billId}`);
+        }
+
         try {
-            const billId = req.params.id;
-            const { accountId, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, nepaliDate, isVatExempt, discountPercentage, paymentMode, partyBillNumber, roundOffAmount: manualRoundOffAmount, } = req.body;
-
-            const companyId = req.session.currentCompany;
-            const currentFiscalYear = req.session.currentFiscalYear.id;
-            const userId = req.user._id;
-
-            if (!companyId) {
-                return res.status(400).json({ error: 'Company ID is required' });
-            }
-
-            if (!isVatExempt) {
-                return res.status(400).json({ error: 'Invalid vat selection.' });
-            }
-            if (!paymentMode) {
-                return res.status(400).json({ error: 'Invalid payment mode.' });
-            }
-
-            const accounts = await Account.findOne({ _id: accountId, company: companyId });
-            if (!accounts) {
-                return res.status(400).json({ error: 'Invalid account for this company' });
-            }
-
             const existingBill = await PurchaseReturn.findOne({ _id: billId, company: companyId });
             if (!existingBill) {
                 req.flash('error', 'Purchase return not found!');
-                return res.redirect('/purchase-return');
+                return res.redirect('/purchase-return/list');
             }
 
             // Step 1: Validate New Quantities BEFORE Reversing Old Stock
@@ -996,14 +1532,28 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
 
                 if (!product) {
                     req.flash('error', `Item with ID ${item.item} not found`);
-                    return res.redirect('/purchase-return/list');
+                    return res.redirect(`/purchase-return/edit/${billId}`);
+                }
+
+                // Validate batch number and uniqueUuId
+                const batchEntry = product.stockEntries.find(
+                    entry => entry.batchNumber === item.batchNumber && entry.uniqueUuId === item.uniqueUuId
+                );
+
+                if (!batchEntry) {
+                    req.flash('error', `Batch with batchNumber ${item.batchNumber} and uniqueUuId ${item.uniqueUuId} not found for product: ${product.name}`);
+                    return res.redirect(`/purchase-return/edit/${billId}`);
                 }
 
                 // Calculate current stock availability
-                const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+                const availableStock = batchEntry.quantity;
 
                 // Find the existing item from the bill
-                const existingItem = existingBill.items.find(existing => existing.item.toString() === item.item.toString());
+                const existingItem = existingBill.items.find(
+                    existing => existing.item.toString() === item.item.toString() &&
+                        existing.batchNumber === item.batchNumber &&
+                        existing.uniqueUuId === item.uniqueUuId
+                );
 
                 let previousQuantity = existingItem ? existingItem.quantity : 0; // Stock being reversed
                 let potentialStockAfterReversal = availableStock + previousQuantity; // Simulated stock after reversal
@@ -1011,19 +1561,20 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
                 // If the new requested quantity is more than what would be available, do NOT allow reversal
                 if (potentialStockAfterReversal < item.quantity) {
                     req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
-                    return res.redirect('/purchase-return/list');
+                    return res.redirect(`/purchase-return/edit/${billId}`);
                 }
             }
-
             // Step 2: Reverse stock for existing bill items (Only if all validations pass)
             for (const existingItem of existingBill.items) {
                 const product = await Item.findById(existingItem.item);
-                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === existingItem.batchNumber);
+                const batchEntry = product.stockEntries.find(
+                    entry => entry.batchNumber === existingItem.batchNumber && entry.uniqueUuId === existingItem.uniqueUuId
+                );
 
                 if (batchEntry) {
                     batchEntry.quantity += existingItem.quantity; // Restore stock
                 } else {
-                    console.warn(`Batch number ${existingItem.batchNumber} not found for product: ${product.name}`);
+                    console.warn(`Batch with batchNumber ${existingItem.batchNumber} and uniqueUuId ${existingItem.uniqueUuId} not found for product: ${product.name}`);
                 }
 
                 await product.save(); // Save updated stock
@@ -1031,6 +1582,14 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
 
             console.log('Stock successfully reversed for existing bill items.');
 
+            // Delete removed items from the PurchaseBill
+            existingBill.items = existingBill.items.filter(existingItem => {
+                return items.some(
+                    item => item.item.toString() === existingItem.item.toString() &&
+                            item.batchNumber === existingItem.batchNumber &&
+                            item.uniqueUuId === existingItem.uniqueUuId
+                );
+            });
 
             // Delete all associated transactions
             await Transaction.deleteMany({ purchaseReturnBillId: billId });
@@ -1041,47 +1600,81 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
             const isVatAll = isVatExempt === 'all';
             const discount = parseFloat(discountPercentage) || 0;
 
+            let subTotal = 0;
+            let vatAmount = 0;
             let totalTaxableAmount = 0;
             let totalNonTaxableAmount = 0;
+            let hasVatableItems = false;
+            let hasNonVatableItems = false;
 
-            for (const item of items) {
+            // Validate each item before processing
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
                 const product = await Item.findById(item.item);
-                if (product.vatStatus) {
-                    totalTaxableAmount += item.quantity * item.puPrice;
+
+                if (!product) {
+                    req.flash('error', `Item with id ${item.item} not found`);
+                    return res.redirect('/purchase-return');
+                }
+
+                const itemTotal = parseFloat(item.puPrice) * parseFloat(item.quantity, 10);
+                subTotal += itemTotal;
+
+                if (product.vatStatus === 'vatable') {
+                    hasVatableItems = true;
+                    totalTaxableAmount += itemTotal;
                 } else {
-                    totalNonTaxableAmount += item.quantity * item.puPrice;
+                    hasNonVatableItems = true;
+                    totalNonTaxableAmount += itemTotal;
                 }
             }
 
+            // Check validation conditions after processing all items
+            if (isVatExempt !== 'all') {
+                if (isVatExemptBool && hasVatableItems) {
+                    req.flash('error', 'Cannot save VAT exempt bill with vatable items');
+                    return res.redirect(`/purchase-return/edit/${billId}`);
+                }
+
+                if (!isVatExemptBool && hasNonVatableItems) {
+                    req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
+                    return res.redirect(`/purchase-return/edit/${billId}`);
+                }
+            }
+
+            // Apply discount proportionally to vatable and non-vatable items
             const discountForTaxable = (totalTaxableAmount * discount) / 100;
             const discountForNonTaxable = (totalNonTaxableAmount * discount) / 100;
 
             const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
             const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
 
-            let vatAmount = 0;
+            // Calculate VAT only for vatable items
             if (!isVatExemptBool || isVatAll || isVatExempt === 'all') {
                 vatAmount = (finalTaxableAmount * vatPercentage) / 100;
+            } else {
+                vatAmount = 0;
             }
 
-            const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
-
+            let totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
             let finalAmount = totalAmount;
+
+            // Check if round off is enabled in settings
+            const roundOffForPurchaseReturn = await Settings.findOne({ companyId, userId }); // Assuming you have a single settings document
+
+            // Handle case where settings is null
+            if (!roundOffForPurchaseReturn) {
+                console.log('No settings found, using default settings or handling as required');
+                roundOffForPurchaseReturn = { roundOffPurchaseReturn: false }; // Provide default settings or handle as needed
+            }
             let roundOffAmount = 0;
-
-            console.log('Final Amount:', finalAmount);
-
-            const roundOffForPurchaseReturn = await Settings.findOne({ companyId, userId, fiscalYear: currentFiscalYear }) || { roundOffPurchaseReturn: false };
-
             if (roundOffForPurchaseReturn.roundOffPurchaseReturn) {
-                finalAmount = Math.round(finalAmount.toFixed(2));
+                finalAmount = Math.round(finalAmount.toFixed(2)); // Round off final amount
                 roundOffAmount = finalAmount - totalAmount;
-            } else if (manualRoundOffAmount && !roundOffForPurchaseReturn.roundOffPurchase) {
+            } else if (manualRoundOffAmount && !roundOffForPurchaseReturn.roundOffPurchaseReturn) {
                 roundOffAmount = parseFloat(manualRoundOffAmount);
                 finalAmount = totalAmount + roundOffAmount;
             }
-
-
 
             // Update existing bill
             existingBill.account = accountId;
@@ -1101,92 +1694,41 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
             existingBill.date = nepaliDate || new Date(billDate);
             existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
 
-            const billItems = await Promise.all(items.map(async item => {
-                const product = await Item.findById(item.item);
+            async function reduceStockBatchWise(product, batchNumber, uniqueUuId, quantity) {
+                let remainingQuantity = quantity;
 
-                // Batch-wise stock reduction function
-                // async function reduceStockBatchWise(product, batchNumber, quantity) {
-                //     let remainingQuantity = quantity;
+                // Find the exact batch entry using both batchNumber and uniqueUuId
+                const batchEntry = product.stockEntries.find(
+                    entry => entry.batchNumber === batchNumber && entry.uniqueUuId === uniqueUuId
+                );
 
-                //     // Find the batch entry with the specific batch number
-                //     const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
-
-                //     if (!batchEntry) {
-                //         throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
-                //     }
-
-                //     // Reduce stock for the specific batch
-                //     if (batchEntry.quantity <= remainingQuantity) {
-                //         remainingQuantity -= batchEntry.quantity;
-                //         batchEntry.quantity = 0; // All stock from this batch is used
-                //     } else {
-                //         batchEntry.quantity -= remainingQuantity;
-                //         remainingQuantity = 0; // Stock is fully reduced for this batch
-                //     }
-
-                //     if (remainingQuantity > 0) {
-                //         throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
-                //     }
-
-                //     // Save the product with the updated stock entries
-                //     await product.save();
-                // }
-
-                async function reduceStockBatchWise(product, batchNumber, quantity) {
-                    let remainingQuantity = quantity;
-
-                    // Find all batch entries with the specific batch number
-                    const batchEntries = product.stockEntries.filter(entry => entry.batchNumber === batchNumber);
-
-                    if (batchEntries.length === 0) {
-                        throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
-                    }
-
-                    // Iterate through all matching batch entries and reduce stock
-                    for (const batchEntry of batchEntries) {
-                        if (remainingQuantity <= 0) break; // Stop if the required quantity is fully reduced
-
-                        if (batchEntry.quantity <= remainingQuantity) {
-                            remainingQuantity -= batchEntry.quantity;
-                            batchEntry.quantity = 0; // All stock from this batch is used
-                        } else {
-                            batchEntry.quantity -= remainingQuantity;
-                            remainingQuantity = 0; // Stock is fully reduced for this batch
-                        }
-                    }
-
-                    if (remainingQuantity > 0) {
-                        throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
-                    }
-
-                    // Save the product with the updated stock entries
-                    await product.save();
+                if (!batchEntry) {
+                    console.warn(`Batch with batchNumber ${batchNumber} and uniqueUuId ${uniqueUuId} not found for product: ${product.name}`);
+                    return; // Skip this batch
                 }
 
+                // Reduce the stock for the batch
+                if (batchEntry.quantity <= remainingQuantity) {
+                    remainingQuantity -= batchEntry.quantity;
+                    batchEntry.quantity = 0; // All stock from this batch is used
+                } else {
+                    batchEntry.quantity -= remainingQuantity;
+                    remainingQuantity = 0; // Stock is fully reduced for this batch
+                }
 
-                await reduceStockBatchWise(product, item.batchNumber, item.quantity);
+                // Save the product with the updated stock entries
+                await product.save();
+            }
 
-
-                return {
-                    item: product._id,
-                    quantity: item.quantity,
-                    price: item.price,
-                    puPrice: item.puPrice,
-                    unit: item.unit,
-                    batchNumber: item.batchNumber,
-                    expiryDate: item.expiryDate,
-                    vatStatus: product.vatStatus,
-                    fiscalYear: currentFiscalYear,
-                };
-            }));
-            existingBill.items = billItems;
-
-            // After updating the existingBill.items, reinserting transactions
-            const billItemsTransactions = await Promise.all(existingBill.items.map(async item => {
+            // **Updated processing for billItems to allow multiple entries of the same item**
+            const billItems = [];
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
                 const product = await Item.findById(item.item);
 
                 if (!product) {
-                    throw new Error(`Product with ID ${item.item} not found`);
+                    req.flash('error', `Item with id ${item.item} not found`);
+                    return res.redirect(`/purchase-return/edit/${billId}`);
                 }
 
                 // Create the transaction for this item
@@ -1197,28 +1739,43 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
                     partyBillNumber: existingBill.partyBillNumber,
                     quantity: item.quantity,
                     puPrice: item.puPrice,
-                    unit: item.unit,  // Include the unit field                    type: 'Sale',
-                    purchaseReturnBillId: existingBill._id,  // Set billId to the new bill's ID
+                    unit: item.unit,
+                    type: 'Sale',
+                    purchaseReturnBillId: existingBill._id,
                     purchaseSalesReturnType: 'Purchase Return',
                     isType: 'PrRt',
                     type: 'PrRt',
-                    debit: finalAmount,  // Set debit to the item's total amount
-                    credit: 0,        // Credit is 0 for sales transactions
+                    debit: finalAmount,
+                    credit: 0,
                     paymentMode: paymentMode,
-                    balance: 0, // Update the balance based on item total
+                    balance: 0,
                     date: nepaliDate ? nepaliDate : new Date(billDate),
                     company: companyId,
                     user: userId,
                     fiscalYear: currentFiscalYear,
-
                 });
 
                 await transaction.save();
                 console.log('Transaction created:', transaction);
 
-                return transaction; // Optional, if you need to track the transactions created
-            }));
+                // Reduce stock for the batch using both batchNumber and uniqueUuId
+                await reduceStockBatchWise(product, item.batchNumber, item.uniqueUuId, item.quantity);
 
+                billItems.push({
+                    item: product._id,
+                    quantity: item.quantity,
+                    price: item.price,
+                    puPrice: item.puPrice,
+                    unit: item.unit,
+                    batchNumber: item.batchNumber,
+                    expiryDate: item.expiryDate,
+                    vatStatus: product.vatStatus,
+                    fiscalYear: fiscalYearId,
+                    uniqueUuId: item.uniqueUuId, // Include uniqueUuId
+                });
+            }
+
+            existingBill.items = billItems;
 
             // Create a transaction for the default Purchase Account
             const purchaseRtnAmount = finalTaxableAmount + finalNonTaxableAmount;
@@ -1340,7 +1897,6 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
             }
 
             console.log('All transactions successfully created for updated bill.');
-
             await existingBill.save();
 
             // If payment mode is cash, also create a transaction for the "Cash in Hand" account
@@ -1349,7 +1905,6 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
                 if (cashAccount) {
                     const cashTransaction = new Transaction({
                         account: cashAccount._id,
-                        // billNumber: billCounter.count,
                         billNumber: existingBill.billNumber,
                         partyBillNumber: existingBill.partyBillNumber,
                         isType: 'PrRt',
@@ -1380,6 +1935,8 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
             }
         } catch (error) {
             console.error("Error creating bill:", error);
+            await session.abortTransaction();
+            session.endSession();
             req.flash('error', 'Error creating bill');
             res.redirect(`/purchase-return/edit/${billId}`);
         }

@@ -66,11 +66,23 @@
                                             oninput="this.value='<%=purchaseInvoice.billNumber%>'"
                                             onfocus="selectValue(this)">
                                     </div>
-                                    <div class="col">
+                                    <!-- <div class="col">
                                         <label for="paymentMode">Payment Mode:</label>
                                         <input type="text" class="form-control" id="paymentMode" name="paymentMode"
                                             placeholder="" autocomplete="off" value="<%=purchaseInvoice.paymentMode%>">
+                                    </div> -->
+
+                                    <div class="col">
+                                        <label for="paymentMode">Payment Mode:</label>
+                                        <select class="form-control" id="paymentMode" name="paymentMode"
+                                            autocomplete="off">
+                                            <option value="credit" <%=purchaseInvoice.paymentMode==='credit' ? 'selected'
+                                                : '' %>>credit</option>
+                                            <option value="cash" <%=purchaseInvoice.paymentMode==='cash'
+                                                ? 'selected' : '' %>>cash</option>
+                                        </select>
                                     </div>
+
                                     <div class="col">
                                         <label for="partyBillNumber">Suppliers Inv. No:</label>
                                         <input type="text" class="form-control" name="partyBillNumber"
@@ -81,7 +93,7 @@
                                     <div class="col">
                                         <label for="isVatExempt">VAT</label>
                                         <select name="isVatExempt" id="isVatExempt" class="form-control"
-                                            onchange="toggleVatInputs()" onfocus="openVatModal()" autocomplete="off">
+                                            onchange="toggleVatInputs()" autocomplete="off">
                                             <% if (vatEnabled) {%>
                                                 <option value="all"
                                                     <%=purchaseInvoice.isVatExempt===false&&purchaseInvoice.isVatAll==='true'
@@ -189,7 +201,7 @@
                                                 value="<%= item.batchNumber || '' %>"
                                                 class="form-control item-batchNumber" id="batchNumber-<%= index %>"
                                                 onkeydown="handleBatchKeydown(event, <%= index %>)"
-                                                onfocus="selectValue(this)">
+                                                onfocus="selectValue(this)" autocomplete="off">
                                         </td>
                                         <td>
                                             <input type="date" name="items[<%= index %>][expiryDate]"
@@ -223,6 +235,11 @@
                                             value="<%= item.price || '' %>">
                                         <input type="hidden" id="currency-<%= index %>"
                                             value="<%= item.currency || '' %>">
+                                        <td class="hidden">
+                                            <input type="text" name="items[<%=index%>][uniqueUuId]"
+                                                value="<%=item.uniqueUuId%>">
+
+                                        </td>
                                     </tr>
                                     <% }); %>
                                         <% } %>
@@ -440,8 +457,8 @@
     </div>
 
     <!-- Modal for payment mode -->
-    <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered"> <!-- Centering class added -->
+    <!-- <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="paymentModalLabel">Select Payment Mode</h5>
@@ -457,10 +474,10 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <!-- Modal for VAT options -->
-    <div class="modal fade" id="vatModal" tabindex="-1" aria-labelledby="vatModalLabel" aria-hidden="true">
+    <!-- <div class="modal fade" id="vatModal" tabindex="-1" aria-labelledby="vatModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -468,11 +485,9 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Search Input Field -->
                     <input type="text" id="searchVat" class="form-control mb-3" placeholder="Search VAT options..."
                         oninput="searchVatOptions()" autofocus autocomplete="off" />
 
-                    <!-- VAT Options -->
                     <% if (vatEnabled) {%>
 
                         <button class="btn btn-outline-primary w-100 vat-option" onclick="selectVatOption('all')"
@@ -485,7 +500,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <script src="/javascript/purchase/edit.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -1030,5 +1045,30 @@
     }
 `;
         document.head.appendChild(style);
+
+        //------------------------------------------------------------------------------------------------
+
+        // Add an event listener to the paymentMode select element
+        document.getElementById('paymentMode').addEventListener('keydown', function (event) {
+            // Check if the Enter key is pressed (key code 13)
+            if (event.key === 'Enter') {
+                // Prevent the default form submission behavior
+                event.preventDefault();
+
+                // Move focus to the next input field
+                document.getElementById('partyBillNumber').focus();
+            }
+        });
+
+        document.getElementById('isVatExempt').addEventListener('keydown', function (event) {
+            // Check if the Enter key is pressed (key code 13)
+            if (event.key === 'Enter') {
+                // Prevent the default form submission behavior
+                event.preventDefault();
+
+                // Move focus to the next input field
+                document.getElementById('account').focus();
+            }
+        });
 
     </script>

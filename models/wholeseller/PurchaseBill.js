@@ -48,8 +48,8 @@ const PurchaseBillSchema = new Schema({
             default: 0,
         },
         marginPercentage: { type: Number, default: 0 },
-        currency:{
-            type:String,
+        currency: {
+            type: String,
         },
         //for itemsLedger
         Altquantity: {
@@ -84,7 +84,8 @@ const PurchaseBillSchema = new Schema({
             type: String,
             required: true,
             enum: ['vatable', 'vatExempt']
-        }
+        },
+        uniqueUuId: { type: String },
     }],
     subTotal: Number,
     nonVatPurchase: Number,

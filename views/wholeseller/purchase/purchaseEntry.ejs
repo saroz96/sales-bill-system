@@ -7,6 +7,30 @@
     <link href="https://nepalidatepicker.sajanmaharjan.com.np/nepali.datepicker/css/nepali.datepicker.v4.0.7.min.css"
         rel="stylesheet" type="text/css" />
 
+    <style>
+        #accountModal .modal-body {
+            min-height: 400px;
+            /* Ensures modal stays the same size */
+            max-height: 500px;
+            /* Limits height */
+            overflow-y: auto;
+            /* Allows scrolling */
+        }
+
+
+        #bill-details-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        #items {
+            table-layout: fixed;
+            width: 100%;
+        }
+    </style>
+
     <div class="container wow-form expanded-container">
         <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
             <div class="card-header">
@@ -53,10 +77,14 @@
                                             oninput="this.value='<%=nextPurchaseBillNumber%>'"
                                             onfocus="selectValue(this)">
                                     </div>
+
                                     <div class="col">
                                         <label for="paymentMode">Payment Mode:</label>
-                                        <input type="text" class="form-control" id="paymentMode" name="paymentMode"
-                                            placeholder="" autocomplete="off">
+                                        <select class="form-control" name="paymentMode" id="paymentMode"
+                                            autocomplete="off">
+                                            <option value="credit">credit</option>
+                                            <option value="cash">cash</option>
+                                        </select>
                                     </div>
 
                                     <div class="col">
@@ -65,11 +93,10 @@
                                             name="partyBillNumber" autocomplete="off" onfocus="selectValue(this)"
                                             required>
                                     </div>
-
                                     <div class="col">
-                                        <label for="isVatExempt">VAT</label>
-                                        <select name="isVatExempt" id="isVatExempt" class="form-control"
-                                            onchange="toggleVatInputs()" onfocus="openVatModal()" autocomplete="off">
+                                        <label for="isVatExempt">VAT:</label>
+                                        <select class="form-control" name="isVatExempt" id="isVatExempt"
+                                            onchange="toggleVatInputs()" autocomplete="off">
                                             <% if (vatEnabled) {%>
                                                 <option value="all">All</option>
                                                 <option value="false">13%</option>
@@ -221,46 +248,6 @@
         </div>
     </div>
 
-    <!-- Modal for VAT options -->
-    <div class="modal fade" id="vatModal" tabindex="-1" aria-labelledby="vatModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="vatModalLabel">VAT</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <!-- Search Input Field -->
-                    <input type="text" id="searchVat" class="form-control mb-3" placeholder="Search VAT options..."
-                        oninput="searchVatOptions()" autofocus autocomplete="off" />
-
-                    <!-- VAT Options -->
-                    <% if (vatEnabled) {%>
-
-                        <button class="btn btn-outline-primary w-100 vat-option" onclick="selectVatOption('all')"
-                            id="vatOptionAll">All</button>
-                        <button class="btn btn-outline-primary w-100 vat-option" onclick="selectVatOption('false')"
-                            id="vatOption13">13%</button>
-                        <%}%>
-                            <button class="btn btn-outline-primary w-100 vat-option" onclick="selectVatOption('true')"
-                                id="vatOptionExempt">Exempt</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <style>
-        #accountModal .modal-body {
-            min-height: 400px;
-            /* Ensures modal stays the same size */
-            max-height: 500px;
-            /* Limits height */
-            overflow-y: auto;
-            /* Allows scrolling */
-        }
-    </style>
-
     <!-- Bootstrap Modal -->
     <div class="modal fade" id="accountModal" tabindex="-1" aria-labelledby="accountModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered">
@@ -357,63 +344,16 @@
         </div>
     </div>
 
-    <!-- Modal for payment mode -->
-    <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered"> <!-- Centering class added -->
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="paymentModalLabel">Select Payment Mode</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="text" class="form-control mb-2" id="searchPayment" placeholder="Search Payment Mode"
-                        autocomplete="off">
-                    <ul class="list-group" id="paymentOptions">
-                        <li class="list-group-item active" data-value="credit">credit</li>
-                        <li class="list-group-item" data-value="cash">cash</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
-    <style>
-        #bill-details-container {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #ccc;
-            padding: 10px;
-        }
-
-        #items {
-            table-layout: fixed;
-            width: 100%;
-        }
-    </style>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
 
-        // Check if the payment modal is open
-        let isVatModalOpen = false;
-
-        // Monitor the opening and closing of the payment modal
-        $('#vatModal').on('show.bs.modal', function () {
-            isVatModalOpen = true;
-        });
-
-        $('#vatModal').on('hide.bs.modal', function () {
-            isVatModalOpen = false;
-        });
-
         //for account
         $(document).ready(function () {
-
-            if (isVatModalOpen) {
-                // Prevent opening the VAT modal if payment modal is open
-                return;
-            }
 
             let selectedIndex = 0;
             let allAccounts = [];
@@ -571,130 +511,6 @@
                 }
             }
         });
-        //---------------------------------------------------------------------------------------------------
-
-        // Check if the payment modal is open
-        let isPaymentModalOpen = false;
-
-        // Monitor the opening and closing of the payment modal
-        $('#paymentModal').on('show.bs.modal', function () {
-            isPaymentModalOpen = true;
-        });
-
-        $('#paymentModal').on('hide.bs.modal', function () {
-            isPaymentModalOpen = false;
-        });
-
-        // Open VAT modal when VAT select field is focused
-        function openVatModal() {
-            if (isPaymentModalOpen) {
-                // Prevent opening the VAT modal if payment modal is open
-                return;
-            }
-            $('#vatModal').modal('show');
-
-            // Ensure search input gets focus when modal is shown
-            $('#vatModal').on('shown.bs.modal', function () {
-                $('#searchVat').focus();
-                highlightFirstVisibleOption(); // Highlight the first visible option
-            });
-        }
-
-        // Function to select VAT option from modal and update the VAT field
-        function selectVatOption(value) {
-            // Set the value to the VAT select field
-            document.getElementById('isVatExempt').value = value;
-
-            // Close the modal
-            $('#vatModal').modal('hide');
-
-            // Trigger the toggleVatInputs function after selection
-            toggleVatInputs();
-
-            // Move focus to the account input field after VAT selection
-            document.getElementById('account').focus();
-        }
-
-        // Manage navigation and selected option
-        let currentHighlightedIndex = 0;
-
-        $(document).ready(function () {
-            // Handle search input
-            $('#searchVat').on('input', searchVatOptions);
-
-            // Enable navigation via arrow keys and Enter
-            $(document).on('keydown', handleKeydownNavigation);
-        });
-
-        // Search function to filter VAT options and highlight the first visible one
-        function searchVatOptions() {
-            const searchTerm = document.getElementById('searchVat').value.toLowerCase();
-            const vatOptions = document.querySelectorAll('.vat-option');
-
-            vatOptions.forEach(option => {
-                const text = option.innerText.toLowerCase();
-                option.style.display = text.includes(searchTerm) ? 'block' : 'none';
-            });
-
-            // Highlight the first visible option after filtering
-            highlightFirstVisibleOption();
-        }
-
-        // Highlight the first visible VAT option dynamically
-        function highlightFirstVisibleOption() {
-            const visibleOptions = Array.from(document.querySelectorAll('.vat-option')).filter(option => option.style.display !== 'none');
-
-            if (visibleOptions.length > 0) {
-                currentHighlightedIndex = 0;
-                highlightOption(visibleOptions, currentHighlightedIndex);
-            }
-        }
-
-        // Highlight the selected VAT option
-        function highlightOption(visibleOptions, index) {
-            document.querySelectorAll('.vat-option').forEach(option => option.classList.remove('highlight'));
-
-            if (visibleOptions.length > 0) {
-                visibleOptions[index].classList.add('highlight');
-            }
-        }
-
-        // Navigate between the VAT options using arrow keys
-        function navigateOptions(direction) {
-            const visibleOptions = Array.from(document.querySelectorAll('.vat-option')).filter(option => option.style.display !== 'none');
-
-            if (visibleOptions.length > 0) {
-                currentHighlightedIndex = (currentHighlightedIndex + direction + visibleOptions.length) % visibleOptions.length;
-                highlightOption(visibleOptions, currentHighlightedIndex);
-            }
-        }
-
-        // Handle keydown event for navigation and selection
-        function handleKeydownNavigation(e) {
-            if ($('#vatModal').hasClass('show')) {
-                const visibleOptions = Array.from(document.querySelectorAll('.vat-option')).filter(option => option.style.display !== 'none');
-
-                if (e.key === "ArrowDown") {
-                    navigateOptions(1);
-                } else if (e.key === "ArrowUp") {
-                    navigateOptions(-1);
-                } else if (e.key === "Enter" && visibleOptions.length > 0) {
-                    selectVatOption(visibleOptions[currentHighlightedIndex].getAttribute("onclick").match(/'(.*)'/)[1]);
-                }
-            }
-        }
-
-        // Apply the custom highlight style
-        const style = document.createElement('style');
-        style.innerHTML = `
-    .vat-option.highlight {
-        background-color: #007bff;
-        color: white;
-        outline: none;
-    }
-`;
-        document.head.appendChild(style);
-
 
     </script>
 
@@ -711,96 +527,6 @@
         type="text/javascript"></script>
 
     <script type="text/javascript">
-        // window.onload = function () {
-        //     var transactionDateNepali = document.getElementById("transactionDateNepali");
-        //     var nepaliDate = document.getElementById("nepaliDate");
-
-        //     transactionDateNepali.nepaliDatePicker();
-        //     nepaliDate.nepaliDatePicker();
-
-        //     // Add validation for Transaction Date
-        //     transactionDateNepali.addEventListener("blur", function () {
-        //         validateNepaliDate(this, "transactionDateError");
-        //     });
-
-        //     // Add validation for Invoice Date
-        //     nepaliDate.addEventListener("blur", function () {
-        //         validateNepaliDate(this, "nepaliDateError");
-        //     });
-        // };
-
-        // // Function to validate Nepali date
-        // function validateNepaliDate(inputField, errorSpanId) {
-        //     var errorSpan = document.getElementById(errorSpanId);
-        //     var dateString = inputField.value.trim();
-
-        //     // Check if the date is valid
-        //     if (dateString && !isValidNepaliDate(dateString)) {
-        //         errorSpan.style.display = "inline"; // Show error message
-        //         // Prevent focus from moving to the next field
-        //         event.preventDefault();
-        //         inputField.focus(); // Keep focus on the current input field
-        //     } else {
-        //         errorSpan.style.display = "none"; // Hide error message
-        //     }
-        // }
-
-
-        // // Function to check if the Nepali date is valid
-        // function isValidNepaliDate(dateString) {
-        //     // Regular expression to match the Nepali date format (YYYY-MM-DD)
-        //     var datePattern = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
-        //     if (!datePattern.test(dateString)) return false;
-
-        //     // Split the date string into year, month, and day
-        //     var parts = dateString.split("-");
-        //     var year = parseInt(parts[0], 10);
-        //     var month = parseInt(parts[1], 10);
-        //     var day = parseInt(parts[2], 10);
-
-        //     // Check if the month and day are valid
-        //     if (isNaN(year) || isNaN(month) || isNaN(day)) return false;
-        //     if (month < 1 || month > 12 || day < 1 || day > 32) return false;
-
-        //     // Manually validate the number of days in the month
-        //     var maxDays = getMaxDaysInNepaliMonth(year, month);
-        //     if (day > maxDays) return false;
-
-        //     return true;
-        // }
-
-        // // Function to get the maximum number of days in a Nepali month
-        // function getMaxDaysInNepaliMonth(year, month) {
-        //     // Define the number of days in each month for a given year
-        //     // This is a simplified example and may not cover all edge cases
-        //     var nepaliMonths = [
-        //         31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 30 // Example for year 2080
-        //     ];
-
-        //     // Adjust for leap years if necessary
-        //     if (year % 4 === 0 && month === 1) { // Check if it's a leap year and the month is Baisakh
-        //         nepaliMonths[0] = 31; // Baisakh has 31 days in a leap year
-        //     }
-
-        //     return nepaliMonths[month - 1]; // Return the number of days for the given month
-        // }
-
-
-        // //for english date validation
-        // function validateDate(input) {
-        //     const errorMessage = input.nextElementSibling; // Get the error message span
-        //     const dateValue = input.value;
-
-        //     // Check if the date is valid
-        //     if (!dateValue || isNaN(new Date(dateValue).getTime())) {
-        //         errorMessage.textContent = "Invalid date!";
-        //         errorMessage.style.display = "block";
-        //         input.focus(); // Prevent moving to the next field
-        //     } else {
-        //         errorMessage.style.display = "none"; // Hide error if valid
-        //     }
-        // }
-
 
         window.onload = function () {
             var transactionDateNepali = document.getElementById("transactionDateNepali");
@@ -899,66 +625,28 @@
             }
         }
 
+        // Add an event listener to the paymentMode select element
+        document.getElementById('paymentMode').addEventListener('keydown', function (event) {
+            // Check if the Enter key is pressed (key code 13)
+            if (event.key === 'Enter') {
+                // Prevent the default form submission behavior
+                event.preventDefault();
 
-
-        //for payment mode:
-        $(document).ready(function () {
-            let selectedIndex = 0;
-            const inputField = $("#paymentMode");
-            const searchField = $("#searchPayment");
-            const nextField = $("#partyBillNumber"); // Next field to focus
-            const modal = new bootstrap.Modal(document.getElementById("paymentModal"));
-            const optionsList = $("#paymentOptions li");
-
-            // Show modal on input focus
-            inputField.focus(function () {
-                modal.show();
-                setTimeout(() => searchField.focus(), 500); // Auto-focus search bar in modal
-            });
-
-            // Search function
-            searchField.on("input", function () {
-                let searchText = $(this).val().toLowerCase();
-                optionsList.each(function () {
-                    let text = $(this).text().toLowerCase();
-                    $(this).toggle(text.includes(searchText));
-                });
-            });
-
-            // Keyboard navigation
-            searchField.keydown(function (e) {
-                if (e.key === "ArrowDown") {
-                    selectedIndex = (selectedIndex + 1) % optionsList.length;
-                    updateActiveOption();
-                } else if (e.key === "ArrowUp") {
-                    selectedIndex = (selectedIndex - 1 + optionsList.length) % optionsList.length;
-                    updateActiveOption();
-                } else if (e.key === "Enter") {
-                    if (selectedIndex !== -1) {
-                        selectOption($(optionsList[selectedIndex]));
-                    }
-                }
-            });
-
-            // Click selection
-            optionsList.click(function () {
-                selectOption($(this));
-            });
-
-            function updateActiveOption() {
-                optionsList.removeClass("active");
-                if (selectedIndex !== -1) {
-                    $(optionsList[selectedIndex]).addClass("active");
-                }
-            }
-
-            function selectOption(option) {
-                inputField.val(option.text());
-                modal.hide();
-                nextField.focus(); // Focus next field
+                // Move focus to the next input field
+                document.getElementById('partyBillNumber').focus();
             }
         });
-        //-----------------------------------------------------------------------------------------
+
+        document.getElementById('isVatExempt').addEventListener('keydown', function (event) {
+            // Check if the Enter key is pressed (key code 13)
+            if (event.key === 'Enter') {
+                // Prevent the default form submission behavior
+                event.preventDefault();
+
+                // Move focus to the next input field
+                document.getElementById('account').focus();
+            }
+        });
     </script>
 
     <script src="/javascript/purchase/purchaseEntry.js"></script>

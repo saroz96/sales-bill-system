@@ -19,7 +19,7 @@ const PurchaseReturnSchema = new Schema({
     originalCopies: { type: Number, default: 1 },
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     billNumber: { type: Number, required: true },
-    partyBillNumber: { type: String},
+    partyBillNumber: { type: String },
     account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     settings: { type: mongoose.Schema.Types.ObjectId, ref: 'Settings' },
     fiscalYear: {
@@ -30,16 +30,46 @@ const PurchaseReturnSchema = new Schema({
     items: [{
         item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
         unit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit' },
-        quantity: { type: Number, required: true },  // Required in item schema
-        price: { type: Number },     // Required in item schema
-        puPrice: { type: Number },
+        WSUnit: {
+            type: Number, // Alternative unit name (e.g., "Box")
+        },
+        quantity: {
+            type: Number,
+        },  // Required in item schema
+        price: {
+            type: Number,
+        },     // Required in item schema
+        puPrice: {
+            type: Number,
+        },
+        mrp: {
+            type: Number,
+            default: 0,
+        },
+        marginPercentage: { type: Number, default: 0 },
+        currency: {
+            type: String,
+        },
+        //for itemsLedger
+        Altquantity: {
+            type: Number,
+        },  // Required in item schema
+        Altprice: {
+            type: Number,
+        },     // Required in item schema
+        AltpuPrice: {
+            type: Number,
+        },
+
         batchNumber: { type: String },
         expiryDate: { type: Date },
         vatStatus: {
             type: String,
             required: true,
             enum: ['vatable', 'vatExempt']
-        }
+        },
+        uniqueUuId: { type: String },
+        purchaseBillId: { type: String }
     }],
     subTotal: Number,
     nonVatPurchaseReturn: Number,
@@ -58,7 +88,6 @@ const PurchaseReturnSchema = new Schema({
 
 
 });
-
 // //This means each company can have accounts with the same name, but account names must be unique within a company.
 PurchaseReturnSchema.index({ billNumber: 1, company: 1, fiscalYear: 1 }, { unique: true });
 // //---------------------------------------------------------------------------------------------------------------

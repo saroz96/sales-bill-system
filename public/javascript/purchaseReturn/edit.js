@@ -303,13 +303,16 @@ function addItemToBill(item, dropdownMenu) {
     <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
 </td>
 <td>
-    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" oninput="this.value='${selectedBatch.batchNumber}'" onfocus="selectValue(this)">
 </td>
 <td>
     <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
 </td>
 <td><input type="number" name="items[${itemIndex}][puPrice]" value="${selectedBatch.puPrice}" class="form-control item-puPrice" id="puPrice-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
 <td class="item-amount">0.00</td>
+<td>
+<input type="text" name="items[${itemIndex}][uniqueUuId]" value="${selectedBatch.uniqueUuId}">
+</td>
 <td>
      <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
         <span aria-hidden="true">&times;</span>
@@ -358,7 +361,7 @@ function addItemToBill(item, dropdownMenu) {
 </td>
 <!-- Hidden fields for batch and expiry -->
 <td>
-    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+    <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" oninput="this.value='${selectedBatch.batchNumber}'" onfocus="selectValue(this)">
 </td>
 <td>
     <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
@@ -366,11 +369,15 @@ function addItemToBill(item, dropdownMenu) {
 <td><input type="number" name="items[${itemIndex}][puPrice]" value="${selectedBatch.puPrice}" class="form-control item-puPrice" id="puPrice-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
 <td class="item-amount">0.00</td>
 <td>
+<input type="text" name="items[${itemIndex}][uniqueUuId]" value="${selectedBatch.uniqueUuId}">
+</td>
+<td>
      <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Close" onclick="removeItem(this)">
         <span aria-hidden="true">&times;</span>
     </button>
 </td>
 <input type="hidden" name="items[${itemIndex}][vatStatus]" value="${item.vatStatus}">
+
 `;
 
                 tbody.appendChild(tr);
@@ -430,6 +437,7 @@ function showBatchModal(item, callback) {
             <td>${entry.puPrice}</td>
             <td>${entry.marginPercentage}</td>
             <td>${entry.mrp}</td>
+            <td>${entry.uniqueUuId}</td>
         </tr>
     `;
             }
@@ -467,7 +475,8 @@ function showBatchModal(item, callback) {
                 const batchNumber = row.cells[0].textContent; // Assuming batch number is in the first cell
                 const expiryDate = row.cells[1].textContent; // Expiry date in the second cell
                 const puPrice = row.cells[4].textContent;
-                callback({ batchNumber, expiryDate, puPrice });
+                const uniqueUuId = row.cells[7].textContent;
+                callback({ batchNumber, expiryDate, puPrice, uniqueUuId });
 
                 // Hide the modal after selection
                 $(modal).modal('hide');

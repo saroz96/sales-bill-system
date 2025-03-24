@@ -273,10 +273,7 @@ router.get('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ens
 router.get('/sales-bills/finds', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
-        const today = new Date();
-        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format Nepali date if necessary
         const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
-        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
         // Check if fiscal year is already in the session or available in the company
         let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -326,8 +323,6 @@ router.get('/sales-bills/edit/billNumber', isLoggedIn, ensureAuthenticated, ensu
         const { billNumber } = req.query;
         const companyId = req.session.currentCompany;
         const currentCompanyName = req.session.currentCompanyName;
-        const today = new Date();
-        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format Nepali date if necessary
         const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
@@ -380,6 +375,12 @@ router.get('/sales-bills/edit/billNumber', isLoggedIn, ensureAuthenticated, ensu
             return res.redirect('/sales-bills/finds')
         }
 
+        // Check if the bill has an account field populated
+        if (!bill.account) {
+            req.flash('error', 'This bill is not associated with a credit account. Please search for a valid credit sales bill number.');
+            return res.redirect('/sales-bills/finds');
+        }
+
         res.render('wholeseller/sales-bills/edit', {
             bill,
             accounts,
@@ -402,10 +403,7 @@ router.get('/sales-bills/edit/billNumber', isLoggedIn, ensureAuthenticated, ensu
 router.get('/cash-sales/sales-bills/finds', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         const companyId = req.session.currentCompany;
-        const today = new Date();
-        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format Nepali date if necessary
         const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
-        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
         // Check if fiscal year is already in the session or available in the company
         let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
@@ -456,8 +454,6 @@ router.get('/cash-sales/sales-bills/edit/billNumber', isLoggedIn, ensureAuthenti
         const { billNumber } = req.query;
         const companyId = req.session.currentCompany;
         const currentCompanyName = req.session.currentCompanyName;
-        const today = new Date();
-        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD'); // Format Nepali date if necessary
         const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat vatEnabled').populate('fiscalYear');
         const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
 
@@ -492,11 +488,6 @@ router.get('/cash-sales/sales-bills/edit/billNumber', isLoggedIn, ensureAuthenti
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
 
-        // const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear })
-        //     .populate('transactions')
-        //     .populate('companyGroups');
-        // console.log('Accounts:', accounts);
-
         const bill = await SalesBill.findOne({ billNumber: billNumber, company: companyId, fiscalYear: fiscalYear })
             .populate('items.item')
             .populate('items.unit')
@@ -506,7 +497,13 @@ router.get('/cash-sales/sales-bills/edit/billNumber', isLoggedIn, ensureAuthenti
 
         if (!bill || !bill.items) {
             req.flash('error', 'Sales invoice not found!');
-            return res.redirect('/sales-bills/finds')
+            return res.redirect('/cash-sales/sales-bills/finds')
+        }
+
+        // Check if the bill is associated with a cashAccount
+        if (!bill.cashAccount) {
+            req.flash('error', 'This bill is not associated with a cash account. Please search for a valid cash sales bill number.');
+            return res.redirect('/cash-sales/sales-bills/finds');
         }
 
         res.render('wholeseller/sales-bills/cash/editCashSales', {
@@ -540,11 +537,11 @@ router.get('/cash-sales/sales-bills/edit/billNumber', isLoggedIn, ensureAuthenti
     }
 })
 
-
 // POST route to handle sales bill creation
 router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
-        let newBillNumber;
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const { accountId, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount, } = req.body;
             const companyId = req.session.currentCompany;
@@ -555,12 +552,18 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
             console.log('Request Body:', req.body);
 
             if (!companyId) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Company ID is required.' });
             }
             if (!isVatExempt) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Invalid vat selection.' });
             }
             if (!paymentMode) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Invalid payment mode.' });
             }
 
@@ -574,6 +577,8 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                 (billDate && !dateRegex.test(billDate)) ||
                 (nepaliDate && !dateRegex.test(nepaliDate))
             ) {
+                await session.abortTransaction();
+                session.endSession();
                 req.flash('error', 'Invalid date format. Please use YYYY-MM-DD.');
                 return res.redirect('/bills');
             }
@@ -589,17 +594,21 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
             let hasVatableItems = false;
             let hasNonVatableItems = false;
 
-            const accounts = await Account.findOne({ _id: accountId, company: companyId });
+            const accounts = await Account.findOne({ _id: accountId, company: companyId }).session(session);
             if (!accounts) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Invalid account for this company' });
             }
 
             // Validate each item before processing
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
-                const product = await Item.findById(item.item);
+                const product = await Item.findById(item.item).session(session);
 
                 if (!product) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', `Item with id ${item.item} not found`);
                     return res.redirect('/bills');
                 }
@@ -614,10 +623,11 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                     hasNonVatableItems = true;
                     totalNonTaxableAmount += itemTotal;
                 }
-
                 // Check stock quantity using FIFO
                 const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
                 if (availableStock < item.quantity) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
                     return res.redirect('/bills');
                 }
@@ -626,11 +636,15 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
             // Check validation conditions after processing all items
             if (isVatExempt !== 'all') {
                 if (isVatExemptBool && hasVatableItems) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', 'Cannot save VAT exempt bill with vatable items');
                     return res.redirect('/bills');
                 }
 
                 if (!isVatExemptBool && hasNonVatableItems) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
                     return res.redirect('/bills');
                 }
@@ -656,7 +670,7 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
             // Check if round off is enabled in settings
             let roundOffForSales = await Settings.findOne({
                 companyId, userId, fiscalYear: currentFiscalYear
-            });
+            }).session(session);
 
             // Handle case where settings is null
             if (!roundOffForSales) {
@@ -702,7 +716,7 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
 
             // Create transactions
             let previousBalance = 0;
-            const accountTransaction = await Transaction.findOne({ account: accountId }).sort({ transactionDate: -1 });
+            const accountTransaction = await Transaction.findOne({ account: accountId }).sort({ transactionDate: -1 }).session(session);
             if (accountTransaction) {
                 previousBalance = accountTransaction.balance;
             }
@@ -717,10 +731,9 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                 groupedItems[key].quantity += Number(item.quantity); // Convert quantity to number before summing
             }
 
-
-            // Reduce stock using FIFO for each grouped item
-            async function reduceStock(product, batchNumber, quantity) {
+            async function reduceStock(product, quantity) {
                 let remainingQuantity = quantity;
+                const batchesUsed = []; // Array to track batches and quantities used
 
                 // Sort stock entries FIFO (oldest first)
                 product.stockEntries.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -728,73 +741,88 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                 for (let i = 0; i < product.stockEntries.length && remainingQuantity > 0; i++) {
                     let entry = product.stockEntries[i];
 
-                    // If batch number exists, filter by batch
-                    if (batchNumber && entry.batchNumber !== batchNumber) continue;
+                    const quantityUsed = Math.min(entry.quantity, remainingQuantity);
+                    batchesUsed.push({
+                        batchNumber: entry.batchNumber,
+                        quantity: quantityUsed,
+                        uniqueUuId: entry.uniqueUuId, // Include the uniqueUuId of the batch
+                    });
 
-                    if (entry.quantity <= remainingQuantity) {
-                        remainingQuantity -= entry.quantity;
-                        entry.quantity = 0; // Fully used, remove from stock
-                    } else {
-                        entry.quantity -= remainingQuantity;
-                        remainingQuantity = 0;
-                    }
+                    remainingQuantity -= quantityUsed;
+                    entry.quantity -= quantityUsed;
                 }
 
                 // Remove depleted stock entries
                 product.stockEntries = product.stockEntries.filter(entry => entry.quantity > 0);
-                await product.save();
-            }
+                await product.save({ session });
 
+                // If remainingQuantity > 0, it means there isn't enough stock
+                if (remainingQuantity > 0) {
+                    throw new Error(`Not enough stock for item: ${product.name}. Required: ${quantity}, Available: ${quantity - remainingQuantity}`);
+                }
+
+                return batchesUsed; // Return the batches and quantities used
+            }
             // Process stock reduction and transaction recording
             const billItems = await Promise.all(Object.values(groupedItems).map(async item => {
-                const product = await Item.findById(item.item);
+                const product = await Item.findById(item.item).session(session);
 
-                // Reduce stock using FIFO
-                await reduceStock(product, item.batchNumber, item.quantity);
+                // Reduce stock using FIFO and get the batches used
+                const batchesUsed = await reduceStock(product, item.quantity);
 
-                // Create transaction
-                const transaction = new Transaction({
+                // Create bill items for each batch used
+                const itemsForBill = batchesUsed.map(batch => ({
                     item: product._id,
-                    account: accountId,
-                    billNumber: newBillNumber,
-                    quantity: item.quantity,
+                    quantity: batch.quantity,
                     price: item.price,
                     unit: item.unit,
-                    isType: 'Sale',
-                    type: 'Sale',
-                    billId: newBill._id,
-                    purchaseSalesType: 'Sales',
-                    debit: finalAmount,
-                    credit: 0,
-                    paymentMode: paymentMode,
-                    balance: previousBalance - finalAmount,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-
-                await transaction.save();
-
-                return {
-                    item: product._id,
-                    quantity: item.quantity,
-                    price: item.price,
-                    unit: item.unit,
-                    batchNumber: item.batchNumber,
+                    batchNumber: batch.batchNumber, // Use the actual batch number from stock reduction
                     expiryDate: item.expiryDate,
                     vatStatus: product.vatStatus,
-                    fiscalYear: fiscalYearId
-                };
+                    fiscalYear: fiscalYearId,
+                    uniqueUuId: batch.uniqueUuId
+                }));
+
+                // Create transactions for each batch used
+                await Promise.all(batchesUsed.map(async batch => {
+                    const transaction = new Transaction({
+                        item: product._id,
+                        account: accountId,
+                        billNumber: newBillNumber,
+                        quantity: batch.quantity,
+                        price: item.price,
+                        unit: item.unit,
+                        isType: 'Sale',
+                        type: 'Sale',
+                        billId: newBill._id,
+                        purchaseSalesType: 'Sales',
+                        debit: finalAmount,
+                        credit: 0,
+                        paymentMode: paymentMode,
+                        balance: previousBalance - finalAmount,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+                    await transaction.save({ session });
+                }));
+
+                return itemsForBill; // Return the bill items for each batch used
             }));
+
+            // Flatten the bill items array (since each item may have multiple batches)
+            const flattenedBillItems = billItems.flat();
 
             // Create a transaction for the default Purchase Account
             const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
             if (salesAmount > 0) {
-                const salesAccount = await Account.findOne({ name: 'Sales', company: companyId });
+                const salesAccount = await Account.findOne({ name: 'Sales', company: companyId }).session(session);
                 if (salesAccount) {
-                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId).session(session); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
+                        await session.abortTransaction();
+                        session.endSession();
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
                     const salesTransaction = new Transaction({
@@ -812,17 +840,19 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await salesTransaction.save();
+                    await salesTransaction.save({ session });
                     console.log('Sales Transaction: ', salesTransaction);
                 }
             }
 
             // Create a transaction for the VAT amount
             if (vatAmount > 0) {
-                const vatAccount = await Account.findOne({ name: 'VAT', company: companyId });
+                const vatAccount = await Account.findOne({ name: 'VAT', company: companyId }).session(session);
                 if (vatAccount) {
-                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId).session(session); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
+                        await session.abortTransaction();
+                        session.endSession();
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
                     const vatTransaction = new Transaction({
@@ -841,17 +871,19 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await vatTransaction.save();
+                    await vatTransaction.save({ session });
                     console.log('Vat Transaction: ', vatTransaction);
                 }
             }
 
             // Create a transaction for the round-off amount
             if (roundOffAmount > 0) {
-                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
+                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId }).session(session);
                 if (roundOffAccount) {
-                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId).session(session); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
+                        await session.abortTransaction();
+                        session.endSession();
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
                     const roundOffTransaction = new Transaction({
@@ -870,16 +902,18 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await roundOffTransaction.save();
+                    await roundOffTransaction.save({ session });
                     console.log('Round-off Transaction: ', roundOffTransaction);
                 }
             }
 
             if (roundOffAmount < 0) {
-                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
+                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId }).session(session);
                 if (roundOffAccount) {
-                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId).session(session); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
+                        await session.abortTransaction();
+                        session.endSession();
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
                     const roundOffTransaction = new Transaction({
@@ -898,7 +932,7 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await roundOffTransaction.save();
+                    await roundOffTransaction.save({ session });
                     console.log('Round-off Transaction: ', roundOffTransaction);
                 }
             }
@@ -906,7 +940,7 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
 
             // If payment mode is cash, also create a transaction for the "Cash in Hand" account
             if (paymentMode === 'cash') {
-                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
+                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId }).session(session);
                 if (cashAccount) {
                     const cashTransaction = new Transaction({
                         account: cashAccount._id,
@@ -926,15 +960,18 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                         fiscalYear: currentFiscalYear
 
                     });
-                    await cashTransaction.save();
+                    await cashTransaction.save({ session });
                 }
             }
 
 
             // Update bill with modified items
-            newBill.items = billItems;
-            await newBill.save();
+            newBill.items = flattenedBillItems;
+            await newBill.save({ session });
 
+            // Commit the transaction
+            await session.commitTransaction();
+            session.endSession();
 
             if (req.query.print === 'true') {
                 // Redirect to the print route
@@ -945,6 +982,9 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                 res.redirect('/bills');
             }
         } catch (error) {
+            // Abort the transaction on error
+            await session.abortTransaction();
+            session.endSession();
             console.error('Error while creating sales bill:', error);
             req.flash('error', 'An error occurred while processing the bill.');
             return res.redirect('/bills');
@@ -1051,7 +1091,6 @@ router.get('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompan
     }
 });
 
-
 // POST route to handle sales bill creation
 router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
@@ -1072,19 +1111,25 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                 roundOffAmount: manualRoundOffAmount,
             } = req.body;
             const companyId = req.session.currentCompany;
-            const currentFiscalYear = req.session.currentFiscalYear.id
+            const currentFiscalYear = req.session.currentFiscalYear.id;
             const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
             const userId = req.user._id;
 
             console.log('Request Body:', req.body);
 
             if (!companyId) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Company ID is required.' });
             }
             if (!isVatExempt) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Invalid vat selection.' });
             }
             if (!paymentMode) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Invalid payment mode.' });
             }
 
@@ -1099,21 +1144,21 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
             let hasVatableItems = false;
             let hasNonVatableItems = false;
 
-            if (!companyId) {
-                return res.status(400).json({ error: 'Company ID is required' });
-            }
-
-            const accounts = await Account.findOne({ _id: accountId, company: companyId });
+            const accounts = await Account.findOne({ _id: accountId, company: companyId }).session(session);
             if (!accounts) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Invalid account for this company' });
             }
 
             // Validate each item before processing
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
-                const product = await Item.findById(item.item);
+                const product = await Item.findById(item.item).session(session);
 
                 if (!product) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', `Item with id ${item.item} not found`);
                     return res.redirect('/billsTrackBatchOpen');
                 }
@@ -1129,10 +1174,20 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                     totalNonTaxableAmount += itemTotal;
                 }
 
+                // Find the specific batch entry
+                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === item.batchNumber && entry.uniqueUuId === item.uniqueUuId);
+                if (!batchEntry) {
+                    await session.abortTransaction();
+                    session.endSession();
+                    req.flash('error', `Batch number ${item.batchNumber} not found for item: ${product.name}`);
+                    return res.redirect('/billsTrackBatchOpen');
+                }
+
                 // Check stock quantity using FIFO
-                const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
-                if (availableStock < item.quantity) {
-                    req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
+                if (batchEntry.quantity < item.quantity) {
+                    await session.abortTransaction();
+                    session.endSession();
+                    req.flash('error', `Not enough stock for item: ${product.name}. Available: ${batchEntry.quantity}, Required: ${item.quantity}`);
                     return res.redirect('/billsTrackBatchOpen');
                 }
             }
@@ -1140,16 +1195,21 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
             // Check validation conditions after processing all items
             if (isVatExempt !== 'all') {
                 if (isVatExemptBool && hasVatableItems) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', 'Cannot save VAT exempt bill with vatable items');
                     return res.redirect('/billsTrackBatchOpen');
                 }
 
                 if (!isVatExemptBool && hasNonVatableItems) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
                     return res.redirect('/billsTrackBatchOpen');
                 }
             }
-            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Sales')
+
+            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Sales');
 
             // Apply discount proportionally to vatable and non-vatable items
             const discountForTaxable = (totalTaxableAmount * discount) / 100;
@@ -1171,12 +1231,12 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
             // Check if round off is enabled in settings
             let roundOffForSales = await Settings.findOne({
                 companyId, userId, fiscalYear: currentFiscalYear
-            }); // Assuming you have a single settings document
+            }).session(session);
 
             // Handle case where settings is null
             if (!roundOffForSales) {
                 console.log('No settings found, using default settings or handling as required');
-                roundOffForSales = { roundOffSales: false }; // Provide default settings or handle as needed
+                roundOffForSales = { roundOffSales: false };
             }
             let roundOffAmount = 0;
             if (roundOffForSales.roundOffSales) {
@@ -1214,38 +1274,10 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
 
             // Create transactions
             let previousBalance = 0;
-            const accountTransaction = await Transaction.findOne({ account: accountId }).sort({ transactionDate: -1 });
+            const accountTransaction = await Transaction.findOne({ account: accountId }).sort({ transactionDate: -1 }).session(session);
             if (accountTransaction) {
                 previousBalance = accountTransaction.balance;
             }
-
-            // // Batch-wise stock reduction function
-            // async function reduceStockBatchWise(product, batchNumber, quantity) {
-            //     let remainingQuantity = quantity;
-
-            //     // Find the batch entry with the specific batch number
-            //     const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
-
-            //     if (!batchEntry) {
-            //         throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
-            //     }
-
-            //     // Reduce stock for the specific batch
-            //     if (batchEntry.quantity <= remainingQuantity) {
-            //         remainingQuantity -= batchEntry.quantity;
-            //         batchEntry.quantity = 0; // All stock from this batch is used
-            //     } else {
-            //         batchEntry.quantity -= remainingQuantity;
-            //         remainingQuantity = 0; // Stock is fully reduced for this batch
-            //     }
-
-            //     if (remainingQuantity > 0) {
-            //         throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
-            //     }
-
-            //     // Save the product with the updated stock entries
-            //     await product.save();
-            // }
 
             async function reduceStockBatchWise(product, batchNumber, quantity, uniqueUuId) {
                 let remainingQuantity = quantity;
@@ -1278,18 +1310,8 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                 }
 
                 // Save the product with the updated stock entries
-                await product.save();
+                await product.save({ session });
             }
-
-            // Inside the billItems map function, replace the FIFO stock reduction with batch-wise reduction
-            // const billItems = await Promise.all(items.map(async item => {
-            //     const product = await Item.findById(item.item);
-
-            //     // Ensure batch number is provided
-            //     if (!item.batchNumber) {
-            //         req.flash('error', `Batch number is required for item: ${product.name}`);
-            //         return res.redirect('/billsTrackBatchOpen');
-            //     }
 
             const billItems = [];
             for (let i = 0; i < items.length; i++) {
@@ -1297,11 +1319,11 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                 const product = await Item.findById(item.item).session(session);
 
                 if (!product) {
-                    req.flash('error', `Item with id ${item.item} not found`);
                     await session.abortTransaction();
-                    return res.redirect('/purchase-return');
+                    session.endSession();
+                    req.flash('error', `Item with id ${item.item} not found`);
+                    return res.redirect('/billsTrackBatchOpen');
                 }
-
 
                 // Create the transaction for this item
                 const transaction = new Transaction({
@@ -1324,23 +1346,23 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                     fiscalYear: currentFiscalYear
                 });
 
-                await transaction.save();
+                await transaction.save({ session });
                 console.log('Transaction', transaction);
 
-                // Assuming reduceStockBatchWise is called here
+                // Reduce stock for the specific batch
                 await reduceStockBatchWise(product, item.batchNumber, item.quantity, item.uniqueUuId);
 
-                // Handle specific batch number not found error
+                // Update product stock
                 product.stock -= item.quantity;
-                await product.save();
+                await product.save({ session });
 
                 billItems.push({
                     item: product._id,
                     quantity: item.quantity,
                     price: item.price,
                     unit: item.unit,
-                    batchNumber: item.batchNumber,  // Add batch number
-                    expiryDate: item.expiryDate,  // Add expiry date
+                    batchNumber: item.batchNumber,
+                    expiryDate: item.expiryDate,
                     vatStatus: product.vatStatus,
                     fiscalYear: fiscalYearId,
                     uniqueUuId: item.uniqueUuId,
@@ -1350,10 +1372,12 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
             // Create a transaction for the default Sales Account
             const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
             if (salesAmount > 0) {
-                const salesAccount = await Account.findOne({ name: 'Sales', company: companyId });
+                const salesAccount = await Account.findOne({ name: 'Sales', company: companyId }).session(session);
                 if (salesAccount) {
-                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId).session(session); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
+                        await session.abortTransaction();
+                        session.endSession();
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
                     const salesTransaction = new Transaction({
@@ -1371,17 +1395,19 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await salesTransaction.save();
+                    await salesTransaction.save({ session });
                     console.log('Sales Transaction: ', salesTransaction);
                 }
             }
 
             // Create a transaction for the VAT amount
             if (vatAmount > 0) {
-                const vatAccount = await Account.findOne({ name: 'VAT', company: companyId });
+                const vatAccount = await Account.findOne({ name: 'VAT', company: companyId }).session(session);
                 if (vatAccount) {
-                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId).session(session); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
+                        await session.abortTransaction();
+                        session.endSession();
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
                     const vatTransaction = new Transaction({
@@ -1400,16 +1426,19 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await vatTransaction.save();
+                    await vatTransaction.save({ session });
                     console.log('Vat Transaction: ', vatTransaction);
                 }
             }
+
             // Create a transaction for the round-off amount
             if (roundOffAmount > 0) {
-                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
+                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId }).session(session);
                 if (roundOffAccount) {
-                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId).session(session); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
+                        await session.abortTransaction();
+                        session.endSession();
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
                     const roundOffTransaction = new Transaction({
@@ -1428,16 +1457,18 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await roundOffTransaction.save();
+                    await roundOffTransaction.save({ session });
                     console.log('Round-off Transaction: ', roundOffTransaction);
                 }
             }
 
             if (roundOffAmount < 0) {
-                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
+                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId }).session(session);
                 if (roundOffAccount) {
-                    const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+                    const partyAccount = await Account.findById(accountId).session(session); // Find the party account (from where the purchase is made)
                     if (!partyAccount) {
+                        await session.abortTransaction();
+                        session.endSession();
                         return res.status(400).json({ error: 'Party account not found.' });
                     }
                     const roundOffTransaction = new Transaction({
@@ -1456,21 +1487,20 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await roundOffTransaction.save();
+                    await roundOffTransaction.save({ session });
                     console.log('Round-off Transaction: ', roundOffTransaction);
                 }
             }
 
             // If payment mode is cash, also create a transaction for the "Cash in Hand" account
             if (paymentMode === 'cash') {
-                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
+                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId }).session(session);
                 if (cashAccount) {
                     const cashTransaction = new Transaction({
                         account: cashAccount._id,
-                        // billNumber: billCounter.count,
                         billNumber: billNumber,
                         type: 'Sale',
-                        billId: newBill._id,  // Set billId to the new bill's ID
+                        billId: newBill._id,
                         purchaseSalesType: 'Sales',
                         debit: finalAmount,  // Debit is 0 for cash-in-hand as we're receiving cash
                         credit: 0,  // Credit is the total amount since we're receiving cash
@@ -1480,20 +1510,18 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                         company: companyId,
                         user: userId,
                         fiscalYear: currentFiscalYear
-
                     });
-                    await cashTransaction.save();
+                    await cashTransaction.save({ session });
                 }
             }
 
             // Update bill with items
             newBill.items = billItems;
-            await newBill.save();
+            await newBill.save({ session });
 
-            // If everything goes smoothly, commit the transaction
+            // Commit the transaction
             await session.commitTransaction();
             session.endSession();
-
 
             if (req.query.print === 'true') {
                 // Redirect to the print route
@@ -1505,6 +1533,8 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
             }
         } catch (error) {
             console.error("Error creating bill:", error);
+            await session.abortTransaction();
+            session.endSession();
             req.flash('error', 'Error creating bill');
             res.redirect('/billsTrackBatchOpen');
         }
@@ -1619,10 +1649,11 @@ router.get('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySele
     }
 });
 
-// POST route to handle sales bill creation
+// POST route to handle cash sales bill creation
 router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
-        let newBillNumber;
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const { cashAccount, cashAccountAddress, cashAccountPan, cashAccountEmail, cashAccountPhone, items, vatPercentage, transactionDateRoman, transactionDateNepali, billDate, nepaliDate, isVatExempt, discountPercentage, paymentMode, roundOffAmount: manualRoundOffAmount, } = req.body;
             const companyId = req.session.currentCompany;
@@ -1633,12 +1664,18 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
             console.log('Request Body:', req.body);
 
             if (!companyId) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Company ID is required.' });
             }
             if (!isVatExempt) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Invalid vat selection.' });
             }
             if (!paymentMode) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Invalid payment mode.' });
             }
 
@@ -1652,6 +1689,8 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                 (billDate && !dateRegex.test(billDate)) ||
                 (nepaliDate && !dateRegex.test(nepaliDate))
             ) {
+                await session.abortTransaction();
+                session.endSession();
                 req.flash('error', 'Invalid date format. Please use YYYY-MM-DD.');
                 return res.redirect('/bills');
             }
@@ -1667,17 +1706,20 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
             let hasVatableItems = false;
             let hasNonVatableItems = false;
 
-            // const accounts = await Account.findOne({ _id: accountId, company: companyId });
             if (!cashAccount) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Invalid account for this company' });
             }
 
             // Validate each item before processing
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
-                const product = await Item.findById(item.item);
+                const product = await Item.findById(item.item).session(session);
 
                 if (!product) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', `Item with id ${item.item} not found`);
                     return res.redirect('/bills');
                 }
@@ -1696,6 +1738,8 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                 // Check stock quantity using FIFO
                 const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
                 if (availableStock < item.quantity) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
                     return res.redirect('/bills');
                 }
@@ -1704,11 +1748,15 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
             // Check validation conditions after processing all items
             if (isVatExempt !== 'all') {
                 if (isVatExemptBool && hasVatableItems) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', 'Cannot save VAT exempt bill with vatable items');
                     return res.redirect('/bills');
                 }
 
                 if (!isVatExemptBool && hasNonVatableItems) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
                     return res.redirect('/bills');
                 }
@@ -1734,7 +1782,7 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
             // Check if round off is enabled in settings
             let roundOffForSales = await Settings.findOne({
                 companyId, userId, fiscalYear: currentFiscalYear
-            });
+            }).session(session);
 
             // Handle case where settings is null
             if (!roundOffForSales) {
@@ -1784,7 +1832,7 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
 
             // Create transactions
             let previousBalance = 0;
-            const accountTransaction = await Transaction.findOne({ cashAccount: cashAccount }).sort({ transactionDate: -1 });
+            const accountTransaction = await Transaction.findOne({ cashAccount: cashAccount }).sort({ transactionDate: -1 }).session(session);
             if (accountTransaction) {
                 previousBalance = accountTransaction.balance;
             }
@@ -1799,10 +1847,10 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                 groupedItems[key].quantity += Number(item.quantity); // Convert quantity to number before summing
             }
 
-
             // Reduce stock using FIFO for each grouped item
-            async function reduceStock(product, batchNumber, quantity) {
+            async function reduceStock(product, quantity) {
                 let remainingQuantity = quantity;
+                const batchesUsed = []; // Array to track batches and quantities used
 
                 // Sort stock entries FIFO (oldest first)
                 product.stockEntries.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -1810,75 +1858,85 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                 for (let i = 0; i < product.stockEntries.length && remainingQuantity > 0; i++) {
                     let entry = product.stockEntries[i];
 
-                    // If batch number exists, filter by batch
-                    if (batchNumber && entry.batchNumber !== batchNumber) continue;
+                    const quantityUsed = Math.min(entry.quantity, remainingQuantity);
+                    batchesUsed.push({
+                        batchNumber: entry.batchNumber,
+                        quantity: quantityUsed,
+                        uniqueUuId: entry.uniqueUuId, // Include the uniqueUuId of the batch
+                    });
 
-                    if (entry.quantity <= remainingQuantity) {
-                        remainingQuantity -= entry.quantity;
-                        entry.quantity = 0; // Fully used, remove from stock
-                    } else {
-                        entry.quantity -= remainingQuantity;
-                        remainingQuantity = 0;
-                    }
+                    remainingQuantity -= quantityUsed;
+                    entry.quantity -= quantityUsed;
                 }
 
                 // Remove depleted stock entries
                 product.stockEntries = product.stockEntries.filter(entry => entry.quantity > 0);
-                await product.save();
+                await product.save({ session });
+
+                // If remainingQuantity > 0, it means there isn't enough stock
+                if (remainingQuantity > 0) {
+                    throw new Error(`Not enough stock for item: ${product.name}. Required: ${quantity}, Available: ${quantity - remainingQuantity}`);
+                }
+
+                return batchesUsed; // Return the batches and quantities used
             }
 
             // Process stock reduction and transaction recording
             const billItems = await Promise.all(Object.values(groupedItems).map(async item => {
-                const product = await Item.findById(item.item);
+                const product = await Item.findById(item.item).session(session);
 
-                // Reduce stock using FIFO
-                await reduceStock(product, item.batchNumber, item.quantity);
+                // Reduce stock using FIFO and get the batches used
+                const batchesUsed = await reduceStock(product, item.quantity);
 
-                // Create transaction
-                const transaction = new Transaction({
+                // Create bill items for each batch used
+                const itemsForBill = batchesUsed.map(batch => ({
                     item: product._id,
-                    cashAccount: cashAccount,
-                    billNumber: newBillNumber,
-                    quantity: item.quantity,
+                    quantity: batch.quantity,
                     price: item.price,
                     unit: item.unit,
-                    isType: 'Sale',
-                    type: 'Sale',
-                    billId: newBill._id,
-                    purchaseSalesType: 'Sales',
-                    debit: finalAmount,
-                    credit: 0,
-                    paymentMode: paymentMode,
-                    balance: previousBalance - finalAmount,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-
-                await transaction.save();
-
-                return {
-                    item: product._id,
-                    quantity: item.quantity,
-                    price: item.price,
-                    unit: item.unit,
-                    batchNumber: item.batchNumber,
+                    batchNumber: batch.batchNumber, // Use the actual batch number from stock reduction
                     expiryDate: item.expiryDate,
                     vatStatus: product.vatStatus,
-                    fiscalYear: fiscalYearId
-                };
+                    fiscalYear: fiscalYearId,
+                    uniqueUuId: batch.uniqueUuId, // Include the uniqueUuId of the batch
+                }));
+
+                // Create transactions for each batch used
+                await Promise.all(batchesUsed.map(async batch => {
+                    const transaction = new Transaction({
+                        item: product._id,
+                        cashAccount: cashAccount,
+                        billNumber: newBillNumber,
+                        quantity: batch.quantity,
+                        price: item.price,
+                        unit: item.unit,
+                        isType: 'Sale',
+                        type: 'Sale',
+                        billId: newBill._id,
+                        purchaseSalesType: 'Sales',
+                        debit: finalAmount,
+                        credit: 0,
+                        paymentMode: paymentMode,
+                        balance: previousBalance - finalAmount,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+                    await transaction.save({ session });
+                }));
+
+                return itemsForBill; // Return the bill items for each batch used
             }));
+
+            // Flatten the bill items array (since each item may have multiple batches)
+            const flattenedBillItems = billItems.flat();
 
             // Create a transaction for the default Purchase Account
             const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
             if (salesAmount > 0) {
-                const salesAccount = await Account.findOne({ name: 'Sales', company: companyId });
+                const salesAccount = await Account.findOne({ name: 'Sales', company: companyId }).session(session);
                 if (salesAccount) {
-                    // const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                    // if (!partyAccount) {
-                    //     return res.status(400).json({ error: 'Party account not found.' });
-                    // }
                     const salesTransaction = new Transaction({
                         account: salesAccount._id,
                         billNumber: newBillNumber,
@@ -1894,19 +1952,15 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await salesTransaction.save();
+                    await salesTransaction.save({ session });
                     console.log('Sales Transaction: ', salesTransaction);
                 }
             }
 
             // Create a transaction for the VAT amount
             if (vatAmount > 0) {
-                const vatAccount = await Account.findOne({ name: 'VAT', company: companyId });
+                const vatAccount = await Account.findOne({ name: 'VAT', company: companyId }).session(session);
                 if (vatAccount) {
-                    // const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                    // if (!partyAccount) {
-                    //     return res.status(400).json({ error: 'Party account not found.' });
-                    // }
                     const vatTransaction = new Transaction({
                         account: vatAccount._id,
                         billNumber: newBillNumber,
@@ -1923,19 +1977,15 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await vatTransaction.save();
+                    await vatTransaction.save({ session });
                     console.log('Vat Transaction: ', vatTransaction);
                 }
             }
 
             // Create a transaction for the round-off amount
             if (roundOffAmount > 0) {
-                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
+                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId }).session(session);
                 if (roundOffAccount) {
-                    // const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                    // if (!partyAccount) {
-                    //     return res.status(400).json({ error: 'Party account not found.' });
-                    // }
                     const roundOffTransaction = new Transaction({
                         account: roundOffAccount._id,
                         billNumber: newBillNumber,
@@ -1944,7 +1994,7 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                         billId: newBill._id,
                         purchaseSalesType: cashAccount,  // Save the party account name in purchaseSalesType,
                         debit: 0,  // Debit the VAT account
-                        credit: roundOffAmount,         // Credit is 0 for VAT transactions
+                        credit: Math.abs(roundOffAmount),         // Credit is 0 for VAT transactions
                         paymentMode: paymentMode,
                         balance: previousBalance + roundOffAmount, // Update the balance
                         date: nepaliDate ? nepaliDate : new Date(billDate),
@@ -1952,18 +2002,14 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await roundOffTransaction.save();
+                    await roundOffTransaction.save({ session });
                     console.log('Round-off Transaction: ', roundOffTransaction);
                 }
             }
 
             if (roundOffAmount < 0) {
-                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
+                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId }).session(session);
                 if (roundOffAccount) {
-                    // const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                    // if (!partyAccount) {
-                    //     return res.status(400).json({ error: 'Party account not found.' });
-                    // }
                     const roundOffTransaction = new Transaction({
                         account: roundOffAccount._id,
                         billNumber: newBillNumber,
@@ -1971,7 +2017,7 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                         type: 'Sale',
                         billId: newBill._id,
                         purchaseSalesType: cashAccount,  // Save the party account name in purchaseSalesType,
-                        debit: Math.abs(roundOffAmount),  // Debit the VAT account
+                        debit: Math.abs(roundOffAmount),  // Debit the round off ammout
                         credit: 0, // Ensure roundOffAmount is not saved as a negative value
                         paymentMode: paymentMode,
                         balance: previousBalance + roundOffAmount, // Update the balance
@@ -1980,20 +2026,18 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await roundOffTransaction.save();
+                    await roundOffTransaction.save({ session });
                     console.log('Round-off Transaction: ', roundOffTransaction);
                 }
             }
 
-
             // If payment mode is cash, also create a transaction for the "Cash in Hand" account
             if (paymentMode === 'cash') {
-                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
+                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId }).session(session);
                 if (cashAccount) {
                     const cashTransaction = new Transaction({
                         account: cashAccount._id,
                         cashAccount: cashAccount,
-                        // billNumber: billCounter.count,
                         billNumber: newBillNumber,
                         isType: 'Sale',
                         type: 'Sale',
@@ -2007,17 +2051,18 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                         company: companyId,
                         user: userId,
                         fiscalYear: currentFiscalYear
-
                     });
-                    await cashTransaction.save();
+                    await cashTransaction.save({ session });
                 }
             }
 
-
             // Update bill with modified items
-            newBill.items = billItems;
-            await newBill.save();
+            newBill.items = flattenedBillItems;
+            await newBill.save({ session });
 
+            // Commit the transaction
+            await session.commitTransaction();
+            session.endSession();
 
             if (req.query.print === 'true') {
                 // Redirect to the print route
@@ -2029,12 +2074,13 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
             }
         } catch (error) {
             console.error('Error while creating sales bill:', error);
+            await session.abortTransaction();
+            session.endSession();
             req.flash('error', 'An error occurred while processing the bill.');
             return res.redirect('/bills');
         }
     }
 });
-
 
 router.get('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
@@ -2135,7 +2181,6 @@ router.get('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompany
     }
 });
 
-
 // POST route to handle sales bill creation
 router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
@@ -2160,19 +2205,25 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                 roundOffAmount: manualRoundOffAmount,
             } = req.body;
             const companyId = req.session.currentCompany;
-            const currentFiscalYear = req.session.currentFiscalYear.id
+            const currentFiscalYear = req.session.currentFiscalYear.id;
             const fiscalYearId = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
             const userId = req.user._id;
 
             console.log('Request Body:', req.body);
 
             if (!companyId) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Company ID is required.' });
             }
             if (!isVatExempt) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Invalid vat selection.' });
             }
             if (!paymentMode) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Invalid payment mode.' });
             }
 
@@ -2188,20 +2239,25 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
             let hasNonVatableItems = false;
 
             if (!companyId) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Company ID is required' });
             }
 
-            // const accounts = await Account.findOne({ _id: accountId, company: companyId });
             if (!cashAccount) {
+                await session.abortTransaction();
+                session.endSession();
                 return res.status(400).json({ error: 'Invalid account for this company' });
             }
 
             // Validate each item before processing
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
-                const product = await Item.findById(item.item);
+                const product = await Item.findById(item.item).session(session);
 
                 if (!product) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', `Item with id ${item.item} not found`);
                     return res.redirect('/billsTrackBatchOpen');
                 }
@@ -2217,10 +2273,20 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                     totalNonTaxableAmount += itemTotal;
                 }
 
+                // Find the specific batch entry
+                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === item.batchNumber && entry.uniqueUuId === item.uniqueUuId);
+                if (!batchEntry) {
+                    await session.abortTransaction();
+                    session.endSession();
+                    req.flash('error', `Batch number ${item.batchNumber} not found for item: ${product.name}`);
+                    return res.redirect('/billsTrackBatchOpen');
+                }
+
                 // Check stock quantity using FIFO
-                const availableStock = product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
-                if (availableStock < item.quantity) {
-                    req.flash('error', `Not enough stock for item: ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`);
+                if (batchEntry.quantity < item.quantity) {
+                    await session.abortTransaction();
+                    session.endSession();
+                    req.flash('error', `Not enough stock for item: ${product.name}. Available: ${batchEntry.quantity}, Required: ${item.quantity}`);
                     return res.redirect('/billsTrackBatchOpen');
                 }
             }
@@ -2228,16 +2294,21 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
             // Check validation conditions after processing all items
             if (isVatExempt !== 'all') {
                 if (isVatExemptBool && hasVatableItems) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', 'Cannot save VAT exempt bill with vatable items');
                     return res.redirect('/billsTrackBatchOpen');
                 }
 
                 if (!isVatExemptBool && hasNonVatableItems) {
+                    await session.abortTransaction();
+                    session.endSession();
                     req.flash('error', 'Cannot save bill with non-vatable items when VAT is applied');
                     return res.redirect('/billsTrackBatchOpen');
                 }
             }
-            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Sales')
+
+            const billNumber = await getNextBillNumber(companyId, fiscalYearId, 'Sales');
 
             // Apply discount proportionally to vatable and non-vatable items
             const discountForTaxable = (totalTaxableAmount * discount) / 100;
@@ -2259,12 +2330,12 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
             // Check if round off is enabled in settings
             let roundOffForSales = await Settings.findOne({
                 companyId, userId, fiscalYear: currentFiscalYear
-            }); // Assuming you have a single settings document
+            }).session(session);
 
             // Handle case where settings is null
             if (!roundOffForSales) {
                 console.log('No settings found, using default settings or handling as required');
-                roundOffForSales = { roundOffSales: false }; // Provide default settings or handle as needed
+                roundOffForSales = { roundOffSales: false };
             }
             let roundOffAmount = 0;
             if (roundOffForSales.roundOffSales) {
@@ -2306,38 +2377,10 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
 
             // Create transactions
             let previousBalance = 0;
-            const accountTransaction = await Transaction.findOne({ cashAccount: cashAccount }).sort({ transactionDate: -1 });
+            const accountTransaction = await Transaction.findOne({ cashAccount: cashAccount }).sort({ transactionDate: -1 }).session(session);
             if (accountTransaction) {
                 previousBalance = accountTransaction.balance;
             }
-
-            // // Batch-wise stock reduction function
-            // async function reduceStockBatchWise(product, batchNumber, quantity) {
-            //     let remainingQuantity = quantity;
-
-            //     // Find the batch entry with the specific batch number
-            //     const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
-
-            //     if (!batchEntry) {
-            //         throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
-            //     }
-
-            //     // Reduce stock for the specific batch
-            //     if (batchEntry.quantity <= remainingQuantity) {
-            //         remainingQuantity -= batchEntry.quantity;
-            //         batchEntry.quantity = 0; // All stock from this batch is used
-            //     } else {
-            //         batchEntry.quantity -= remainingQuantity;
-            //         remainingQuantity = 0; // Stock is fully reduced for this batch
-            //     }
-
-            //     if (remainingQuantity > 0) {
-            //         throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
-            //     }
-
-            //     // Save the product with the updated stock entries
-            //     await product.save();
-            // }
 
             async function reduceStockBatchWise(product, batchNumber, quantity, uniqueUuId) {
                 let remainingQuantity = quantity;
@@ -2370,18 +2413,8 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                 }
 
                 // Save the product with the updated stock entries
-                await product.save();
+                await product.save({ session });
             }
-
-            // // Inside the billItems map function, replace the FIFO stock reduction with batch-wise reduction
-            // const billItems = await Promise.all(items.map(async item => {
-            //     const product = await Item.findById(item.item);
-
-            //     // Ensure batch number is provided
-            //     if (!item.batchNumber) {
-            //         req.flash('error', `Batch number is required for item: ${product.name}`);
-            //         return res.redirect('/billsTrackBatchOpen');
-            //     }
 
             // **Updated processing for billItems to allow multiple entries of the same item**
             const billItems = [];
@@ -2390,8 +2423,9 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                 const product = await Item.findById(item.item).session(session);
 
                 if (!product) {
-                    req.flash('error', `Item with id ${item.item} not found`);
                     await session.abortTransaction();
+                    session.endSession();
+                    req.flash('error', `Item with id ${item.item} not found`);
                     return res.redirect('/purchase-return');
                 }
 
@@ -2417,7 +2451,7 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                     fiscalYear: currentFiscalYear
                 });
 
-                await transaction.save();
+                await transaction.save({ session });
                 console.log('Transaction', transaction);
 
                 // Assuming reduceStockBatchWise is called here
@@ -2425,7 +2459,7 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
 
                 // Handle specific batch number not found error
                 product.stock -= item.quantity;
-                await product.save();
+                await product.save({ session });
 
                 billItems.push({
                     item: product._id,
@@ -2437,18 +2471,18 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                     vatStatus: product.vatStatus,
                     fiscalYear: fiscalYearId,
                     uniqueUuId: item.uniqueUuId,
-
                 });
             }
+
+            // Update bill with items
+            newBill.items = billItems;
+            await newBill.save({ session });
+
             // Create a transaction for the default Sales Account
             const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
             if (salesAmount > 0) {
-                const salesAccount = await Account.findOne({ name: 'Sales', company: companyId });
+                const salesAccount = await Account.findOne({ name: 'Sales', company: companyId }).session(session);
                 if (salesAccount) {
-                    // const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                    // if (!partyAccount) {
-                    //     return res.status(400).json({ error: 'Party account not found.' });
-                    // }
                     const salesTransaction = new Transaction({
                         account: salesAccount._id,
                         billNumber: billNumber,
@@ -2464,19 +2498,15 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await salesTransaction.save();
+                    await salesTransaction.save({ session });
                     console.log('Sales Transaction: ', salesTransaction);
                 }
             }
 
             // Create a transaction for the VAT amount
             if (vatAmount > 0) {
-                const vatAccount = await Account.findOne({ name: 'VAT', company: companyId });
+                const vatAccount = await Account.findOne({ name: 'VAT', company: companyId }).session(session);
                 if (vatAccount) {
-                    // const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                    // if (!partyAccount) {
-                    //     return res.status(400).json({ error: 'Party account not found.' });
-                    // }
                     const vatTransaction = new Transaction({
                         account: vatAccount._id,
                         billNumber: billNumber,
@@ -2493,18 +2523,15 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await vatTransaction.save();
+                    await vatTransaction.save({ session });
                     console.log('Vat Transaction: ', vatTransaction);
                 }
             }
+
             // Create a transaction for the round-off amount
             if (roundOffAmount > 0) {
-                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
+                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId }).session(session);
                 if (roundOffAccount) {
-                    // const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                    // if (!partyAccount) {
-                    //     return res.status(400).json({ error: 'Party account not found.' });
-                    // }
                     const roundOffTransaction = new Transaction({
                         account: roundOffAccount._id,
                         billNumber: billNumber,
@@ -2521,18 +2548,14 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await roundOffTransaction.save();
+                    await roundOffTransaction.save({ session });
                     console.log('Round-off Transaction: ', roundOffTransaction);
                 }
             }
 
             if (roundOffAmount < 0) {
-                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
+                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId }).session(session);
                 if (roundOffAccount) {
-                    // const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                    // if (!partyAccount) {
-                    //     return res.status(400).json({ error: 'Party account not found.' });
-                    // }
                     const roundOffTransaction = new Transaction({
                         account: roundOffAccount._id,
                         billNumber: billNumber,
@@ -2549,19 +2572,18 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                         user: userId,
                         fiscalYear: currentFiscalYear
                     });
-                    await roundOffTransaction.save();
+                    await roundOffTransaction.save({ session });
                     console.log('Round-off Transaction: ', roundOffTransaction);
                 }
             }
 
             // If payment mode is cash, also create a transaction for the "Cash in Hand" account
             if (paymentMode === 'cash') {
-                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
+                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId }).session(session);
                 if (cashAccount) {
                     const cashTransaction = new Transaction({
                         account: cashAccount._id,
                         cashAccount: cashAccount,
-                        // billNumber: billCounter.count,
                         billNumber: billNumber,
                         isType: 'Sale',
                         type: 'Sale',
@@ -2575,20 +2597,18 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                         company: companyId,
                         user: userId,
                         fiscalYear: currentFiscalYear
-
                     });
-                    await cashTransaction.save();
+                    await cashTransaction.save({ session });
                 }
             }
 
             // Update bill with items
             newBill.items = billItems;
-            await newBill.save();
+            await newBill.save({ session });
 
             // If everything goes smoothly, commit the transaction
             await session.commitTransaction();
             session.endSession();
-
 
             if (req.query.print === 'true') {
                 // Redirect to the print route
@@ -2600,14 +2620,13 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
             }
         } catch (error) {
             console.error("Error creating bill:", error);
+            await session.abortTransaction();
+            session.endSession();
             req.flash('error', 'Error creating bill');
             res.redirect('/cash/bills/addOpen');
         }
     }
 });
-
-
-
 
 // GET route to render the edit page for a sales bill
 router.get('/bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
@@ -2844,752 +2863,272 @@ router.get('/bills/editCashAccount/:id', isLoggedIn, ensureAuthenticated, ensure
     }
 });
 
-
 // PUT route to update a sales bill
 router.put('/bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
-    try {
+    if (req.tradeType === 'Wholeseller') {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         const billId = req.params.id;
-        const {
-            accountId,
-            items,
-            vatPercentage,
-            transactionDateRoman,
-            transactionDateNepali,
-            billDate,
-            nepaliDate,
-            isVatExempt,
-            discountPercentage,
-            paymentMode,
-            roundOffAmount: manualRoundOffAmount,
-        } = req.body;
+        try {
+            const {
+                accountId,
+                items,
+                vatPercentage,
+                transactionDateRoman,
+                transactionDateNepali,
+                billDate,
+                nepaliDate,
+                isVatExempt,
+                discountPercentage,
+                paymentMode,
+                roundOffAmount: manualRoundOffAmount,
+            } = req.body;
 
-        const companyId = req.session.currentCompany;
-        const currentFiscalYear = req.session.currentFiscalYear.id;
-        const userId = req.user._id;
+            const companyId = req.session.currentCompany;
+            const currentFiscalYear = req.session.currentFiscalYear.id;
+            const userId = req.user._id;
 
-        if (!companyId) {
-            return res.status(400).json({ error: 'Company ID is required' });
-        }
-
-        const existingBill = await SalesBill.findOne({ _id: billId, company: companyId });
-        if (!existingBill) {
-            req.flash('error', 'Bill not found');
-            return res.redirect('/billsTrackBatchOpen');
-        }
-
-        const account = await Account.findById(accountId);
-        if (!account) {
-            req.flash('error', 'Account not found');
-            return res.redirect('/billsTrackBatchOpen');
-        }
-
-
-        // Reverse stock from existing bill items
-        for (const existingItem of existingBill.items) {
-            const product = await Item.findById(existingItem.item);
-
-            const batchEntry = product.stockEntries.find(entry => entry.batchNumber === existingItem.batchNumber);
-
-            if (batchEntry) {
-                batchEntry.quantity += existingItem.quantity; // Restore stock
-            } else {
-                console.warn(`Batch number ${existingItem.batchNumber} not found for product: ${product.name}`);
+            if (!companyId) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({ error: 'Company ID is required' });
             }
 
-            await product.save(); // Save the updated product
-        }
-
-        console.log('Stock successfully reversed for existing bill items.');
-
-        // Delete all associated transactions
-        await Transaction.deleteMany({ billId });
-
-        console.log('Existing transactions deleted successfully');
-
-        // Calculate amounts based on the updated POST route logic
-        const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
-        const isVatAll = isVatExempt === 'all';
-        const discount = parseFloat(discountPercentage) || 0;
-
-        let totalTaxableAmount = 0;
-        let totalNonTaxableAmount = 0;
-
-        for (const item of items) {
-            const product = await Item.findById(item.item);
-            if (product.vatStatus) {
-                totalTaxableAmount += item.quantity * item.price;
-            } else {
-                totalNonTaxableAmount += item.quantity * item.price;
+            // Fetch the existing bill
+            const existingBill = await SalesBill.findOne({ _id: billId, company: companyId }).session(session);
+            if (!existingBill) {
+                await session.abortTransaction();
+                session.endSession();
+                req.flash('error', 'Bill not found');
+                return res.redirect(`/bills/edit/${billId}`);
             }
-        }
 
-        const discountForTaxable = (totalTaxableAmount * discount) / 100;
-        const discountForNonTaxable = (totalNonTaxableAmount * discount) / 100;
+            const account = await Account.findById(accountId).session(session);
+            if (!account) {
+                await session.abortTransaction();
+                session.endSession();
+                req.flash('error', 'Account not found');
+                return res.redirect(`/bills/edit/${billId}`);
+            }
 
-        const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
-        const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
+            // Step 1: Identify removed items and restore stock
+            const removedItems = existingBill.items.filter(existingItem =>
+                !items.some(item =>
+                    item.item === existingItem.item.toString() &&
+                    item.batchNumber === existingItem.batchNumber &&
+                    item.uniqueUuId === existingItem.uniqueUuId
+                )
+            );
 
-        let vatAmount = 0;
-        if (!isVatExemptBool || isVatAll || isVatExempt === 'all') {
-            vatAmount = (finalTaxableAmount * vatPercentage) / 100;
-        }
+            for (const removedItem of removedItems) {
+                const product = await Item.findById(removedItem.item).session(session);
+                if (!product) {
+                    console.warn(`Product with ID ${removedItem.item} not found`);
+                    continue;
+                }
 
-        const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
+                const batchEntry = product.stockEntries.find(entry =>
+                    entry.batchNumber === removedItem.batchNumber &&
+                    entry.uniqueUuId === removedItem.uniqueUuId
+                );
 
-        let finalAmount = totalAmount;
-        let roundOffAmount = 0;
+                if (batchEntry) {
+                    batchEntry.quantity += removedItem.quantity; // Restore stock
+                    await product.save({ session });
+                } else {
+                    console.warn(`Batch number ${removedItem.batchNumber} not found for product: ${product.name}`);
+                }
+            }
 
-        const roundOffForSales = await Settings.findOne({ companyId, userId, fiscalYear: currentFiscalYear }) || { roundOffSales: false };
+            console.log('Stock successfully restored for removed items.');
 
-        if (roundOffForSales.roundOffSales) {
-            finalAmount = Math.round(finalAmount.toFixed(2));
-            roundOffAmount = finalAmount - totalAmount;
-        } else if (manualRoundOffAmount && !roundOffForSales.roundOffSales) {
-            roundOffAmount = parseFloat(manualRoundOffAmount);
-            finalAmount = totalAmount + roundOffAmount;
-        }
-
-        // Update existing bill
-        existingBill.account = accountId;
-        existingBill.isVatExempt = isVatExemptBool;
-        existingBill.vatPercentage = isVatExemptBool ? 0 : vatPercentage;
-        existingBill.subTotal = totalTaxableAmount + totalNonTaxableAmount;
-        existingBill.discountPercentage = discount;
-        existingBill.discountAmount = discountForTaxable + discountForNonTaxable;
-        existingBill.nonVatSales = finalNonTaxableAmount;
-        existingBill.taxableAmount = finalTaxableAmount;
-        existingBill.vatAmount = vatAmount;
-        existingBill.totalAmount = finalAmount;
-        existingBill.roundOffAmount = roundOffAmount;
-        existingBill.isVatAll = isVatAll;
-        existingBill.paymentMode = paymentMode;
-        existingBill.date = nepaliDate || new Date(billDate);
-        existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
-
-        const billItems = await Promise.all(items.map(async item => {
-            const product = await Item.findById(item.item);
-
-            // // Batch-wise stock reduction function
-            // async function reduceStockBatchWise(product, batchNumber, quantity) {
-            //     let remainingQuantity = quantity;
-
-            //     // Find the batch entry with the specific batch number
-            //     const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
-
-            //     if (!batchEntry) {
-            //         throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
+            // // Reverse stock from existing bill items
+            // for (const existingItem of existingBill.items) {
+            //     const product = await Item.findById(existingItem.item).session(session);
+            //     if (!product) {
+            //         console.warn(`Product with ID ${existingItem.item} not found`);
+            //         continue;
             //     }
 
-            //     // Reduce stock for the specific batch
-            //     if (batchEntry.quantity <= remainingQuantity) {
-            //         remainingQuantity -= batchEntry.quantity;
-            //         batchEntry.quantity = 0; // All stock from this batch is used
+            //     const batchEntry = product.stockEntries.find(entry => entry.batchNumber === existingItem.batchNumber && entry.uniqueUuId === existingItem.uniqueUuId);
+            //     if (batchEntry) {
+            //         batchEntry.quantity += existingItem.quantity; // Restore stock
+            //         await product.save({ session });
             //     } else {
-            //         batchEntry.quantity -= remainingQuantity;
-            //         remainingQuantity = 0; // Stock is fully reduced for this batch
+            //         console.warn(`Batch number ${existingItem.batchNumber} not found for product: ${product.name}`);
             //     }
-
-            //     if (remainingQuantity > 0) {
-            //         throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
-            //     }
-
-            //     // Save the product with the updated stock entries
-            //     await product.save();
             // }
 
-            async function reduceStockBatchWise(product, batchNumber, quantity) {
-                let remainingQuantity = quantity;
+            // console.log('Stock successfully reversed for existing bill items.');
 
-                // Find all batch entries with the specific batch number
-                const batchEntries = product.stockEntries.filter(entry => entry.batchNumber === batchNumber);
+            // Step 1: Identify updated items
+            const updatedItems = existingBill.items.filter(existingItem =>
+                items.some(item =>
+                    item.item === existingItem.item.toString() &&
+                    item.batchNumber === existingItem.batchNumber &&
+                    item.uniqueUuId === existingItem.uniqueUuId
+                )
+            );
 
-                if (batchEntries.length === 0) {
-                    throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
+            // Step 2: Reverse stock for updated items
+            for (const updatedItem of updatedItems) {
+                const product = await Item.findById(updatedItem.item).session(session);
+                if (!product) {
+                    console.warn(`Product with ID ${updatedItem.item} not found`);
+                    continue;
                 }
 
-                // Iterate through all matching batch entries and reduce stock
-                for (const batchEntry of batchEntries) {
-                    if (remainingQuantity <= 0) break; // Stop if the required quantity is fully reduced
+                // Find the exact batch entry using both batchNumber and uniqueUuId
+                const batchEntry = product.stockEntries.find(entry =>
+                    entry.batchNumber === updatedItem.batchNumber &&
+                    entry.uniqueUuId === updatedItem.uniqueUuId
+                );
 
-                    if (batchEntry.quantity <= remainingQuantity) {
-                        remainingQuantity -= batchEntry.quantity;
-                        batchEntry.quantity = 0; // All stock from this batch is used
-                    } else {
-                        batchEntry.quantity -= remainingQuantity;
-                        remainingQuantity = 0; // Stock is fully reduced for this batch
-                    }
+                if (batchEntry) {
+                    // Restore stock for the old quantity
+                    batchEntry.quantity += updatedItem.quantity;
+                    await product.save({ session });
+                    console.log(`Stock restored for batch ${updatedItem.batchNumber} with uniqueUuId ${updatedItem.uniqueUuId} for product: ${product.name}`);
+                } else {
+                    console.warn(`Batch number ${updatedItem.batchNumber} with uniqueUuId ${updatedItem.uniqueUuId} not found for product: ${product.name}`);
+                }
+            }
+
+            console.log('Stock successfully reversed for updated items.');
+
+            // Delete all associated transactions
+            await Transaction.deleteMany({ billId: existingBill._id }).session(session);
+            console.log('Existing transactions deleted successfully');
+
+
+            // Calculate amounts based on the updated items
+            const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
+            const isVatAll = isVatExempt === 'all';
+            const discount = parseFloat(discountPercentage) || 0;
+
+            let totalTaxableAmount = 0;
+            let totalNonTaxableAmount = 0;
+
+            for (const item of items) {
+                const product = await Item.findById(item.item).session(session);
+                if (!product) {
+                    throw new Error(`Product with ID ${item.item} not found`);
                 }
 
-                if (remainingQuantity > 0) {
-                    throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
+                if (product.vatStatus === 'vatable') {
+                    totalTaxableAmount += item.quantity * item.price;
+                } else {
+                    totalNonTaxableAmount += item.quantity * item.price;
                 }
-
-                // Save the product with the updated stock entries
-                await product.save();
             }
 
-            await reduceStockBatchWise(product, item.batchNumber, item.quantity);
+            const discountForTaxable = (totalTaxableAmount * discount) / 100;
+            const discountForNonTaxable = (totalNonTaxableAmount * discount) / 100;
 
+            const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
+            const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
 
-            return {
-                item: product._id,
-                quantity: item.quantity,
-                price: item.price,
-                unit: item.unit,
-                batchNumber: item.batchNumber,
-                expiryDate: item.expiryDate,
-                vatStatus: product.vatStatus,
-                fiscalYear: currentFiscalYear,
-            };
-        }));
-
-        existingBill.items = billItems;
-        await existingBill.save();
-
-        // After updating the existingBill.items, reinserting transactions
-        const billItemsTransactions = await Promise.all(existingBill.items.map(async item => {
-            const product = await Item.findById(item.item);
-
-            if (!product) {
-                throw new Error(`Product with ID ${item.item} not found`);
+            let vatAmount = 0;
+            if (!isVatExemptBool || isVatAll || isVatExempt === 'all') {
+                vatAmount = (finalTaxableAmount * vatPercentage) / 100;
             }
 
-            // Create a transaction for each item
-            const transaction = new Transaction({
-                item: product._id,
-                account: accountId,
-                billNumber: existingBill.billNumber,
-                quantity: item.quantity,
-                price: item.price,
-                unit: item.unit,
-                type: 'Sale',
-                billId: existingBill._id,
-                purchaseSalesType: 'Sales',
-                debit: finalAmount, // Update as per your logic
-                credit: 0, // Since it's a sale
-                paymentMode: paymentMode,
-                balance: 0, // Update with the correct balance logic if needed
-                date: nepaliDate ? nepaliDate : new Date(billDate),
-                company: companyId,
-                user: userId,
-                fiscalYear: currentFiscalYear
-            });
+            const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
 
-            await transaction.save();
-            console.log('Transaction created:', transaction);
+            let finalAmount = totalAmount;
 
-            return transaction; // Optional, if you need to track the transactions created
-        }));
+            // Check if round off is enabled in settings
+            let roundOffForSales = await Settings.findOne({
+                companyId, userId, fiscalYear: currentFiscalYear
+            }).session(session);
 
-        console.log('All transactions successfully created for updated bill.');
-
-        // Create a transaction for the default Purchase Account
-        const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
-        if (salesAmount > 0) {
-            const salesAccount = await Account.findOne({ name: 'Sales', company: companyId });
-            if (salesAccount) {
-                const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                if (!partyAccount) {
-                    return res.status(400).json({ error: 'Party account not found.' });
-                }
-                const salesTransaction = new Transaction({
-                    account: salesAccount._id,
-                    billNumber: existingBill.billNumber,
-                    type: 'Sale',
-                    billId: existingBill._id,
-                    purchaseSalesType: partyAccount.name,  // Save the party account name in purchaseSalesType,
-                    debit: 0,  // Debit the VAT account
-                    credit: salesAmount,// Credit is 0 for VAT transactions
-                    paymentMode: paymentMode,
-                    // balance: previousBalance + salesAmount, // Update the balance
-                    balance: 0,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-                await salesTransaction.save();
-                console.log('Sales Transaction: ', salesTransaction);
+            // Handle case where settings is null
+            if (!roundOffForSales) {
+                console.log('No settings found, using default settings or handling as required');
+                roundOffForSales = { roundOffSales: false };
             }
-        }
-
-        // Create a transaction for the VAT amount
-        if (vatAmount > 0) {
-            const vatAccount = await Account.findOne({ name: 'VAT', company: companyId });
-            if (vatAccount) {
-                const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                if (!partyAccount) {
-                    return res.status(400).json({ error: 'Party account not found.' });
-                }
-                const vatTransaction = new Transaction({
-                    account: vatAccount._id,
-                    billNumber: existingBill.billNumber,
-                    isType: 'VAT',
-                    type: 'Sale',
-                    billId: existingBill._id,
-                    purchaseSalesType: partyAccount.name,  // Save the party account name in purchaseSalesType,
-                    debit: 0,  // Debit the VAT account
-                    credit: vatAmount,         // Credit is 0 for VAT transactions
-                    paymentMode: paymentMode,
-                    // balance: previousBalance + vatAmount, // Update the balance
-                    balance: 0,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-                await vatTransaction.save();
-                console.log('Vat Transaction: ', vatTransaction);
-            }
-        }
-
-        // Create a transaction for the round-off amount
-        if (roundOffAmount > 0) {
-            const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
-            if (roundOffAccount) {
-                const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                if (!partyAccount) {
-                    return res.status(400).json({ error: 'Party account not found.' });
-                }
-                const roundOffTransaction = new Transaction({
-                    account: roundOffAccount._id,
-                    billNumber: existingBill.billNumber,
-                    isType: 'RoundOff',
-                    type: 'Sale',
-                    billId: existingBill._id,
-                    purchaseSalesType: partyAccount.name,  // Save the party account name in purchaseSalesType,
-                    debit: 0,  // Debit the VAT account
-                    credit: roundOffAmount,         // Credit is 0 for VAT transactions
-                    paymentMode: paymentMode,
-                    // balance: previousBalance + roundOffAmount, // Update the balance
-                    balance: 0,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-                await roundOffTransaction.save();
-                console.log('Round-off Transaction: ', roundOffTransaction);
-            }
-        }
-
-        if (roundOffAmount < 0) {
-            const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
-            if (roundOffAccount) {
-                const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                if (!partyAccount) {
-                    return res.status(400).json({ error: 'Party account not found.' });
-                }
-                const roundOffTransaction = new Transaction({
-                    account: roundOffAccount._id,
-                    billNumber: existingBill.billNumber,
-                    isType: 'RoundOff',
-                    type: 'Sale',
-                    billId: existingBill._id,
-                    purchaseSalesType: partyAccount.name,  // Save the party account name in purchaseSalesType,
-                    debit: Math.abs(roundOffAmount),  // Debit the VAT account
-                    credit: 0, // Ensure roundOffAmount is not saved as a negative value
-                    paymentMode: paymentMode,
-                    // balance: previousBalance + roundOffAmount, // Update the balance
-                    balance: 0,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-                await roundOffTransaction.save();
-                console.log('Round-off Transaction: ', roundOffTransaction);
-            }
-        }
-
-
-        if (paymentMode === 'cash') {
-            const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
-
-            if (cashAccount) {
-                const cashTransaction = new Transaction({
-                    account: cashAccount._id,
-                    billNumber: existingBill.billNumber,
-                    type: 'Sale',
-                    billId: existingBill._id,
-                    purchaseSalesType: 'Sales',
-                    debit: finalAmount, // The cash amount received
-                    credit: 0,
-                    paymentMode: paymentMode,
-                    balance: 0, // Adjust with the correct balance logic
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-
-                await cashTransaction.save();
-                console.log('Cash transaction created:', cashTransaction);
-            }
-        }
-
-        if (req.query.print === 'true') {
-            // Redirect to the print route
-            res.redirect(`/bills/${billId}/direct-print`);
-        } else {
-            // Redirect to the bills list or another appropriate page
-            req.flash('success', 'Bill updated successfully');
-            res.redirect(`/bills/edit/${billId}`);
-        }
-    } catch (error) {
-        console.error("Error updating bill:", error);
-        req.flash('error', 'Error updating bill');
-        res.redirect('/billsTrackBatchOpen');
-    }
-});
-
-// PUT route to update a sales bill
-router.put('/bills/editCashAccount/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
-    try {
-        const billId = req.params.id;
-        const {
-            cashAccount,
-            cashAccountAddress,
-            cashAccountPan,
-            cashAccountEmail,
-            cashAccountPhone,
-            items,
-            vatPercentage,
-            transactionDateRoman,
-            transactionDateNepali,
-            billDate,
-            nepaliDate,
-            isVatExempt,
-            discountPercentage,
-            paymentMode,
-            roundOffAmount: manualRoundOffAmount,
-        } = req.body;
-
-        const companyId = req.session.currentCompany;
-        const currentFiscalYear = req.session.currentFiscalYear.id;
-        const userId = req.user._id;
-
-        if (!companyId) {
-            return res.status(400).json({ error: 'Company ID is required' });
-        }
-
-        const existingBill = await SalesBill.findOne({ _id: billId, company: companyId });
-        if (!existingBill) {
-            req.flash('error', 'Bill not found');
-            return res.redirect('/billsTrackBatchOpen');
-        }
-
-        // const account = await Account.findById(accountId);
-        // if (!cashAccount) {
-        //     req.flash('error', 'Account not found');
-        //     return res.redirect('/billsTrackBatchOpen');
-        // }
-
-
-        // Reverse stock from existing bill items
-        for (const existingItem of existingBill.items) {
-            const product = await Item.findById(existingItem.item);
-
-            const batchEntry = product.stockEntries.find(entry => entry.batchNumber === existingItem.batchNumber);
-
-            if (batchEntry) {
-                batchEntry.quantity += existingItem.quantity; // Restore stock
-            } else {
-                console.warn(`Batch number ${existingItem.batchNumber} not found for product: ${product.name}`);
+            let roundOffAmount = 0;
+            if (roundOffForSales.roundOffSales) {
+                finalAmount = Math.round(finalAmount.toFixed(2)); // Round off final amount
+                roundOffAmount = finalAmount - totalAmount;
+            } else if (manualRoundOffAmount && !roundOffForSales.roundOffSales) {
+                roundOffAmount = parseFloat(manualRoundOffAmount);
+                finalAmount = totalAmount + roundOffAmount;
             }
 
-            await product.save(); // Save the updated product
-        }
-
-        console.log('Stock successfully reversed for existing bill items.');
-
-        // Delete all associated transactions
-        await Transaction.deleteMany({ billId });
-
-        console.log('Existing transactions deleted successfully');
-
-        // Calculate amounts based on the updated POST route logic
-        const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
-        const isVatAll = isVatExempt === 'all';
-        const discount = parseFloat(discountPercentage) || 0;
-
-        let totalTaxableAmount = 0;
-        let totalNonTaxableAmount = 0;
-
-        for (const item of items) {
-            const product = await Item.findById(item.item);
-            if (product.vatStatus) {
-                totalTaxableAmount += item.quantity * item.price;
-            } else {
-                totalNonTaxableAmount += item.quantity * item.price;
-            }
-        }
-
-        const discountForTaxable = (totalTaxableAmount * discount) / 100;
-        const discountForNonTaxable = (totalNonTaxableAmount * discount) / 100;
-
-        const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
-        const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
-
-        let vatAmount = 0;
-        if (!isVatExemptBool || isVatAll || isVatExempt === 'all') {
-            vatAmount = (finalTaxableAmount * vatPercentage) / 100;
-        }
-
-        const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
-
-        let finalAmount = totalAmount;
-        let roundOffAmount = 0;
-
-        const roundOffForSales = await Settings.findOne({ companyId, userId, fiscalYear: currentFiscalYear }) || { roundOffSales: false };
-
-        if (roundOffForSales.roundOffSales) {
-            finalAmount = Math.round(finalAmount.toFixed(2));
-            roundOffAmount = finalAmount - totalAmount;
-        } else if (manualRoundOffAmount && !roundOffForSales.roundOffSales) {
-            roundOffAmount = parseFloat(manualRoundOffAmount);
-            finalAmount = totalAmount + roundOffAmount;
-        }
-
-        // Update existing bill
-        existingBill.cashAccount = cashAccount;
-        existingBill.cashAccountAddress = cashAccountAddress,
-            existingBill.cashAccountPan = cashAccountPan,
-            existingBill.cashAccountEmail = cashAccountEmail,
-            existingBill.cashAccountPhone = cashAccountPhone,
+            // Update existing bill
+            existingBill.account = accountId;
             existingBill.isVatExempt = isVatExemptBool;
-        existingBill.vatPercentage = isVatExemptBool ? 0 : vatPercentage;
-        existingBill.subTotal = totalTaxableAmount + totalNonTaxableAmount;
-        existingBill.discountPercentage = discount;
-        existingBill.discountAmount = discountForTaxable + discountForNonTaxable;
-        existingBill.nonVatSales = finalNonTaxableAmount;
-        existingBill.taxableAmount = finalTaxableAmount;
-        existingBill.vatAmount = vatAmount;
-        existingBill.totalAmount = finalAmount;
-        existingBill.roundOffAmount = roundOffAmount;
-        existingBill.isVatAll = isVatAll;
-        existingBill.paymentMode = paymentMode;
-        existingBill.date = nepaliDate || new Date(billDate);
-        existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
+            existingBill.vatPercentage = isVatExemptBool ? 0 : vatPercentage;
+            existingBill.subTotal = totalTaxableAmount + totalNonTaxableAmount;
+            existingBill.discountPercentage = discount;
+            existingBill.discountAmount = discountForTaxable + discountForNonTaxable;
+            existingBill.nonVatSales = finalNonTaxableAmount;
+            existingBill.taxableAmount = finalTaxableAmount;
+            existingBill.vatAmount = vatAmount;
+            existingBill.totalAmount = finalAmount;
+            existingBill.roundOffAmount = roundOffAmount;
+            existingBill.isVatAll = isVatAll;
+            existingBill.paymentMode = paymentMode;
+            existingBill.date = nepaliDate || new Date(billDate);
+            existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
 
-        const billItems = await Promise.all(items.map(async item => {
-            const product = await Item.findById(item.item);
-
-            // Batch-wise stock reduction function
-            async function reduceStockBatchWise(product, batchNumber, quantity) {
-                let remainingQuantity = quantity;
-
-                // Find the batch entry with the specific batch number
-                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === batchNumber);
-
-                if (!batchEntry) {
-                    throw new Error(`Batch number ${batchNumber} not found for product: ${product.name}`);
+            // Reduce stock for new items
+            const billItems = await Promise.all(items.map(async item => {
+                const product = await Item.findById(item.item).session(session);
+                if (!product) {
+                    throw new Error(`Product with ID ${item.item} not found`);
                 }
 
                 // Reduce stock for the specific batch
-                if (batchEntry.quantity <= remainingQuantity) {
-                    remainingQuantity -= batchEntry.quantity;
-                    batchEntry.quantity = 0; // All stock from this batch is used
-                } else {
-                    batchEntry.quantity -= remainingQuantity;
-                    remainingQuantity = 0; // Stock is fully reduced for this batch
+                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === item.batchNumber && entry.uniqueUuId === item.uniqueUuId);
+                if (!batchEntry) {
+                    throw new Error(`Batch number ${item.batchNumber} not found for product: ${product.name}`);
                 }
 
-                if (remainingQuantity > 0) {
-                    throw new Error(`Not enough stock for batch number ${batchNumber} of product: ${product.name}`);
+                if (batchEntry.quantity < item.quantity) {
+                    throw new Error(`Not enough stock for batch number ${item.batchNumber} of product: ${product.name}`);
                 }
 
-                // Save the product with the updated stock entries
-                await product.save();
-            }
+                batchEntry.quantity -= item.quantity; // Reduce stock
+                await product.save({ session });
 
-            await reduceStockBatchWise(product, item.batchNumber, item.quantity);
+                return {
+                    item: product._id,
+                    quantity: item.quantity,
+                    price: item.price,
+                    unit: item.unit,
+                    batchNumber: item.batchNumber,
+                    expiryDate: item.expiryDate,
+                    vatStatus: product.vatStatus,
+                    fiscalYear: currentFiscalYear,
+                    uniqueUuId: item.uniqueUuId
+                };
+            }));
 
+            existingBill.items = billItems;
+            await existingBill.save({ session });
 
-            return {
-                item: product._id,
-                quantity: item.quantity,
-                price: item.price,
-                unit: item.unit,
-                batchNumber: item.batchNumber,
-                expiryDate: item.expiryDate,
-                vatStatus: product.vatStatus,
-                fiscalYear: currentFiscalYear,
-            };
-        }));
+            // Recreate transactions for the updated bill
+            await Promise.all(billItems.map(async item => {
+                const product = await Item.findById(item.item).session(session);
+                if (!product) {
+                    await session.abortTransaction();
+                    session.endSession();
+                    throw new Error(`Product with ID ${item.item} not found`);
+                }
 
-        existingBill.items = billItems;
-        await existingBill.save();
-
-        // After updating the existingBill.items, reinserting transactions
-        const billItemsTransactions = await Promise.all(existingBill.items.map(async item => {
-            const product = await Item.findById(item.item);
-
-            if (!product) {
-                throw new Error(`Product with ID ${item.item} not found`);
-            }
-
-            // Create a transaction for each item
-            const transaction = new Transaction({
-                item: product._id,
-                cashAccount: cashAccount,
-                billNumber: existingBill.billNumber,
-                quantity: item.quantity,
-                price: item.price,
-                unit: item.unit,
-                type: 'Sale',
-                billId: existingBill._id,
-                purchaseSalesType: 'Sales',
-                debit: finalAmount, // Update as per your logic
-                credit: 0, // Since it's a sale
-                paymentMode: paymentMode,
-                balance: 0, // Update with the correct balance logic if needed
-                date: nepaliDate ? nepaliDate : new Date(billDate),
-                company: companyId,
-                user: userId,
-                fiscalYear: currentFiscalYear
-            });
-
-            await transaction.save();
-            console.log('Transaction created:', transaction);
-
-            return transaction; // Optional, if you need to track the transactions created
-        }));
-
-        console.log('All transactions successfully created for updated bill.');
-
-        // Create a transaction for the default Purchase Account
-        const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
-        if (salesAmount > 0) {
-            const salesAccount = await Account.findOne({ name: 'Sales', company: companyId });
-            if (salesAccount) {
-                // const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                // if (!partyAccount) {
-                //     return res.status(400).json({ error: 'Party account not found.' });
-                // }
-                const salesTransaction = new Transaction({
-                    account: salesAccount._id,
+                const transaction = new Transaction({
+                    item: product._id,
+                    account: accountId,
                     billNumber: existingBill.billNumber,
-                    type: 'Sale',
-                    billId: existingBill._id,
-                    purchaseSalesType: cashAccount,  // Save the party account name in purchaseSalesType,
-                    debit: 0,  // Debit the VAT account
-                    credit: salesAmount,// Credit is 0 for VAT transactions
-                    paymentMode: paymentMode,
-                    // balance: previousBalance + salesAmount, // Update the balance
-                    balance: 0,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-                await salesTransaction.save();
-                console.log('Sales Transaction: ', salesTransaction);
-            }
-        }
-
-        // Create a transaction for the VAT amount
-        if (vatAmount > 0) {
-            const vatAccount = await Account.findOne({ name: 'VAT', company: companyId });
-            if (vatAccount) {
-                // const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                // if (!partyAccount) {
-                //     return res.status(400).json({ error: 'Party account not found.' });
-                // }
-                const vatTransaction = new Transaction({
-                    account: vatAccount._id,
-                    billNumber: existingBill.billNumber,
-                    isType: 'VAT',
-                    type: 'Sale',
-                    billId: existingBill._id,
-                    purchaseSalesType: cashAccount,  // Save the party account name in purchaseSalesType,
-                    debit: 0,  // Debit the VAT account
-                    credit: vatAmount,         // Credit is 0 for VAT transactions
-                    paymentMode: paymentMode,
-                    // balance: previousBalance + vatAmount, // Update the balance
-                    balance: 0,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-                await vatTransaction.save();
-                console.log('Vat Transaction: ', vatTransaction);
-            }
-        }
-
-        // Create a transaction for the round-off amount
-        if (roundOffAmount > 0) {
-            const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
-            if (roundOffAccount) {
-                // const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                // if (!partyAccount) {
-                //     return res.status(400).json({ error: 'Party account not found.' });
-                // }
-                const roundOffTransaction = new Transaction({
-                    account: roundOffAccount._id,
-                    billNumber: existingBill.billNumber,
-                    isType: 'RoundOff',
-                    type: 'Sale',
-                    billId: existingBill._id,
-                    purchaseSalesType: cashAccount,  // Save the party account name in purchaseSalesType,
-                    debit: 0,  // Debit the VAT account
-                    credit: roundOffAmount,         // Credit is 0 for VAT transactions
-                    paymentMode: paymentMode,
-                    // balance: previousBalance + roundOffAmount, // Update the balance
-                    balance: 0,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-                await roundOffTransaction.save();
-                console.log('Round-off Transaction: ', roundOffTransaction);
-            }
-        }
-
-        if (roundOffAmount < 0) {
-            const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
-            if (roundOffAccount) {
-                // const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                // if (!partyAccount) {
-                //     return res.status(400).json({ error: 'Party account not found.' });
-                // }
-                const roundOffTransaction = new Transaction({
-                    account: roundOffAccount._id,
-                    billNumber: existingBill.billNumber,
-                    isType: 'RoundOff',
-                    type: 'Sale',
-                    billId: existingBill._id,
-                    purchaseSalesType: cashAccount,  // Save the party account name in purchaseSalesType,
-                    debit: Math.abs(roundOffAmount),  // Debit the VAT account
-                    credit: 0, // Ensure roundOffAmount is not saved as a negative value
-                    paymentMode: paymentMode,
-                    // balance: previousBalance + roundOffAmount, // Update the balance
-                    balance: 0,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-                await roundOffTransaction.save();
-                console.log('Round-off Transaction: ', roundOffTransaction);
-            }
-        }
-
-
-        if (paymentMode === 'cash') {
-            const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
-
-            if (cashAccount) {
-                const cashTransaction = new Transaction({
-                    account: cashAccount._id,
-                    cashAccount: cashAccount,
-                    billNumber: existingBill.billNumber,
+                    quantity: item.quantity,
+                    price: item.price,
+                    unit: item.unit,
                     type: 'Sale',
                     billId: existingBill._id,
                     purchaseSalesType: 'Sales',
-                    debit: finalAmount, // The cash amount received
+                    debit: finalAmount,
                     credit: 0,
                     paymentMode: paymentMode,
                     balance: 0, // Adjust with the correct balance logic
@@ -3599,23 +3138,567 @@ router.put('/bills/editCashAccount/:id', isLoggedIn, ensureAuthenticated, ensure
                     fiscalYear: currentFiscalYear
                 });
 
-                await cashTransaction.save();
-                console.log('Cash transaction created:', cashTransaction);
-            }
-        }
+                await transaction.save({ session });
+            }));
 
-        if (req.query.print === 'true') {
-            // Redirect to the print route
-            res.redirect(`/bills/${billId}/direct-print`);
-        } else {
-            // Redirect to the bills list or another appropriate page
-            req.flash('success', 'Bill updated successfully');
+            console.log('All transactions successfully created for updated bill.');
+
+            // Create additional transactions (Sales, VAT, Round-off, Cash)
+            const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
+            if (salesAmount > 0) {
+                const salesAccount = await Account.findOne({ name: 'Sales', company: companyId }).session(session);
+                if (salesAccount) {
+                    const salesTransaction = new Transaction({
+                        account: salesAccount._id,
+                        billNumber: existingBill.billNumber,
+                        type: 'Sale',
+                        billId: existingBill._id,
+                        purchaseSalesType: account.name,
+                        debit: 0,
+                        credit: salesAmount,
+                        paymentMode: paymentMode,
+                        balance: 0,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+                    await salesTransaction.save({ session });
+                    console.log('Sales Transaction: ', salesTransaction);
+                }
+            }
+
+            if (vatAmount > 0) {
+                const vatAccount = await Account.findOne({ name: 'VAT', company: companyId }).session(session);
+                if (vatAccount) {
+                    const vatTransaction = new Transaction({
+                        account: vatAccount._id,
+                        billNumber: existingBill.billNumber,
+                        isType: 'VAT',
+                        type: 'Sale',
+                        billId: existingBill._id,
+                        purchaseSalesType: account.name,
+                        debit: 0,
+                        credit: vatAmount,
+                        paymentMode: paymentMode,
+                        balance: 0,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+                    await vatTransaction.save({ session });
+                    console.log('VAT Transaction: ', vatTransaction);
+                }
+            }
+
+            if (roundOffAmount > 0) {
+                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId }).session(session);
+                if (roundOffAccount) {
+                    const roundOffTransaction = new Transaction({
+                        account: roundOffAccount._id,
+                        billNumber: existingBill.billNumber,
+                        isType: 'RoundOff',
+                        type: 'Sale',
+                        billId: existingBill._id,
+                        purchaseSalesType: account.name,
+                        debit: 0,
+                        credit: roundOffAmount,
+                        paymentMode: paymentMode,
+                        balance: 0,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+                    await roundOffTransaction.save({ session });
+                    console.log('Round-off Transaction: ', roundOffTransaction);
+                }
+            }
+
+            if (roundOffAmount < 0) {
+                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId }).session(session);
+                if (roundOffAccount) {
+                    const roundOffTransaction = new Transaction({
+                        account: roundOffAccount._id,
+                        billNumber: existingBill.billNumber,
+                        isType: 'RoundOff',
+                        type: 'Sale',
+                        billId: existingBill._id,
+                        purchaseSalesType: account.name,
+                        debit: roundOffAmount,
+                        credit: 0,
+                        paymentMode: paymentMode,
+                        balance: 0,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+                    await roundOffTransaction.save({ session });
+                    console.log('Round-off Transaction: ', roundOffTransaction);
+                }
+            }
+
+            if (paymentMode === 'cash') {
+                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId }).session(session);
+                if (cashAccount) {
+                    const cashTransaction = new Transaction({
+                        account: cashAccount._id,
+                        billNumber: existingBill.billNumber,
+                        type: 'Sale',
+                        billId: existingBill._id,
+                        purchaseSalesType: 'Sales',
+                        debit: finalAmount,
+                        credit: 0,
+                        paymentMode: paymentMode,
+                        balance: 0,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+                    await cashTransaction.save({ session });
+                    console.log('Cash Transaction: ', cashTransaction);
+                }
+            }
+
+            // Commit the transaction
+            await session.commitTransaction();
+            session.endSession();
+
+            if (req.query.print === 'true') {
+                // Redirect to the print route
+                res.redirect(`/bills/${billId}/direct-print`);
+            } else {
+                // Redirect to the bills list or another appropriate page
+                req.flash('success', 'Bill updated successfully');
+                res.redirect(`/bills/edit/${billId}`);
+            }
+        } catch (error) {
+            console.error("Error updating bill:", error);
+            await session.abortTransaction();
+            session.endSession();
+            req.flash('error', 'Error updating bill');
+            res.redirect(`/bills/edit/${billId}`);
+        }
+    }
+});
+
+// PUT route to update a cash sales bill
+router.put('/bills/editCashAccount/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
+    if (req.tradeType === 'Wholeseller') {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        const billId = req.params.id;
+        try {
+            const {
+                cashAccount,
+                cashAccountAddress,
+                cashAccountPan,
+                cashAccountEmail,
+                cashAccountPhone,
+                items,
+                vatPercentage,
+                transactionDateRoman,
+                transactionDateNepali,
+                billDate,
+                nepaliDate,
+                isVatExempt,
+                discountPercentage,
+                paymentMode,
+                roundOffAmount: manualRoundOffAmount,
+            } = req.body;
+
+            const companyId = req.session.currentCompany;
+            const currentFiscalYear = req.session.currentFiscalYear.id;
+            const userId = req.user._id;
+
+            if (!companyId) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({ error: 'Company ID is required' });
+            }
+
+            // Fetch the existing bill
+            const existingBill = await SalesBill.findOne({ _id: billId, company: companyId }).session(session);
+            if (!existingBill) {
+                await session.abortTransaction();
+                session.endSession();
+                req.flash('error', 'Bill not found');
+                return res.redirect(`/bills/editCashAccount/${billId}`);
+            }
+
+            // // Reverse stock from existing bill items
+            // for (const existingItem of existingBill.items) {
+            //     const product = await Item.findById(existingItem.item).session(session);
+            //     if (!product) {
+            //         console.warn(`Product with ID ${existingItem.item} not found`);
+            //         continue;
+            //     }
+
+            //     const batchEntry = product.stockEntries.find(entry => entry.batchNumber === existingItem.batchNumber);
+            //     if (batchEntry) {
+            //         batchEntry.quantity += existingItem.quantity; // Restore stock
+            //         await product.save({ session });
+            //     } else {
+            //         console.warn(`Batch number ${existingItem.batchNumber} not found for product: ${product.name}`);
+            //     }
+            // }
+
+            // console.log('Stock successfully reversed for existing bill items.');
+            // Step 1: Identify removed items and restore stock
+            const removedItems = existingBill.items.filter(existingItem =>
+                !items.some(item =>
+                    item.item === existingItem.item.toString() &&
+                    item.batchNumber === existingItem.batchNumber &&
+                    item.uniqueUuId === existingItem.uniqueUuId
+                )
+            );
+            for (const removedItem of removedItems) {
+                const product = await Item.findById(removedItem.item).session(session);
+                if (!product) {
+                    console.warn(`Product with ID ${removedItem.item} not found`);
+                    continue;
+                }
+
+                const batchEntry = product.stockEntries.find(entry =>
+                    entry.batchNumber === removedItem.batchNumber &&
+                    entry.uniqueUuId === removedItem.uniqueUuId
+                );
+
+                if (batchEntry) {
+                    batchEntry.quantity += removedItem.quantity; // Restore stock
+                    await product.save({ session });
+                } else {
+                    console.warn(`Batch number ${removedItem.batchNumber} not found for product: ${product.name}`);
+                }
+            }
+            // Step 1: Identify updated items
+            const updatedItems = existingBill.items.filter(existingItem =>
+                items.some(item =>
+                    item.item === existingItem.item.toString() &&
+                    item.batchNumber === existingItem.batchNumber &&
+                    item.uniqueUuId === existingItem.uniqueUuId
+                )
+            );
+
+            // Step 2: Reverse stock for updated items
+            for (const updatedItem of updatedItems) {
+                const product = await Item.findById(updatedItem.item).session(session);
+                if (!product) {
+                    console.warn(`Product with ID ${updatedItem.item} not found`);
+                    continue;
+                }
+
+                // Find the exact batch entry using both batchNumber and uniqueUuId
+                const batchEntry = product.stockEntries.find(entry =>
+                    entry.batchNumber === updatedItem.batchNumber &&
+                    entry.uniqueUuId === updatedItem.uniqueUuId
+                );
+
+                if (batchEntry) {
+                    // Restore stock for the old quantity
+                    batchEntry.quantity += updatedItem.quantity;
+                    await product.save({ session });
+                    console.log(`Stock restored for batch ${updatedItem.batchNumber} with uniqueUuId ${updatedItem.uniqueUuId} for product: ${product.name}`);
+                } else {
+                    console.warn(`Batch number ${updatedItem.batchNumber} with uniqueUuId ${updatedItem.uniqueUuId} not found for product: ${product.name}`);
+                }
+            }
+
+            console.log('Stock successfully reversed for updated items.');
+
+            // Delete all associated transactions
+            await Transaction.deleteMany({ billId: existingBill._id }).session(session);
+            console.log('Existing transactions deleted successfully');
+
+            // Calculate amounts based on the updated POST route logic
+            const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
+            const isVatAll = isVatExempt === 'all';
+            const discount = parseFloat(discountPercentage) || 0;
+
+            let totalTaxableAmount = 0;
+            let totalNonTaxableAmount = 0;
+
+            for (const item of items) {
+                const product = await Item.findById(item.item).session(session);
+                if (!product) {
+                    await session.abortTransaction();
+                    session.endSession();
+                    throw new Error(`Product with ID ${item.item} not found`);
+                }
+
+                if (product.vatStatus === 'vatable') {
+                    totalTaxableAmount += item.quantity * item.price;
+                } else {
+                    totalNonTaxableAmount += item.quantity * item.price;
+                }
+            }
+
+            const discountForTaxable = (totalTaxableAmount * discount) / 100;
+            const discountForNonTaxable = (totalNonTaxableAmount * discount) / 100;
+
+            const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
+            const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
+
+            let vatAmount = 0;
+            if (!isVatExemptBool || isVatAll || isVatExempt === 'all') {
+                vatAmount = (finalTaxableAmount * vatPercentage) / 100;
+            }
+
+            const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
+
+            let finalAmount = totalAmount;
+            let roundOffAmount = 0;
+
+            const roundOffForSales = await Settings.findOne({ companyId, userId, fiscalYear: currentFiscalYear }).session(session) || { roundOffSales: false };
+
+            if (roundOffForSales.roundOffSales) {
+                finalAmount = Math.round(finalAmount.toFixed(2));
+                roundOffAmount = finalAmount - totalAmount;
+            } else if (manualRoundOffAmount && !roundOffForSales.roundOffSales) {
+                roundOffAmount = parseFloat(manualRoundOffAmount);
+                finalAmount = totalAmount + roundOffAmount;
+            }
+
+            // Update existing bill
+            existingBill.cashAccount = cashAccount;
+            existingBill.cashAccountAddress = cashAccountAddress;
+            existingBill.cashAccountPan = cashAccountPan;
+            existingBill.cashAccountEmail = cashAccountEmail;
+            existingBill.cashAccountPhone = cashAccountPhone;
+            existingBill.isVatExempt = isVatExemptBool;
+            existingBill.vatPercentage = isVatExemptBool ? 0 : vatPercentage;
+            existingBill.subTotal = totalTaxableAmount + totalNonTaxableAmount;
+            existingBill.discountPercentage = discount;
+            existingBill.discountAmount = discountForTaxable + discountForNonTaxable;
+            existingBill.nonVatSales = finalNonTaxableAmount;
+            existingBill.taxableAmount = finalTaxableAmount;
+            existingBill.vatAmount = vatAmount;
+            existingBill.totalAmount = finalAmount;
+            existingBill.roundOffAmount = roundOffAmount;
+            existingBill.isVatAll = isVatAll;
+            existingBill.paymentMode = paymentMode;
+            existingBill.date = nepaliDate || new Date(billDate);
+            existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
+
+            // Reduce stock for new items
+            const billItems = await Promise.all(items.map(async item => {
+                const product = await Item.findById(item.item).session(session);
+                if (!product) {
+                    throw new Error(`Product with ID ${item.item} not found`);
+                }
+
+                // Reduce stock for the specific batch
+                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === item.batchNumber && entry.uniqueUuId === item.uniqueUuId);
+                if (!batchEntry) {
+                    throw new Error(`Batch number ${item.batchNumber} not found for product: ${product.name}`);
+                }
+
+                if (batchEntry.quantity < item.quantity) {
+                    throw new Error(`Not enough stock for batch number ${item.batchNumber} of product: ${product.name}`);
+                }
+
+                batchEntry.quantity -= item.quantity; // Reduce stock
+                await product.save({ session });
+
+                return {
+                    item: product._id,
+                    quantity: item.quantity,
+                    price: item.price,
+                    unit: item.unit,
+                    batchNumber: item.batchNumber,
+                    expiryDate: item.expiryDate,
+                    vatStatus: product.vatStatus,
+                    fiscalYear: currentFiscalYear,
+                    uniqueUuId: item.uniqueUuId
+                };
+            }));
+
+            // Recreate transactions for the updated bill
+            await Promise.all(billItems.map(async item => {
+                const product = await Item.findById(item.item).session(session);
+                if (!product) {
+                    await session.abortTransaction();
+                    session.endSession();
+                    throw new Error(`Product with ID ${item.item} not found`);
+                }
+
+                // Create a transaction for each item
+                const transaction = new Transaction({
+                    item: product._id,
+                    cashAccount: cashAccount,
+                    billNumber: existingBill.billNumber,
+                    quantity: item.quantity,
+                    price: item.price,
+                    unit: item.unit,
+                    type: 'Sale',
+                    billId: existingBill._id,
+                    purchaseSalesType: 'Sales',
+                    debit: finalAmount, // Update as per your logic
+                    credit: 0, // Since it's a sale
+                    paymentMode: paymentMode,
+                    balance: 0, // Update with the correct balance logic if needed
+                    date: nepaliDate ? nepaliDate : new Date(billDate),
+                    company: companyId,
+                    user: userId,
+                    fiscalYear: currentFiscalYear
+                });
+
+                await transaction.save({ session });
+            }));
+
+            console.log('All transactions successfully created for updated bill.');
+
+            // Create a transaction for the default Purchase Account
+            const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
+            if (salesAmount > 0) {
+                const salesAccount = await Account.findOne({ name: 'Sales', company: companyId }).session(session);
+                if (salesAccount) {
+                    const salesTransaction = new Transaction({
+                        account: salesAccount._id,
+                        billNumber: existingBill.billNumber,
+                        type: 'Sale',
+                        billId: existingBill._id,
+                        purchaseSalesType: cashAccount,  // Save the party account name in purchaseSalesType,
+                        debit: 0,  // Debit the VAT account
+                        credit: salesAmount,// Credit is 0 for VAT transactions
+                        paymentMode: paymentMode,
+                        balance: 0,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+                    await salesTransaction.save({ session });
+                    console.log('Sales Transaction: ', salesTransaction);
+                }
+            }
+
+            // Create a transaction for the VAT amount
+            if (vatAmount > 0) {
+                const vatAccount = await Account.findOne({ name: 'VAT', company: companyId }).session(session);
+                if (vatAccount) {
+                    const vatTransaction = new Transaction({
+                        account: vatAccount._id,
+                        billNumber: existingBill.billNumber,
+                        isType: 'VAT',
+                        type: 'Sale',
+                        billId: existingBill._id,
+                        purchaseSalesType: cashAccount,  // Save the party account name in purchaseSalesType,
+                        debit: 0,  // Debit the VAT account
+                        credit: vatAmount,         // Credit is 0 for VAT transactions
+                        paymentMode: paymentMode,
+                        balance: 0,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+                    await vatTransaction.save({ session });
+                    console.log('Vat Transaction: ', vatTransaction);
+                }
+            }
+
+            // Create a transaction for the round-off amount
+            if (roundOffAmount > 0) {
+                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId }).session(session);
+                if (roundOffAccount) {
+                    const roundOffTransaction = new Transaction({
+                        account: roundOffAccount._id,
+                        billNumber: existingBill.billNumber,
+                        isType: 'RoundOff',
+                        type: 'Sale',
+                        billId: existingBill._id,
+                        purchaseSalesType: cashAccount,  // Save the party account name in purchaseSalesType,
+                        debit: 0,  // Debit the VAT account
+                        credit: roundOffAmount,         // Credit is 0 for VAT transactions
+                        paymentMode: paymentMode,
+                        balance: 0,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+                    await roundOffTransaction.save({ session });
+                    console.log('Round-off Transaction: ', roundOffTransaction);
+                }
+            }
+
+            if (roundOffAmount < 0) {
+                const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId }).session(session);
+                if (roundOffAccount) {
+                    const roundOffTransaction = new Transaction({
+                        account: roundOffAccount._id,
+                        billNumber: existingBill.billNumber,
+                        isType: 'RoundOff',
+                        type: 'Sale',
+                        billId: existingBill._id,
+                        purchaseSalesType: cashAccount,  // Save the party account name in purchaseSalesType,
+                        debit: Math.abs(roundOffAmount),  // Debit the VAT account
+                        credit: 0, // Ensure roundOffAmount is not saved as a negative value
+                        paymentMode: paymentMode,
+                        balance: 0,
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+                    await roundOffTransaction.save({ session });
+                    console.log('Round-off Transaction: ', roundOffTransaction);
+                }
+            }
+
+            // If payment mode is cash, also create a transaction for the "Cash in Hand" account
+            if (paymentMode === 'cash') {
+                const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId }).session(session);
+                if (cashAccount) {
+                    const cashTransaction = new Transaction({
+                        account: cashAccount._id,
+                        cashAccount: cashAccount,
+                        billNumber: existingBill.billNumber,
+                        type: 'Sale',
+                        billId: existingBill._id,
+                        purchaseSalesType: 'Sales',
+                        debit: finalAmount, // The cash amount received
+                        credit: 0,
+                        paymentMode: paymentMode,
+                        balance: 0, // Adjust with the correct balance logic
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
+                        company: companyId,
+                        user: userId,
+                        fiscalYear: currentFiscalYear
+                    });
+
+                    await cashTransaction.save({ session });
+                    console.log('Cash transaction created:', cashTransaction);
+                }
+            }
+
+            // Update bill with modified items
+            existingBill.items = billItems;
+            await existingBill.save({ session });
+
+            // Commit the transaction
+            await session.commitTransaction();
+            session.endSession();
+
+            if (req.query.print === 'true') {
+                // Redirect to the print route
+                res.redirect(`/bills/${billId}/direct-print`);
+            } else {
+                // Redirect to the bills list or another appropriate page
+                req.flash('success', 'Bill updated successfully');
+                res.redirect(`/bills/editCashAccount/${billId}`);
+            }
+        } catch (error) {
+            console.error("Error updating bill:", error);
+            await session.abortTransaction();
+            session.endSession();
+            req.flash('error', 'Error updating bill');
             res.redirect(`/bills/editCashAccount/${billId}`);
         }
-    } catch (error) {
-        console.error("Error updating bill:", error);
-        req.flash('error', 'Error updating bill');
-        res.redirect('/billsTrackBatchOpen');
     }
 });
 

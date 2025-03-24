@@ -202,7 +202,7 @@
                 <div class="col">
                     <!-- Fiscal Year Section -->
                     <div class="company-section">
-                        <h3>Fiscal Year</h3>
+                        <h3>Fiscal Year & Data Size</h3>
                         <% if (company.fiscalYear) { %>
                             <p><strong>Fiscal Year ID:</strong>
                                 <%= company.fiscalYear._id %>
@@ -211,6 +211,8 @@
                             <% } else { %>
                                 <p>No fiscal year available.</p>
                                 <% } %>
+                            <%= companyDataSizes[company._id] || 'N/A' %> KB
+
                     </div>
                 </div>
             </div>
