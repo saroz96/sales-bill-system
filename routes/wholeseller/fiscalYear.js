@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { switchFiscalYear } = require('../../services/fiscalYearService');
-const { ensureAuthenticated, ensureCompanySelected } = require('../../middleware/auth');
+const { ensureAuthenticated, ensureCompanySelected, isLoggedIn } = require('../../middleware/auth');
 const { ensureTradeType } = require('../../middleware/tradeType');
 const Company = require('../../models/wholeseller/Company');
 const NepaliDate = require('nepali-date');
@@ -16,7 +16,7 @@ const BillCounter = require('../../models/wholeseller/billCounter');
 let progress = 0; // 0 to 100
 
 // Route to render the page with all fiscal years for the current company
-router.get('/switch-fiscal-year', ensureAuthenticated, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/switch-fiscal-year', isLoggedIn, ensureAuthenticated, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     try {
         const companyId = req.session.currentCompany; // Get the company ID from the session
         const currentCompanyName = req.session.currentCompanyName;
@@ -90,7 +90,7 @@ router.post('/switch-fiscal-year', ensureAuthenticated, ensureFiscalYear, checkF
 });
 
 
-router.get('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+router.get('/change-fiscal-year', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
         try {
             const companyId = req.session.currentCompany;
@@ -248,6 +248,7 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
                     hscode: item.hscode,
                     category: item.category,
                     unit: item.unit,
+                    mainUnit: item.mainUnit,
                     price: item.price,
                     puPrice: purchasePrice,
                     stock: currentStock,
@@ -267,6 +268,7 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
                         batchNumber: stockEntry.batchNumber,
                         expiryDate: stockEntry.expiryDate,
                         price: stockEntry.price,
+                        mainUnitPuPrice: stockEntry.mainUnitPuPrice,
                         puPrice: stockEntry.puPrice,
                         mrp: stockEntry.mrp,
                         marginPercentage: stockEntry.marginPercentage,
@@ -496,7 +498,297 @@ router.post('/change-fiscal-year', ensureAuthenticated, ensureCompanySelected, e
         res.redirect('/'); // Handle unauthorized access
     }
 });
+// Add this route to your Express server
+router.get('/change-fiscal-year-stream', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
+    if (req.tradeType !== 'Wholeseller') {
+        res.write(`data: ${JSON.stringify({ type: 'error', message: 'Unauthorized access' })}\n\n`);
+        return res.end();
+    }
 
+    // Set headers for SSE
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+
+    // Function to send events
+    const sendEvent = (type, data) => {
+        res.write(`data: ${JSON.stringify({ type, ...data })}\n\n`);
+    };
+
+    try {
+        const companyId = req.session.currentCompany;
+        const currentFiscalYear = req.session.currentFiscalYear.id;
+
+        // Get parameters from query string (since this is a GET request)
+        const { startDateEnglish, endDateEnglish, startDateNepali, endDateNepali, dateFormat } = req.query;
+
+        // let startDate, endDate;
+        // if (dateFormat === 'nepali') {
+        //     startDate = startDateNepali;
+        //     endDate = endDateNepali;
+        // } else if (dateFormat === 'english') {
+        //     startDate = startDateEnglish;
+        //     endDate = endDateEnglish;
+        // } else {
+        //     sendEvent('error', { message: 'Invalid date format' });
+        //     return res.end();
+        // }
+
+        let startDate, endDate;
+        if (dateFormat === 'nepali') {
+            startDate = startDateNepali;
+            endDate = endDateNepali;
+        } else if (dateFormat === 'english') {
+            startDate = startDateEnglish;
+            endDate = endDateEnglish;
+        } else {
+            sendEvent('error', { message: 'Invalid date format' });
+            return res.end();
+        }
+
+
+        if (!endDate) {
+            endDate = new Date(startDate);
+            endDate.setFullYear(endDate.getFullYear() + 1);
+            endDate.setDate(endDate.getDate() - 1);
+        }
+
+        const startDateObject = new Date(startDate);
+        const endDateObject = new Date(endDate);
+        const startYear = startDateObject.getFullYear();
+        const endYear = endDateObject.getFullYear();
+        const fiscalYearName = `${startYear}/${endYear.toString().slice(-2)}`;
+
+        // Step 1: Create fiscal year
+        sendEvent('log', { message: `Creating new fiscal year ${fiscalYearName}...` });
+        sendEvent('progress', { value: 10 });
+
+        const existingFiscalYear = await FiscalYear.findOne({
+            name: fiscalYearName,
+            company: companyId
+        });
+
+        if (existingFiscalYear) {
+            sendEvent('error', { message: `Fiscal Year ${fiscalYearName} already exists.` });
+            return res.end();
+        }
+
+        const newFiscalYear = await FiscalYear.create({
+            name: fiscalYearName,
+            startDate: startDateObject,
+            endDate: endDateObject,
+            dateFormat,
+            company: companyId
+        });
+
+        sendEvent('log', { message: `Created new fiscal year: ${fiscalYearName}` });
+        sendEvent('progress', { value: 33 });
+
+        // Step 2: Create items
+        sendEvent('log', { message: 'Creating items for new fiscal year...' });
+        const items = await Item.find({ company: companyId, fiscalYear: currentFiscalYear });
+
+        let itemsProcessed = 0;
+        const totalItems = items.length;
+        const itemsProgressStep = 33 / Math.max(totalItems, 1); // Prevent division by zero
+
+        for (let item of items) {
+            const currentStock = item.stock;
+            const purchases = await Transaction.find({
+                item: item._id,
+                company: companyId,
+                type: 'Purc',
+                date: { $lt: startDateObject },
+                fiscalYear: currentFiscalYear
+            });
+
+            let totalQuantity = 0;
+            let totalPrice = 0;
+            for (let purchase of purchases) {
+                totalQuantity += purchase.quantity;
+                totalPrice += purchase.quantity * purchase.puPrice;
+            }
+
+            const purchasePrice = totalQuantity > 0 ? (totalPrice / totalQuantity) : item.puPrice;
+            const openingStockBalance = purchasePrice * currentStock;
+
+            const newItem = new Item({
+                name: item.name,
+                hscode: item.hscode,
+                category: item.category,
+                unit: item.unit,
+                mainUnit: item.mainUnit,
+                price: item.price,
+                puPrice: purchasePrice,
+                stock: currentStock,
+                vatStatus: item.vatStatus,
+                company: companyId,
+                fiscalYear: newFiscalYear._id,
+                openingStockByFiscalYear: [{
+                    fiscalYear: newFiscalYear._id,
+                    openingStock: currentStock,
+                    openingStockBalance: openingStockBalance,
+                    purchasePrice: purchasePrice,
+                    salesPrice: item.price,
+                }],
+                stockEntries: item.stockEntries.map(stockEntry => ({
+                    quantity: stockEntry.quantity,
+                    batchNumber: stockEntry.batchNumber,
+                    expiryDate: stockEntry.expiryDate,
+                    price: stockEntry.price,
+                    mainUnitPuPrice: stockEntry.mainUnitPuPrice,
+                    puPrice: stockEntry.puPrice,
+                    mrp: stockEntry.mrp,
+                    marginPercentage: stockEntry.marginPercentage,
+                    date: stockEntry.date || new Date(),
+                    fiscalYear: newFiscalYear._id
+                })),
+            });
+
+            try {
+                await newItem.save();
+                itemsProcessed++;
+                sendEvent('log', { message: `Created item: ${newItem.name} with stock: ${newItem.stock}` });
+                sendEvent('progress', { value: 33 + (itemsProcessed * itemsProgressStep) });
+            } catch (saveError) {
+                if (saveError.code === 11000) {
+                    sendEvent('log', { message: `Item ${newItem.name} already exists` });
+                } else {
+                    throw saveError;
+                }
+            }
+        }
+
+        sendEvent('log', { message: `Completed creating ${itemsProcessed} items` });
+        sendEvent('progress', { value: 66 });
+
+        // Step 3: Create accounts
+        sendEvent('log', { message: 'Creating accounts for new fiscal year...' });
+        const accounts = await Account.find({ company: companyId, fiscalYear: currentFiscalYear }).populate('transactions');
+
+        let accountsProcessed = 0;
+        const totalAccounts = accounts.length;
+        const accountsProgressStep = 34 / Math.max(totalAccounts, 1); // Remaining 34% of progress
+
+        for (let account of accounts) {
+            const transactions = await Transaction.find({
+                account: account._id,
+                company: companyId,
+                fiscalYear: currentFiscalYear,
+                type: { $in: ['Purc', 'Sale', 'SlRt', 'PrRt', 'Pymt', 'Rcpt', 'Jrnl', 'DrNt', 'CrNt'] },
+                $or: [
+                    { type: { $in: ['Sale', 'Purc', 'SlRt', 'PrRt'] }, paymentMode: { $ne: 'cash' } },
+                    { type: { $in: ['Pymt', 'Rcpt', 'Jrnl', 'DrNt', 'CrNt'] } }
+                ]
+            });
+
+            let totalDebits = 0;
+            let totalCredits = 0;
+
+            transactions.forEach(transaction => {
+                sendEvent('log', { message: `Transaction type: ${transaction.type}, debit: ${transaction.debit}, credit: ${transaction.credit}` });
+                // ... (same transaction processing logic as your POST route)
+            });
+
+            // Get the account's original opening balance
+            let openingBalance = account.openingBalance.amount;
+            let openingBalanceType = account.openingBalance.type;
+
+            // Calculate the total balance at the end of the fiscal year
+            let totalBalance = totalDebits - totalCredits;
+            if (openingBalanceType === 'Cr') {
+                totalBalance = openingBalance - totalBalance;
+            } else {
+                totalBalance = openingBalance + totalBalance;
+            }
+
+            sendEvent('log', { message: `Opening Balance: ${openingBalance} Total Balance: ${totalBalance}` });
+
+            const newBalanceType = totalBalance >= 0 ? 'Dr' : 'Cr';
+
+            const newAccount = new Account({
+                name: account.name,
+                address: account.address,
+                ward: account.ward,
+                phone: account.phone,
+                pan: account.pan,
+                contactperson: account.contactperson,
+                email: account.email,
+                openingBalance: {
+                    fiscalYear: newFiscalYear._id,
+                    amount: Math.abs(totalBalance),
+                    type: newBalanceType
+                },
+                openingBalanceDate: startDateObject,
+                companyGroups: account.companyGroups,
+                company: companyId,
+                fiscalYear: newFiscalYear._id,
+                transactions: []
+            });
+
+            try {
+                await newAccount.save();
+                accountsProcessed++;
+                sendEvent('log', { message: `Created account: ${newAccount.name} with opening balance: ${newAccount.openingBalance.amount}` });
+                sendEvent('progress', { value: 66 + (accountsProcessed * accountsProgressStep) });
+            } catch (saveError) {
+                if (saveError.code === 11000) {
+                    sendEvent('log', { message: `Account ${newAccount.name} already exists` });
+                } else {
+                    throw saveError;
+                }
+            }
+        }
+
+        sendEvent('log', { message: `Completed creating ${accountsProcessed} accounts` });
+
+        // Initialize bill counters
+        sendEvent('log', { message: 'Initializing bill counters...' });
+        const transactionTypes = [
+            'Sales', 'Purchase', 'SalesReturn', 'PurchaseReturn',
+            'Payment', 'Receipt', 'Journal', 'DebitNote', 'CreditNote', 'StockAdjustment'
+        ];
+
+        for (let transactionType of transactionTypes) {
+            try {
+                await BillCounter.create({
+                    company: companyId,
+                    fiscalYear: newFiscalYear._id,
+                    transactionType: transactionType,
+                    currentBillNumber: 0
+                });
+                sendEvent('log', { message: `Initialized ${transactionType} bill counter` });
+            } catch (err) {
+                sendEvent('log', { message: `Failed to initialize ${transactionType} bill counter: ${err.message}` });
+            }
+        }
+
+        // Update session
+        req.session.currentFiscalYear = {
+            id: newFiscalYear._id.toString(),
+            startDate: newFiscalYear.startDate,
+            endDate: newFiscalYear.endDate,
+            name: newFiscalYear.name,
+            dateFormat: newFiscalYear.dateFormat,
+            isActive: true
+        };
+
+        sendEvent('progress', { value: 100 });
+        sendEvent('complete', { message: `Fiscal year ${fiscalYearName} created successfully!` });
+    } catch (err) {
+        console.error('Error in fiscal year creation:', err);
+        sendEvent('error', { message: `Failed to create fiscal year: ${err.message}` });
+    } finally {
+        res.end();
+    }
+
+    // Handle client disconnect
+    req.on('close', () => {
+        res.end();
+    });
+});
 // Route to get progress
 router.get('/progress', (req, res) => {
     res.status(200).json({ progress });

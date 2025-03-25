@@ -127,7 +127,7 @@
         </div>
     </div>
 
-    Confirmation Modal
+    <!-- Confirmation Modal -->
     <div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel"
         aria-hidden="true">
         <div class="modal-dialog">
@@ -172,91 +172,164 @@
 
 
     <script>
-
         document.getElementById('switchFiscalYearForm').addEventListener('submit', function (event) {
-            event.preventDefault();
+    event.preventDefault();
 
-            // Show the confirmation modal
-            const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
-            confirmationModal.show();
+    // Show the confirmation modal
+    const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    confirmationModal.show();
 
-            // Handle the confirm button click
-            document.getElementById('confirmFiscalYear').onclick = function () {
-                confirmationModal.hide(); // Hide the modal
+    // Handle the confirm button click
+    document.getElementById('confirmFiscalYear').onclick = function () {
+        confirmationModal.hide();
 
-                // Change the text of the button and disable it to show "Creating..."
-                const createButton = document.getElementById('createFiscalYear');
-                createButton.innerText = 'Creating...';
-                createButton.disabled = true;
+        // Change the text of the button and disable it
+        const createButton = document.getElementById('createFiscalYear');
+        const originalText = createButton.innerText;
+        createButton.innerText = 'Creating...';
+        createButton.disabled = true;
 
-                // Proceed with form submission after changing the button text
-                startFiscalYearSwitch();
-            };
-        });
+        // Create a console output container
+        const consoleContainer = document.createElement('div');
+        consoleContainer.className = 'console-output mt-3 p-3 bg-dark text-light rounded';
+        consoleContainer.style.maxHeight = '300px';
+        consoleContainer.style.overflowY = 'auto';
+        consoleContainer.innerHTML = '<h5 class="text-white">Process Log:</h5><div id="processLog" class="font-monospace small"></div>';
+        document.querySelector('.card-body').appendChild(consoleContainer);
 
+        // Start the process with form data
+        startFiscalYearSwitch(originalText, consoleContainer);
+    };
+});
 
+function updateProgressBar(progress) {
+    const progressBar = document.getElementById('progressBar');
+    progressBar.style.width = `${progress}%`;
+    progressBar.setAttribute('aria-valuenow', progress);
+    progressBar.innerHTML = `${progress}%`;
 
-        function updateProgressBar(progress) {
-            const progressBar = document.getElementById('progressBar');
-            progressBar.style.width = `${progress}%`;
-            progressBar.innerText = `${progress}%`;
+    const steps = document.querySelectorAll('.step');
+    steps.forEach((step, index) => {
+        if (progress >= (index + 1) * 33) {
+            step.classList.add('complete');
+            step.classList.remove('incomplete');
+        } else {
+            step.classList.add('incomplete');
+            step.classList.remove('complete');
+        }
+    });
+}
 
-            const steps = document.querySelectorAll('.step');
-            steps.forEach((step, index) => {
-                if (progress >= (index + 1) * 33) {
-                    step.classList.add('complete');
-                    step.classList.remove('incomplete');
-                } else {
-                    step.classList.add('incomplete');
-                    step.classList.remove('complete');
-                }
+function logProcessMessage(container, message) {
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString();
+    const logElement = document.createElement('div');
+    logElement.className = 'log-entry border-bottom border-secondary pb-1 mb-1';
+    logElement.innerHTML = `<span class="text-muted">[${timestamp}]</span> ${message}`;
+    container.querySelector('#processLog').appendChild(logElement);
+    container.scrollTop = container.scrollHeight;
+}
+
+function startFiscalYearSwitch(originalButtonText, consoleContainer) {
+    // Get form data
+    const formData = new FormData(document.getElementById('switchFiscalYearForm'));
+    const params = new URLSearchParams();
+    
+    // Add all form data to URL params
+    for (const pair of formData.entries()) {
+        params.append(pair[0], pair[1]);
+    }
+
+    // Create SSE connection with form data as query params
+    const eventSource = new EventSource(`/change-fiscal-year-stream?${params.toString()}`);
+
+    // Initial log message
+    logProcessMessage(consoleContainer, "Starting fiscal year creation process...");
+
+    eventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'progress') {
+            updateProgressBar(data.value);
+            logProcessMessage(consoleContainer, `Progress: ${data.value}% complete`);
+        } 
+        else if (data.type === 'log') {
+            logProcessMessage(consoleContainer, data.message);
+        }
+        else if (data.type === 'complete') {
+            // Process completed
+            eventSource.close();
+            
+            // Reset the button state
+            const createButton = document.getElementById('createFiscalYear');
+            createButton.innerText = originalButtonText;
+            createButton.disabled = false;
+            
+            // Show success modal
+            document.getElementById('successMessage').innerText = data.message;
+            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+            successModal.show();
+            
+            // Update the current fiscal year display
+            updateCurrentFiscalYearDisplay();
+            
+            document.querySelector('#successModal .btn-success').addEventListener('click', function() {
+                successModal.hide();
+                // Optional: Refresh the page or update UI
+                // window.location.reload();
             });
         }
-
-        function fetchProgress() {
-            fetch('/progress')
-                .then(response => response.json())
-                .then(data => {
-                    updateProgressBar(data.progress);
-                })
-                .catch(error => console.error('Error fetching progress:', error));
+        else if (data.type === 'error') {
+            // Handle error
+            eventSource.close();
+            
+            // Reset the button state
+            const createButton = document.getElementById('createFiscalYear');
+            createButton.innerText = originalButtonText;
+            createButton.disabled = false;
+            
+            // Show error in console
+            logProcessMessage(consoleContainer, `Error: ${data.message}`);
+            
+            // Show error to user
+            alert(`Error: ${data.message}`);
         }
+    };
 
-        function startFiscalYearSwitch() {
-            fetch('/change-fiscal-year', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    startDateEnglish: document.getElementById('startDateEnglish')?.value || '',
-                    endDateEnglish: document.getElementById('endDateEnglish')?.value || '',
-                    startDateNepali: document.getElementById('startDateNepali')?.value || '',
-                    endDateNepali: document.getElementById('endDateNepali')?.value || '',
-                    dateFormat: document.getElementById('dateFormat').value
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const interval = setInterval(() => {
-                            fetchProgress();
-                            if (document.getElementById('progressBar').style.width === '100%') {
-                                clearInterval(interval);
-                                document.getElementById('successMessage').innerText = data.message;
-                                new bootstrap.Modal(document.getElementById('successModal')).show();
-                            }
-                        }, 1000);
-                    } else {
-                        console.error(data.error);
-                    }
-                })
-                .catch(error => console.error('Error starting fiscal year switch:', error));
-        }
+    eventSource.onerror = function() {
+        eventSource.close();
+        logProcessMessage(consoleContainer, "Connection to server interrupted");
+        
+        // Reset the button state
+        const createButton = document.getElementById('createFiscalYear');
+        createButton.innerText = originalButtonText;
+        createButton.disabled = false;
+        
+        alert("Connection to server was interrupted. Please try again.");
+    };
+}
 
-        // Attach the startFiscalYearSwitch function to the form submission event
-        document.getElementById('switchFiscalYearForm').addEventListener('submit', function (event) {
-            event.preventDefault();
-            startFiscalYearSwitch();
-        });
+function updateCurrentFiscalYearDisplay() {
+    // This function would fetch and update the current fiscal year display
+    // You can implement this based on your application's needs
+    fetch('/api/current-fiscal-year')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelector('.card-text:nth-of-type(1)').textContent = `Fiscal Year: ${data.fiscalYear.name}`;
+                document.querySelector('.card-text:nth-of-type(2)').textContent = `Start Date: ${formatDate(data.fiscalYear.startDate, data.fiscalYear.dateFormat)}`;
+                document.querySelector('.card-text:nth-of-type(3)').textContent = `End Date: ${formatDate(data.fiscalYear.endDate, data.fiscalYear.dateFormat)}`;
+            }
+        })
+        .catch(error => console.error('Error updating fiscal year display:', error));
+}
+
+function formatDate(dateString, dateFormat) {
+    // Implement your date formatting logic here
+    if (dateFormat === 'nepali') {
+        return new Date(dateString).toLocaleDateString('ne-NP');
+    } else {
+        return new Date(dateString).toLocaleDateString();
+    }
+}
     </script>

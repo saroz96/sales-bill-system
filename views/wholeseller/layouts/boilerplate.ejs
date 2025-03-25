@@ -111,8 +111,8 @@
                 integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
                 crossorigin="anonymous"></script>
 
-                <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-                <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
             <!--end::Required Plugin(Bootstrap 5)--><!--begin::Required Plugin(AdminLTE)-->
             <script>
                 function showLoader() {
@@ -139,55 +139,6 @@
                     }, 100); // Update every 100ms
                 }
 
-                // document.addEventListener("DOMContentLoaded", function () {
-
-                //     // Check if the page was reloaded directly (by URL)
-                //     if (performance.navigation.type === 1) {
-                //         // If the page was reloaded, don't show the loader
-                //         hideLoader();
-                //         return;
-                //     }
-
-                //     // Handle form submissions
-                //     const forms = document.querySelectorAll("form");
-
-                //     forms.forEach(function (form) {
-                //         form.addEventListener("submit", function () {
-                //             showLoader();
-                //         });
-                //     });
-
-                //     // Handle link clicks
-                //     const links = document.querySelectorAll("a[href]");
-                //     links.forEach(function (link) {
-                //         link.addEventListener("click", function (event) {
-                //             const href = link.getAttribute("href");
-
-                //             // Show loader only for valid links
-                //             if (
-                //                 href !== "#" &&
-                //                 href !== "#!" &&
-                //                 (!link.hasAttribute("target") || link.getAttribute("target") !== "_blank") &&
-                //                 link.hostname === window.location.hostname
-                //             ) {
-                //                 showLoader();
-                //             }
-                //         });
-                //     });
-                // });
-
-                // // Hide loader if user navigates back or the page is restored from cache
-                // window.onpageshow = function (event) {
-                //     if (event.persisted) {
-                //         hideLoader();  // Hide the loader when coming from cache (back button or forward)
-                //     }
-                // };
-
-                // // Show loader on page navigation (e.g., reload or back/forward)
-                // window.addEventListener("beforeunload", function () {
-                //     showLoader();
-                // });
-
                 document.addEventListener("DOMContentLoaded", function () {
                     // Prevent loader on reload
                     if (performance.navigation.type === 1) {
@@ -199,6 +150,23 @@
                     const forms = document.querySelectorAll("form");
 
                     forms.forEach(function (form) {
+                        // Skip the loader for the fiscal year switch form
+                        if (form.id === "switchFiscalYearForm") {
+                            form.addEventListener("submit", function (event) {
+                                // Check if the form has a delete action (though unlikely for this form)
+                                if (form.action.includes("_method=DELETE")) {
+                                    event.preventDefault();
+                                    let userConfirmed = confirm("Are you sure you want to delete?");
+                                    if (userConfirmed) {
+                                        form.submit();
+                                    }
+                                }
+                                // No showLoader() call here - this is what disables the loader
+                            });
+                            return; // Skip the rest of the form handling for this form
+                        }
+
+                        // Normal form handling for all other forms
                         form.addEventListener("submit", function (event) {
                             // Check if the form has a delete action
                             if (form.action.includes("_method=DELETE")) {
@@ -215,7 +183,7 @@
                         });
                     });
 
-                    // Handle link clicks
+                    // Handle link clicks (unchanged - loader will still show for links)
                     const links = document.querySelectorAll("a[href]");
                     links.forEach(function (link) {
                         link.addEventListener("click", function (event) {
