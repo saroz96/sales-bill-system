@@ -46,27 +46,26 @@
                             <div class="col">
                                 <label for="transactionDateNepali">Transaction Date:</label>
                                 <input type="text" name="transactionDateNepali" id="transactionDateNepali"
-                                    class="form-control" value="<%= transactionDateNepali ||'' %>" autofocus required
-                                    onfocus="selectValue(this)">
+                                    class="form-control" value="<%= transactionDateNepali ||'' %>" autofocus required>
                             </div>
                             <div class="col">
                                 <label for="nepaliDate">Invoice Date:</label>
                                 <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
-                                    value="<%= nepaliDate || '' %>" onfocus="selectValue(this)" autofocus>
+                                    value="<%= nepaliDate || '' %>" autofocus>
                             </div>
                             <% } else { %>
                                 <div class="col">
                                     <label for="transactionDateRoman">Transaction Date:</label>
                                     <input type="date" name="transactionDateRoman" id="transactionDateRoman"
                                         class="form-control" value="<%= new Date().toISOString().split('T')[0]%>"
-                                        onfocus="selectValue(this)" onblur="validateDate(this)" autofocus required>
+                                        onblur="validateDate(this)" autofocus required>
                                     <span class="error-message" style="color: red; display: none;"></span>
                                 </div>
                                 <div class="col">
                                     <label for="billDate">Invoice Date:</label>
                                     <input type="date" name="billDate" id="billDate" class="form-control" required
                                         value="<%= new Date().toISOString().split('T')[0] %>"
-                                        onfocus="selectValue(this)" onblur="validateDate(this)" autofocus>
+                                        onblur="validateDate(this)" autofocus>
                                     <span class="error-message" style="color: red; display: none;"></span>
                                 </div>
                                 <% } %>
@@ -143,6 +142,7 @@
                                     <th>Description of Goods</th>
                                     <th>WS Unit</th>
                                     <th>Qty</th>
+                                    <th>Bonus</th>
                                     <th>Unit</th>
                                     <th>Batch</th>
                                     <th>Expiry</th>

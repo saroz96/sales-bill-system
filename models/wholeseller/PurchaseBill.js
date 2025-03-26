@@ -37,6 +37,18 @@ const PurchaseBillSchema = new Schema({
         quantity: {
             type: Number,
         },  // Required in item schema
+        bonus: {
+            type: Number,
+        },
+        Altbonus: {
+            type: Number,
+            set: function (value) {
+                // Calculate quantity based on WSUnit
+                // Use default value of 1 for WSUnit if not specified
+                const wsUnit = this.WSUnit || 1;
+                return wsUnit * value;
+            }
+        },  // Required in item schema
         price: {
             type: Number,
         },     // Required in item schema

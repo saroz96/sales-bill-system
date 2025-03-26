@@ -195,8 +195,12 @@
                                                                                 <%= entry.billNumber %>
                                                                             </td>
                                                                             <td>
-                                                                                <%= entry.qtyIn %>
-                                                                            </td>
+                                                                                <% if (entry.bonus && entry.bonus > 0) { %>
+                                                                                  <%= entry.qtyIn %> + <%= entry.bonus %>
+                                                                                <% } else { %>
+                                                                                  <%= entry.qtyIn %>
+                                                                                <% } %>
+                                                                              </td>
                                                                             <td>
                                                                                 <%= entry.qtyOut %>
                                                                             </td>

@@ -4,6 +4,7 @@ const router = express.Router();
 //npm install pdfkit fs
 const PDFDocument = require('pdfkit');
 //npm install pdfkit fs
+const { v4: uuidv4 } = require('uuid');
 
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
@@ -430,8 +431,11 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
                 previousBalance = accountTransaction.balance;
             }
 
+            // Generate a unique ID for the stock entry
+            const uniqueId = uuidv4();
+
             // FIFO stock addition function
-            async function addStock(product, quantity, price, batchNumber, expiryDate) {
+            async function addStock(product, quantity, price, batchNumber, expiryDate, uniqueId) {
                 // Ensure quantity is treated as a number
                 const quantityNumber = Number(quantity);
 
@@ -442,6 +446,7 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
                     expiryDate: expiryDate,  // Add expiry date
                     date: nepaliDate ? nepaliDate : new Date(billDate),
                     mrp: price,
+                    uniqueUuId: uniqueId
                 });
 
                 // Ensure stock is incremented correctly as a number
@@ -482,7 +487,7 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
                 console.log('Transaction', transaction);
 
                 // Increment stock quantity using FIFO
-                await addStock(product, item.quantity, item.price, item.batchNumber, item.expiryDate);
+                await addStock(product, item.quantity, item.price, item.batchNumber, item.expiryDate, uniqueId);
 
                 return {
                     item: product._id,
@@ -492,7 +497,8 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
                     batchNumber: item.batchNumber,  // Add batch number
                     expiryDate: item.expiryDate,  // Add expiry date
                     vatStatus: product.vatStatus,
-                    fiscalYear: fiscalYearId
+                    fiscalYear: fiscalYearId,
+                    uniqueUuId: uniqueId
                 };
             }));
 

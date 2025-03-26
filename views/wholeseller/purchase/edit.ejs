@@ -76,10 +76,10 @@
                                         <label for="paymentMode">Payment Mode:</label>
                                         <select class="form-control" id="paymentMode" name="paymentMode"
                                             autocomplete="off">
-                                            <option value="credit" <%=purchaseInvoice.paymentMode==='credit' ? 'selected'
-                                                : '' %>>credit</option>
-                                            <option value="cash" <%=purchaseInvoice.paymentMode==='cash'
-                                                ? 'selected' : '' %>>cash</option>
+                                            <option value="credit" <%=purchaseInvoice.paymentMode==='credit'
+                                                ? 'selected' : '' %>>credit</option>
+                                            <option value="cash" <%=purchaseInvoice.paymentMode==='cash' ? 'selected'
+                                                : '' %>>cash</option>
                                         </select>
                                     </div>
 
@@ -149,6 +149,7 @@
                                 <th>Description of Goods</th>
                                 <th>WS Unit</th>
                                 <th>Qty</th>
+                                <th>Bonus</th>
                                 <th>Unit</th>
                                 <th>Batch</th>
                                 <th>Expiry</th>
@@ -186,8 +187,14 @@
                                         <td>
                                             <input type="number" name="items[<%= index %>][quantity]"
                                                 value="<%= item.quantity %>" class="form-control item-quantity"
-                                                id="quantity-<%= index %>" min="1" step="any"
-                                                oninput="updateItemTotal(this)"
+                                                id="quantity-<%= index %>" step="any" oninput="updateItemTotal(this)"
+                                                onkeydown="handleQuantityKeydown(event, <%= index %>)"
+                                                onfocus="selectValue(this)">
+                                        </td>
+                                        <td>
+                                            <input type="number" name="items[<%= index %>][bonus]"
+                                                value="<%= item.bonus %>" class="form-control item-bonus"
+                                                id="bonus-<%= index %>" step="any" oninput="updateItemTotal(this)"
                                                 onkeydown="handleQuantityKeydown(event, <%= index %>)"
                                                 onfocus="selectValue(this)">
                                         </td>
@@ -316,8 +323,9 @@
                                     <td><label for="roundOffAmount">Round Off:</label></td>
                                     <td>
                                         <input type="number" class="form-control" step="any" id="roundOffAmount"
-                                            name="roundOffAmount" value="0.00" oninput="calculateTotal()"
-                                            onfocus="selectValue(this)">
+                                            name="roundOffAmount"
+                                            value="<%= purchaseInvoice.roundOffAmount.toFixed(2) %>"
+                                            oninput="calculateTotal()" onfocus="selectValue(this)">
                                     </td>
                                     <td><label for="totalAmount">Total Amount:</label></td>
                                     <td>

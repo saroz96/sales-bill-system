@@ -80,7 +80,7 @@ router.get('/items-ledger/:id', isLoggedIn, ensureAuthenticated, ensureCompanySe
             const purchaseEntries = await PurchaseBill.find({ 'items.item': itemId, company: companyId }).populate('account').populate({
                 path: 'items.item',
                 model: 'Item',
-                select: 'name stock',
+                select: 'name stock bonus',
                 populate: {
                     path: 'unit',
                     model: 'Unit'
@@ -145,6 +145,7 @@ router.get('/items-ledger/:id', isLoggedIn, ensureAuthenticated, ensureCompanySe
                             billNumber: purchaseBill.billNumber,
                             type: 'Purc',
                             qtyIn: itemEntry.Altquantity,
+                            bonus: itemEntry.Altbonus,
                             qtyOut: 0,
                             price: itemEntry.AltpuPrice,
                             unit: itemEntry.item.unit.name,
@@ -185,7 +186,7 @@ router.get('/items-ledger/:id', isLoggedIn, ensureAuthenticated, ensureCompanySe
                     if (itemEntry.item._id.toString() === itemId) {
                         itemsLedger[itemId].entries.push({
                             date: salesBill.date,
-                            partyName: salesBill.account ? salesBill.account.name : salesBill.cashAccount || 'N/A',                            billNumber: salesBill.billNumber,
+                            partyName: salesBill.account ? salesBill.account.name : salesBill.cashAccount || 'N/A', billNumber: salesBill.billNumber,
                             type: 'Sale',
                             qtyIn: 0,
                             qtyOut: itemEntry.quantity,
@@ -254,7 +255,7 @@ router.get('/items-ledger/:id', isLoggedIn, ensureAuthenticated, ensureCompanySe
             let balance = openingStock || 0;
             itemsLedger[itemId].entries.forEach(entry => {
                 if (entry.qtyIn) {
-                    balance += entry.qtyIn;
+                    balance += entry.qtyIn + entry.bonus;
                 } else if (entry.qtyOut) {
                     balance -= entry.qtyOut;
                 }

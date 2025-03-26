@@ -587,9 +587,10 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
             const uniqueId = uuidv4();
 
             //FIFO stock addition function
-            async function addStock(product, batchNumber, expiryDate, WSUnit, quantity, price, puPrice, marginPercentage, mrp, currency, uniqueId) {
+            async function addStock(product, batchNumber, expiryDate, WSUnit, quantity, bonus, price, puPrice, marginPercentage, mrp, currency, uniqueId) {
                 // Ensure quantity is treated as a number
-                const quantityNumber = Number(quantity);
+                const quantityNumber = Number(quantity) + Number(bonus);
+                const bonusNumber = Number(bonus);
                 const parsedPrice = price !== undefined && price !== "" ? parseFloat(price) : 0;
                 const parsedPuPrice = puPrice !== undefined && puPrice !== "" ? parseFloat(puPrice) : 0;
                 const parsedMrp = mrp !== undefined && mrp !== "" ? parseFloat(mrp) : 0;
@@ -601,6 +602,7 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
                     date: nepaliDate ? nepaliDate : new Date(billDate),
                     WSUnit: WSUnitNumber,
                     quantity: WSUnitNumber ? quantityNumber * WSUnitNumber : 0,
+                    bonus: bonusNumber,
                     batchNumber: batchNumber,
                     expiryDate: expiryDate,
                     price: WSUnitNumber ? parsedPrice / WSUnitNumber : 0,
@@ -647,6 +649,7 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
                     purchaseSalesType: 'Purchase',
                     WSUnit: item.WSUnit,
                     quantity: item.quantity,
+                    bonus: item.bonus,
                     puPrice: item.puPrice,
                     unit: item.unit,  // Include the unit field
                     currency: item.currency,
@@ -668,7 +671,7 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
                 console.log('Transaction', transaction);
 
                 // Increment stock quantity using FIFO
-                await addStock(product, item.batchNumber, item.expiryDate, item.WSUnit, item.quantity, item.price, item.puPrice, item.marginPercentage, item.mrp, item.currency, uniqueId);
+                await addStock(product, item.batchNumber, item.expiryDate, item.WSUnit, item.quantity, item.bonus, item.price, item.puPrice, item.marginPercentage, item.mrp, item.currency, uniqueId);
 
                 billItems.push({
                     item: product._id,
@@ -676,6 +679,8 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
                     expiryDate: item.expiryDate,
                     WSUnit: item.WSUnit,
                     quantity: item.quantity,
+                    bonus: item.bonus,
+                    Altbonus: item.bonus,
                     price: item.price,
                     puPrice: item.puPrice,
                     Altquantity: item.quantity,
@@ -1231,9 +1236,6 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
             } else {
                 vatAmount = 0;
             }
-            // const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
-
-            // let finalAmount = totalAmount;
             let roundOffAmount = 0;
 
             let totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
@@ -1267,32 +1269,35 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
             existingBill.date = nepaliDate || new Date(billDate);
             existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
 
-            async function addStock(product, batchNumber, expiryDate, WSUnit, quantity, price, puPrice, marginPercentage, mrp, currency, uniqueUuId, isUpdate = false) {
+            async function addStock(product, batchNumber, expiryDate, WSUnit, quantity, bonus, price, puPrice, marginPercentage, mrp, currency, uniqueUuId, isUpdate = false) {
                 // Ensure numeric values
                 const quantityNumber = Number(quantity);
+                const bonusNumber = Number(bonus);
                 const WSUnitNumber = WSUnit !== undefined && WSUnit !== "" && WSUnit !== null ? Number(WSUnit) : 1;
-                const parsedPrice = price !== undefined && price !== "" ? parseFloat(price) : undefined; // Use undefined if not provided
+                const parsedPrice = price !== undefined && price !== "" ? parseFloat(price) : 0;
                 const parsedPuPrice = puPrice !== undefined && puPrice !== "" ? parseFloat(puPrice) : 0;
-                const parsedMrp = mrp !== undefined && mrp !== "" ? parseFloat(mrp) : undefined; // Use undefined if not provided
-                const parsedMarginPercentage = marginPercentage !== undefined && marginPercentage !== "" ? parseFloat(marginPercentage) : undefined; // Use undefined if not provided
+                const parsedMrp = mrp !== undefined && mrp !== "" ? parseFloat(mrp) : 0;
+                const parsedMarginPercentage = marginPercentage !== undefined && marginPercentage !== "" ? parseFloat(marginPercentage) : 0;
 
-                // Convert quantity to pieces
+                // Convert quantity to pieces - handle quantity and bonus separately
                 const convertedQuantity = quantityNumber * WSUnitNumber;
-
+                const convertedBonus = bonusNumber * WSUnitNumber;
+                const totalQuantity = convertedQuantity + convertedBonus
                 const stockEntry = {
                     date: nepaliDate ? nepaliDate : new Date(billDate),
                     WSUnit: WSUnitNumber,
-                    quantity: convertedQuantity, // Store in pieces
+                    quantity: totalQuantity,
+                    bonus: convertedBonus,
                     batchNumber: batchNumber,
                     expiryDate: expiryDate,
-                    price: parsedPrice !== undefined ? parsedPrice / WSUnitNumber : undefined, // Use undefined if not provided
-                    puPrice: parsedPuPrice / WSUnitNumber, // Per piece puPrice
-                    mainUnitPuPrice: parsedPuPrice, // Keeps original value before division
-                    mrp: parsedMrp !== undefined ? parsedMrp / WSUnitNumber : undefined, // Use undefined if not provided
-                    marginPercentage: parsedMarginPercentage !== undefined ? parsedMarginPercentage : undefined, // Use undefined if not provided
+                    price: parsedPrice !== undefined ? parsedPrice / WSUnitNumber : undefined,
+                    puPrice: parsedPuPrice / WSUnitNumber,
+                    mainUnitPuPrice: parsedPuPrice,
+                    mrp: parsedMrp !== undefined ? parsedMrp / WSUnitNumber : undefined,
+                    marginPercentage: parsedMarginPercentage,
                     currency: currency,
+                    purchaseBillId: existingBill._id,
                     uniqueUuId: uniqueUuId,
-                    purchaseBillId: existingBill._id // Add the purchase bill ID
                 };
 
                 console.log("Stock Entry:", stockEntry);
@@ -1303,37 +1308,35 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
                         (entry) => entry.batchNumber === batchNumber && entry.expiryDate === expiryDate
                     );
                     if (stockEntryIndex !== -1) {
-                        // Update existing stock entry (even if batch changed)
+                        // Update existing stock entry
                         const existingStockEntry = product.stockEntries[stockEntryIndex];
-
-                        // Retain existing uniqueUuId if not provided
                         const updatedUniqueUuId = uniqueUuId !== undefined ? uniqueUuId : existingStockEntry.uniqueUuId;
 
                         product.stockEntries[stockEntryIndex] = {
-                            ...existingStockEntry, // Retain existing properties
-                            batchNumber: batchNumber, // Update batch number
+                            ...existingStockEntry,
+                            date: nepaliDate ? nepaliDate : new Date(billDate),
+                            batchNumber: batchNumber,
                             expiryDate: expiryDate,
-                            quantity: convertedQuantity, // Update stock correctly
-                            price: parsedPrice !== undefined ? parsedPrice / WSUnitNumber : existingStockEntry.price, // Retain existing price if not provided
+                            quantity: totalQuantity,
+                            bonus: convertedBonus,
+                            price: parsedPrice !== undefined ? parsedPrice / WSUnitNumber : existingStockEntry.price,
                             puPrice: parsedPuPrice / WSUnitNumber,
-                            mrp: parsedMrp !== undefined ? parsedMrp / WSUnitNumber : existingStockEntry.mrp, // Retain existing MRP if not provided
-                            marginPercentage: parsedMarginPercentage !== undefined ? parsedMarginPercentage : existingStockEntry.marginPercentage, // Retain existing margin if not provided
-                            currency: currency !== undefined ? currency : existingStockEntry.currency, // Retain existing currency if not provided
-                            uniqueUuId: updatedUniqueUuId, // Retain existing uniqueUuId if not provided
+                            mainUnitPuPrice: parsedPuPrice,
+                            mrp: parsedMrp !== undefined ? parsedMrp / WSUnitNumber : existingStockEntry.mrp,
+                            marginPercentage: parsedMarginPercentage !== undefined ? parsedMarginPercentage : existingStockEntry.marginPercentage,
+                            currency: currency !== undefined ? currency : existingStockEntry.currency,
+                            purchaseBillId: existingBill._id,
+                            uniqueUuId: updatedUniqueUuId,
                         };
                     } else {
-                        // If no stock entry for this batch, add a new entry
                         product.stockEntries.push(stockEntry);
                     }
                 } else {
-                    // Add new stock entry for a new item
                     product.stockEntries.push(stockEntry);
                 }
 
-                // **Ensure total stock is correctly updated**
-                product.stock = product.stockEntries.reduce((total, entry) => total + entry.quantity, 0);
-
-                // Also update WSUnit in the product schema
+                // Update total stock (quantity + bonus)
+                product.stock = product.stockEntries.reduce((total, entry) => total + entry.quantity + entry.bonus, 0);
                 product.WSUnit = WSUnitNumber;
 
                 await product.save();
@@ -1359,6 +1362,7 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
                     const existingBillItem = billItems[existingBillItemIndex];
                     billItems[existingBillItemIndex] = {
                         ...existingBillItem, // Retain existing properties
+                        date: nepaliDate ? nepaliDate : new Date(billDate),
                         batchNumber: item.batchNumber, // Update to new batch number
                         expiryDate: item.expiryDate,
                         WSUnit: item.WSUnit,
@@ -1366,6 +1370,7 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
                         price: item.price !== undefined && item.price !== "" ? item.price : existingBillItem.price, // Retain existing price if not provided
                         puPrice: item.puPrice,
                         Altquantity: Number(item.quantity),
+                        Altbonus: Number(item.bonus),
                         Altprice: item.price !== undefined && item.price !== "" ? item.price : existingBillItem.Altprice, // Retain existing Altprice if not provided
                         AltpuPrice: item.puPrice,
                         mainUnitPuPrice: item.puPrice,
@@ -1373,6 +1378,7 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
                         marginPercentage: item.marginPercentage !== undefined && item.marginPercentage !== "" ? item.marginPercentage : existingBillItem.marginPercentage, // Retain existing margin if not provided
                         currency: item.currency !== undefined && item.currency !== "" ? item.currency : existingBillItem.currency,
                         uniqueUuId: item.uniqueUuId !== undefined && item.uniqueUuId !== "" ? item.uniqueUuId : existingBillItem.uniqueUuId,
+                        bonus: Number(item.bonus),
                         unit: item.unit,
                         vatStatus: product.vatStatus
                     };
@@ -1386,6 +1392,7 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
                         expiryDate: item.expiryDate,
                         WSUnit: item.WSUnit,
                         quantity: item.quantity,
+                        Altbonus: item.bonus,
                         price: item.price,
                         puPrice: item.puPrice,
                         Altquantity: item.quantity,
@@ -1397,7 +1404,8 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
                         currency: item.currency,
                         unit: item.unit,
                         vatStatus: product.vatStatus,
-                        uniqueUuId: newUniqueId
+                        uniqueUuId: newUniqueId,
+                        bonus: item.bonus,
                     });
                     // Use the same uniqueUuId for the stock entry
                     item.uniqueUuId = newUniqueId;
@@ -1412,6 +1420,7 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
                     // If transaction exists, update it instead of adding a new row
                     existingTransaction.batchNumber = item.batchNumber; // Update batch number
                     existingTransaction.quantity = item.quantity;
+                    existingTransaction.bonus = item.bonus;
                     existingTransaction.puPrice = item.puPrice;
                     existingTransaction.unit = item.unit;
                     existingTransaction.credit = finalAmount;
@@ -1455,6 +1464,7 @@ router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCo
                     item.expiryDate,
                     item.WSUnit,
                     item.quantity,
+                    item.bonus || 0,
                     item.price,
                     item.puPrice,
                     item.marginPercentage,

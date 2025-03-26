@@ -18,6 +18,9 @@ const stockEntrySchema = new mongoose.Schema({
     quantity: {
         type: Number,
     },
+    bonus: {
+        type: Number,
+    },
     batchNumber: {
         type: String,
         default: 'XXX',

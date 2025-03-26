@@ -296,6 +296,9 @@ function addItemToBill(item, dropdownMenu) {
     <input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
 </td>
 <td>
+    <input type="number" name="items[${itemIndex}][bonus]" value="0" class="form-control item-bonus" id="bonus-${itemIndex}" step="any" onkeydown="handleBonusKeydown(event,${itemIndex})" onfocus="selectValue(this)">
+</td>
+<td>
     ${item.unit ? item.unit.name : 'N/A'}
     <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
 </td>
@@ -838,6 +841,19 @@ function handleQuantityKeydown(event) {
     if (event.key === 'Enter') {
         const lastRow = document.querySelector('#items tr.item:last-child');
         if (lastRow) {
+            const batchNumberInput = lastRow.querySelector('.item-bonus');
+            if (batchNumberInput) {
+                batchNumberInput.focus();
+                batchNumberInput.select();
+            }
+        }
+    }
+}
+
+function handleBonusKeydown(event) {
+    if (event.key === 'Enter') {
+        const lastRow = document.querySelector('#items tr.item:last-child');
+        if (lastRow) {
             const batchNumberInput = lastRow.querySelector('.item-batchNumber');
             if (batchNumberInput) {
                 batchNumberInput.focus();
@@ -1046,7 +1062,7 @@ async function handlePriceKeydown(event, itemIndex) {
             if (isExistingItem) {
                 // For existing items, fetch saved values from hidden fields
                 const marginPercentage = document.getElementById(`marginPercentage-${itemIndex}`)?.value || '';
-                const mrp = document.getElementById(`mrp-${itemIndex}`)?.value || '';
+                const mrp = document.getElementById(`mrp-${itemIndex}`)?.value || 0;
                 const salesPrice = document.getElementById(`salesPrice-${itemIndex}`)?.value || '';
                 const currency = document.getElementById(`currency-${itemIndex}`)?.value || '';
 

@@ -306,6 +306,7 @@
                                 <th>Batch</th>
                                 <th>Expiry</th>
                                 <th>Quantity</th>
+                                <th>Free</th>
                                 <th>Unit</th>
                                 <th>Rate</th>
                                 <th>Total</th>
@@ -335,16 +336,19 @@
                                         <%=bill.items[i].expiryDate.toLocaleDateString()%>
                                     </td>
                                     <td>
-                                        <%= bill.items[i].quantity %>
+                                        <%= bill.items[i].Altquantity %>
+                                    </td>
+                                    <td>
+                                        <%= bill.items[i].Altbonus %>
                                     </td>
                                     <td>
                                         <%= bill.items[i].item.unit ? bill.items[i].item.unit.name : '' %>
                                     </td>
                                     <td>
-                                        <%= bill.items[i].puPrice.toFixed(2) %>
+                                        <%= bill.items[i].AltpuPrice.toFixed(2) %>
                                     </td>
                                     <td>
-                                        <%= (bill.items[i].quantity * bill.items[i].puPrice).toFixed(2) %>
+                                        <%= (bill.items[i].Altquantity * bill.items[i].AltpuPrice).toFixed(2) %>
                                     </td>
                                 </tr>
 

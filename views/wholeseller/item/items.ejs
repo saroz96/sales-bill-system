@@ -372,7 +372,7 @@
                                     <div class="col">
                                         <label for="editOpeningStockBalance">Op. Stock Value</label>
                                         <input type="number" class="form-control" id="editOpeningStockBalance"
-                                            name="openingStockBalance" value="0.00" onfocus="selectValue(this)">
+                                            name="openingStockBalance" value="0.00" step="any" onfocus="selectValue(this)">
                                     </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Save changes</button>
@@ -438,6 +438,74 @@
                 // Navigate back twice to skip the success message page
                 window.history.go(-2);
             });
+
+            // document.getElementById('backButton').addEventListener('click', function () {
+            //     // Store the current history length when first arriving at the page
+            //     if (!sessionStorage.getItem('initialHistoryLength')) {
+            //         sessionStorage.setItem('initialHistoryLength', history.length);
+            //     }
+
+            //     const initialLength = parseInt(sessionStorage.getItem('initialHistoryLength'));
+            //     const currentLength = history.length;
+
+            //     // Calculate how many steps back we need to go
+            //     const stepsBack = currentLength - initialLength + 1;
+
+            //     if (stepsBack > 1) {
+            //         // If we have history to go back through
+            //         window.history.go(-stepsBack);
+            //     } else {
+            //         // Fallback to default back behavior
+            //         window.history.back();
+            //     }
+            // });
+
+            // // Reset the history tracker when coming from another page
+            // window.addEventListener('pageshow', function (event) {
+            //     if (event.persisted || performance.navigation.type === 2) {
+            //         // Page was restored from bfcache or via back/forward navigation
+            //         sessionStorage.removeItem('initialHistoryLength');
+            //     }
+            // });
+
+            // Store whether we're currently on the items page
+            // let isOnItemsPage = window.location.pathname === '/items';
+
+            // document.getElementById('backButton')?.addEventListener('click', function () {
+            //     if (!isOnItemsPage) return;
+
+            //     // Store initial history length if not set
+            //     if (!sessionStorage.getItem('initialHistoryLength')) {
+            //         sessionStorage.setItem('initialHistoryLength', history.length);
+            //     }
+
+            //     const initialLength = parseInt(sessionStorage.getItem('initialHistoryLength'));
+            //     const stepsBack = history.length - initialLength + 1;
+
+            //     // Set flag that we're navigating back from items page
+            //     sessionStorage.setItem('navigatingBackFromItems', 'true');
+
+            //     if (stepsBack > 1) {
+            //         window.history.go(-stepsBack);
+            //     } else {
+            //         window.history.back();
+            //     }
+            // });
+
+            // // Reset initial history when arriving at previous page after back navigation
+            // window.addEventListener('pageshow', function (event) {
+            //     if (event.persisted || performance.navigation.type === 2) {
+            //         if (sessionStorage.getItem('navigatingBackFromItems') === 'true') {
+            //             sessionStorage.removeItem('initialHistoryLength');
+            //             sessionStorage.removeItem('navigatingBackFromItems');
+            //         }
+            //     }
+            // });
+
+            // // Update page tracking when URL changes
+            // window.addEventListener('popstate', function () {
+            //     isOnItemsPage = window.location.pathname === '/items';
+            // });
         </script>
 
         <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>

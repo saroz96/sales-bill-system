@@ -298,6 +298,9 @@ function addItemToBill(item, dropdownMenu) {
     <input type="number" name="items[${itemIndex}][quantity]" value="0" class="form-control item-quantity" id="quantity-${itemIndex}" min="1" step="any" oninput="updateItemTotal(this)" onkeydown="handleQuantityKeydown(event,${itemIndex})" onfocus="selectValue(this)" required>
 </td>
 <td>
+    <input type="number" name="items[${itemIndex}][bonus]" value="0" class="form-control item-bonus" id="bonus-${itemIndex}" step="any" onkeydown="handleBonusKeydown(event,${itemIndex})" onfocus="selectValue(this)">
+</td>
+<td>
     ${item.unit ? item.unit.name : ''}
     <input type="hidden" name="items[${itemIndex}][unit]" value="${item.unit ? item.unit._id : ''}">
 </td>
@@ -577,10 +580,10 @@ function submitBillForm(print) {
     }
 
     // Simulate form submission (replace this with actual form submission logic)
-        billForm.submit();
+    billForm.submit();
 
-        // Reset button text and enable it after submission
-        saveButton.disabled = false;
+    // Reset button text and enable it after submission
+    saveButton.disabled = false;
 }
 
 document.getElementById('billForm').addEventListener('submit', function (event) {
@@ -840,6 +843,14 @@ function handleWSUnitKeydown(event) {
 }
 
 function handleQuantityKeydown(event) {
+    if (event.key === 'Enter') {
+        const bonusInput = document.getElementById(`bonus-${itemIndex - 1}`);
+        bonusInput.focus();
+        bonusInput.select();
+
+    }
+}
+function handleBonusKeydown(event) {
     if (event.key === 'Enter') {
         const batchNumberInput = document.getElementById(`batchNumber-${itemIndex - 1}`);
         batchNumberInput.focus();
