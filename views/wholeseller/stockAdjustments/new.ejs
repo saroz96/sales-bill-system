@@ -1,5 +1,10 @@
 <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <!-- Nepali Datepicker -->
+    <link href="https://nepalidatepicker.sajanmaharjan.com.np/nepali.datepicker/css/nepali.datepicker.v4.0.7.min.css"
+        rel="stylesheet" type="text/css" />
+
     <style>
         .vatable-item {
             background-color: lightgreen;
@@ -163,7 +168,7 @@
 
         @media (min-width: 768px) {
             .expanded-container {
-                max-width: 80%;
+                max-width: 90%;
                 /* Adjust width for medium and larger screens */
             }
         }
@@ -207,6 +212,8 @@
         <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
             <div class="card-header">
                 Create Adjustment
+                <span id="nepaliDateError" style="color: red; display: none;">Invalid date!</span>
+
             </div>
             <div class="card-body">
                 <form action="/stockAdjustments" method="post" id="billForm">
@@ -218,41 +225,26 @@
                                 <input type="text" name="nepaliDate" id="nepaliDate" class="form-control" required
                                     value="<%= nepaliDate || '' %>" autofocus>
                             </div>
-                            <div class="col d-none">
-                                <label for="billDate">Date:</label>
-                                <input type="date" name="billDate" id="billDate" class="form-control"
-                                    value="<%= new Date().toISOString().split('T')[0] %>" disabled autofocus>
-                            </div>
                             <% } else { %>
                                 <div class="col">
                                     <label for="billDate">Date:</label>
                                     <input type="date" name="billDate" id="billDate" class="form-control" required
                                         value="<%= new Date().toISOString().split('T')[0] %>" autofocus>
                                 </div>
-                                <div class="col d-none">
-                                    <label for="nepaliDate">Date:</label>
-                                    <input type="text" name="nepaliDate" id="nepaliDate" class="form-control"
-                                        value="<%= nepaliDate || '' %>" disabled autofocus>
-                                </div>
-
                                 <% } %>
                                     <div class="col">
                                         <label for="adjustmentType">Type:</label>
                                         <select id="adjustmentType" name="adjustmentType" class="form-control"
                                             onchange="toggleReasonDropdowns()">
-                                            <option value="" disabled selected>Select adjustment type</option>
-                                            <option value="short">Short</option>
                                             <option value="xcess">Xcess</option>
+                                            <option value="short">Short</option>
                                         </select>
                                     </div>
                                     <div class="col">
-                                        <p id="billNumber">
-                                            <label for="billNumber">Vch. No:</label>
-                                            <input type="number" class="form-control" value="<%=nextBillNumber %>"
-                                                disabled readonly>
-                                            <input type="hidden" name="billNumber" value="<%= nextBillNumber %>"
-                                                readonly>
-                                        </p>
+                                        <label for="billNumber">Vch. No:</label>
+                                        <input type="number" name="billNumber" id="billNumber" class="form-control"
+                                            value="<%=nextBillNumber %>" oninput="this.value='<%=nextBillNumber%>'"
+                                            onfocus="selectValue(this)">
                                     </div>
 
                                     <div class="col">
@@ -260,7 +252,6 @@
                                         <select name="isVatExempt" id="isVatExempt" class="form-control"
                                             onchange="toggleVatInputs()"
                                             onchange="filterItems(document.getElementById('itemSearch'))">
-                                            <option value="" disabled selected>Select vat</option>
                                             <% if (vatEnabled) {%>
                                                 <option value="all">All</option>
                                                 <option value="false">13%</option>
@@ -270,7 +261,7 @@
                                     </div>
                     </div>
                     <hr style="border: 1px solid gray;">
-                    <div class="form-group row">
+                    <!-- <div class="form-group row">
                         <div class="col">
                             <div class="form-group row">
                                 <div class="col">
@@ -282,19 +273,29 @@
                                 </div>
                             </div>
                         </div>
+                    </div> -->
+
+                    <div class="form-group row">
+                        <div class="col">
+                            <label for="itemSearch">Search Item</label>
+                            <input type="text" id="itemSearch" class="form-control" placeholder="Search for an item"
+                                autocomplete="off" onkeydown="handleItemSearchKeydown(event)">
+                            <div id="dropdownMenu" class="dropdown-menu"></div>
+                        </div>
                     </div>
 
                     <table class="table table-bordered compact-table" id="itemsTable">
                         <thead>
                             <tr>
                                 <th>S.No.</th>
-                                <th>Item Code</th>
-                                <th>Item Name</th>
-                                <th>H.S. Code</th>
+                                <th>#</th>
+                                <th>Description of Goods</th>
+                                <th>HSN</th>
                                 <th>Qty</th>
                                 <th>Unit</th>
-                                <th>Batch & Exp.</th>
-                                <th>Price</th>
+                                <th>Batch</th>
+                                <th>Expiry</th>
+                                <th>Rate</th>
                                 <th>Amount</th>
                                 <th>Reason</th>
                                 <th>Action</th>
@@ -460,28 +461,104 @@
         </div>
     </div>
 
+    <script src="https://nepalidatepicker.sajanmaharjan.com.np/nepali.datepicker/js/nepali.datepicker.v4.0.7.min.js"
+        type="text/javascript"></script>
     <script>
         let itemIndex = 0;
         let currentFocus = 0;
         let isFirstLoad = true;
 
-        $(document).ready(function () {
-            // Initialize Select2 for searchable dropdown
-            $('#adjustmentType').select2({
-                placeholder: "Select adjustment type",
-                allowClear: true,
-                width: '100%', // Ensure it takes the full width of the container
-            });
-        });
+        window.onload = function () {
+            var nepaliDate = document.getElementById("nepaliDate");
 
-        $(document).ready(function () {
-            // Initialize Select2 for searchable dropdown
-            $('#isVatExempt').select2({
-                placeholder: "Select vat",
-                allowClear: true,
-                width: '100%', // Ensure it takes the full width of the container
+            nepaliDate.nepaliDatePicker();
+
+            // Add validation for Invoice Date
+            nepaliDate.addEventListener("blur", function (event) {
+                validateNepaliDate(this, "nepaliDateError", event);
             });
-        });
+        };
+
+        // Function to validate Nepali date
+        function validateNepaliDate(inputField, errorSpanId, event) {
+            var errorSpan = document.getElementById(errorSpanId);
+            var dateString = inputField.value.trim();
+
+            // Check if the date is blank
+            if (!dateString) {
+                errorSpan.textContent = "Date cannot be blank!"; // Set error message
+                errorSpan.style.display = "inline"; // Show error message
+                event.preventDefault(); // Prevent moving to the next field
+                inputField.focus(); // Keep focus on the current input field
+                return;
+            }
+
+            // Check if the date is valid
+            if (!isValidNepaliDate(dateString)) {
+                errorSpan.textContent = "Invalid date!"; // Set error message
+                errorSpan.style.display = "inline"; // Show error message
+                event.preventDefault(); // Prevent moving to the next field
+                inputField.focus(); // Keep focus on the current input field
+            } else {
+                errorSpan.style.display = "none"; // Hide error message
+            }
+        }
+
+        // Function to check if the Nepali date is valid
+        function isValidNepaliDate(dateString) {
+            // Regular expression to match the Nepali date format (YYYY-MM-DD)
+            var datePattern = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+            if (!datePattern.test(dateString)) return false;
+
+            // Split the date string into year, month, and day
+            var parts = dateString.split("-");
+            var year = parseInt(parts[0], 10);
+            var month = parseInt(parts[1], 10);
+            var day = parseInt(parts[2], 10);
+
+            // Check if the month and day are valid
+            if (isNaN(year) || isNaN(month) || isNaN(day)) return false;
+            if (month < 1 || month > 12 || day < 1 || day > 32) return false;
+
+            // Manually validate the number of days in the month
+            var maxDays = getMaxDaysInNepaliMonth(year, month);
+            if (day > maxDays) return false;
+
+            return true;
+        }
+
+        // Function to get the maximum number of days in a Nepali month
+        function getMaxDaysInNepaliMonth(year, month) {
+            // Define the number of days in each month for a given year
+            // This is a simplified example and may not cover all edge cases
+            var nepaliMonths = [
+                31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 30 // Example for year 2080
+            ];
+
+            // Adjust for leap years if necessary
+            if (year % 4 === 0 && month === 1) { // Check if it's a leap year and the month is Baisakh
+                nepaliMonths[0] = 31; // Baisakh has 31 days in a leap year
+            }
+
+            return nepaliMonths[month - 1]; // Return the number of days for the given month
+        }
+
+        //for english date validation
+        function validateDate(input) {
+            const errorMessage = input.nextElementSibling; // Get the error message span
+            const dateValue = input.value;
+
+            // Check if the date is valid
+            if (!dateValue || isNaN(new Date(dateValue).getTime())) {
+                errorMessage.textContent = "Invalid date!";
+                errorMessage.style.display = "block";
+                input.focus(); // Prevent moving to the next field
+            } else {
+                errorMessage.style.display = "none"; // Hide error if valid
+            }
+        }
+
+
         async function fetchItems(query, vatStatus, existingItemIds) {
             try {
                 const response = await fetch(`/items/search?q=${query}&isVatExempt=${vatStatus}`);
@@ -710,7 +787,7 @@
                     <div>${item.category ? item.category.name : 'No Category'}</div>
                     <div>${totalStock}</div>
                     <div>${item.unit ? item.unit.name : ''}</div>
-                    <div>Rs.${item.puPrice.toFixed()}</div>
+                    <div>Rs.${item.puPrice}</div>
                 `;
 
                         dropdownItem.addEventListener('click', () => {
@@ -737,94 +814,6 @@
                 dropdownMenu.classList.remove('show'); // Close the dropdown if clicked outside
             }
         });
-
-        // async function filterItems(input) {
-        //     const query = input.value.trim().toLowerCase();
-        //     const vatStatus = document.getElementById('isVatExempt').value; // Get the VAT status from the select input
-        //     const dropdownMenu = input.nextElementSibling;
-
-        //     // To exclude already present items from search
-        //     const existingItemIds = Array.from(document.querySelectorAll('input[name^="items["]'))
-        //         .filter(input => input.name.includes('[item]'))
-        //         .map(input => input.value);
-
-        //     if (query.length === 0) {
-        //         dropdownMenu.innerHTML = '';
-        //         dropdownMenu.classList.remove('show'); // Hide the dropdown if input is blank
-        //         return;
-        //     }
-
-        //     try {
-        //         const items = await fetchItems(query, vatStatus, existingItemIds);
-
-        //         console.log('Filtered items:', items);
-
-        //         // Clear existing dropdown items
-        //         dropdownMenu.innerHTML = '';
-
-        //         if (items.length === 0) {
-        //             // Display a "No items found" message
-        //             const noItemsMessage = document.createElement('div');
-        //             noItemsMessage.classList.add('dropdown-item');
-        //             noItemsMessage.textContent = 'No items found';
-        //             noItemsMessage.style.textAlign = 'center'; // Center-align the message
-        //             noItemsMessage.style.color = 'white';
-        //             noItemsMessage.style.backgroundColor = 'blue';
-        //             dropdownMenu.appendChild(noItemsMessage);
-        //             dropdownMenu.classList.add('show');
-        //         } else {
-        //             // Create and add table header
-        //             const header = document.createElement('div');
-        //             header.classList.add('dropdown-header');
-        //             header.innerHTML = `
-        //         <div><strong>Item Code</strong></div>
-        //         <div><strong>H.S. Code</strong></div>
-        //         <div><strong>Item Name</strong></div>
-        //         <div><strong>Category</strong></div>
-        //         <div><strong>Quantity</strong></div>
-        //         <div><strong>Unit</strong></div>
-        //         <div><strong>S.Price</strong></div>
-        //         <div><strong>Pu.Price</strong></div>
-        //     `;
-        //             dropdownMenu.appendChild(header);
-
-        //             // Create and add dropdown items
-        //             items.forEach(item => {
-        //                 const dropdownItem = document.createElement('div');
-        //                 dropdownItem.classList.add('dropdown-item');
-        //                 dropdownItem.tabIndex = 0; // Make the item focusable
-
-        //                 // Add class based on VAT status
-        //                 if (item.vatStatus === 'vatable') {
-        //                     dropdownItem.classList.add('vatable-item');
-        //                 } else {
-        //                     dropdownItem.classList.add('non-vatable-item');
-        //                 }
-
-        //                 // Calculate the total available stock from stockEntries
-        //                 const totalStock = item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
-
-        //                 dropdownItem.innerHTML = `
-        //             <div>${item.uniqueNumber || 'N/A'}</div>
-        //             <div>${item.hscode || 'N/A'}</div>
-        //             <div>${item.name}</div>
-        //             <div>${item.category ? item.category.name : 'No Category'}</div>
-        //             <div>${totalStock}</div>
-        //             <div>${item.unit ? item.unit.name : ''}</div>
-        //             <div>Rs.${item.price}</div>
-        //             <div>Rs.${item.puPrice}</div>
-        //         `;
-        //                 dropdownItem.addEventListener('click', () => addItemToBill(item, dropdownMenu));
-        //                 dropdownMenu.appendChild(dropdownItem);
-        //             });
-
-        //             dropdownMenu.classList.add('show');
-        //         }
-        //     } catch (error) {
-        //         console.error('Error fetching items:', error);
-        //         // Optionally, handle errors here
-        //     }
-        // }
 
         let selectedBatch = {}; // Store the selected batch information
 
@@ -889,8 +878,10 @@
         </td>
         <!-- Add fields for batch number and expiry date, these will remain editable -->
         <td>
-            <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
-            <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+            <input type="text" name="items[${itemIndex}][batchNumber]" value="${selectedBatch.batchNumber || "XXX"}" class="form-control item-batchNumber" id="batchNumber-${itemIndex}" onkeydown="handleBatchKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
+        </td>
+         <td>
+            <input type="date" name="items[${itemIndex}][expiryDate]" value="${selectedBatch.expiryDate || getDefaultExpiryDate()}" class="form-control item-expiryDate" id="expiryDate-${itemIndex}" onkeydown="handleExpDateKeydown(event, ${itemIndex})" onfocus="selectValue(this)">
         </td>
         <td><input type="number" name="items[${itemIndex}][puPrice]" value="${selectedBatch.puPrice}" class="form-control item-puPrice" id="puPrice-${itemIndex}" step="any" oninput="updateItemTotal(this)" onkeydown="handlePriceKeydown(event, ${itemIndex})" onfocus="selectValue(this)"></td>
         <td class="item-amount">0.00</td>
@@ -1007,6 +998,14 @@
             });
         }
 
+        function getDefaultExpiryDate() {
+            const today = new Date();
+            today.setFullYear(today.getFullYear() + 2); // Add 2 years to the current year
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
 
         function removeItem(button) {
             const row = button.closest('tr');
@@ -1148,6 +1147,7 @@
                 taxableAmountRow.style.display = 'none';
                 vatPercentageRow.style.display = 'none';
                 // vatAmountRow.style.display = 'none';
+                moveToNextVisibleInput(document.getElementById('isVatExempt'));
             } else {
                 taxableAmountRow.style.display = 'table-row'; // Show taxable amount row
                 vatPercentageRow.style.display = 'table-row'; // Show VAT 13% row
@@ -1156,6 +1156,21 @@
 
             // Recalculate total when toggling VAT
             calculateTotal();
+        }
+
+        function moveToNextVisibleInput(currentElement) {
+            const formElements = Array.from(document.querySelectorAll('input, select, textarea, button'));
+
+            // Find the current element's index in the form
+            const currentIndex = formElements.indexOf(currentElement);
+
+            // Iterate through the remaining elements to find the next visible one
+            for (let i = currentIndex + 1; i < formElements.length; i++) {
+                if (formElements[i].offsetParent !== null) { // Check if the element is visible
+                    formElements[i].focus();
+                    break;
+                }
+            }
         }
 
         function showPrintModal() {
@@ -1337,9 +1352,6 @@
 
         function handleQuantityKeydown(event) {
             if (event.key === 'Enter') {
-                // Focus on the price input field
-                // document.getElementById('price').focus();
-                // document.getElementById(`price-${itemIndex}`).focus();
                 const batchNumberInput = document.getElementById(`batchNumber-${itemIndex - 1}`);
                 batchNumberInput.focus();
                 batchNumberInput.select();
@@ -1362,29 +1374,6 @@
                 priceInput.select();
             }
         }
-
-        // function handlePriceKeydown(event) {
-        //     if (event.key === 'Enter') {
-
-        //         // Get the current item index
-        //         const index = itemIndex - 1;
-
-        //         // Get the reason dropdowns based on the current item index
-        //         const shortReasonInput = document.getElementById(`shortReason-${index}`);
-        //         const xcessReasonInput = document.getElementById(`xcessReason-${index}`);
-
-        //         // Check which dropdown should be focused based on the adjustment type
-        //         const adjustmentType = document.getElementById('adjustmentType').value;
-
-        //         if (adjustmentType === 'short' && shortReasonInput) {
-        //             shortReasonInput.focus();
-        //             shortReasonInput.select();
-        //         } else if (adjustmentType === 'xcess' && xcessReasonInput) {
-        //             xcessReasonInput.focus();
-        //             xcessReasonInput.select();
-        //         }
-        //     }
-        // }
 
         function handlePriceKeydown(event, itemIndex) {
             if (event.key === 'Enter') {
@@ -1490,11 +1479,21 @@
             }
         }
 
+
+        // Function to update sales price based on margin percentage
         function updateSalesPriceFromMargin(puPrice) {
             const marginPercentage = parseFloat(document.getElementById('marginPercentage').value) || 0;
             const salesPriceFromMargin = parseFloat(puPrice) + (parseFloat(puPrice) * marginPercentage / 100);
             document.getElementById('salesPrice').value = salesPriceFromMargin.toFixed(2); // Set calculated sales price from margin
         }
+
+        // Add event listener for Enter key on marginPercentage input
+        document.getElementById('marginPercentage').addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                const puPrice = document.getElementById('puPrice').value; // Get the purchase price
+                updateSalesPriceFromMargin(puPrice); // Update sales price based on margin
+            }
+        });
 
         function updateSalesPriceFromMRP(mrpValue) {
             const currency = document.getElementById('currency').value;
@@ -1551,18 +1550,77 @@
             }
         }
 
-        // //Handle scape buttons
-        // document.addEventListener('keydown', function (event) {
-        //     if (event.key === 'Escape') {
-        //         event.preventDefault(); // Prevent default escape behavior
-        //         var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
-        //         exitModal.show();
-        //     }
-        // });
 
-        // // Handle the exit confirmation
-        // document.getElementById('confirmExit').addEventListener('click', function () {
-        //     // Redirect to the home page
-        //     window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
-        // });
+        function moveToNextInput(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent form submission
+
+                // Move to the next visible input
+                moveToNextVisibleInput(event.target);
+            }
+        }
+
+
+        // Get all the input elements within the form
+        const inputs = document.querySelectorAll('form input, form select form group');
+
+        // Attach the moveToNextInput function to the keydown event for each input field
+        inputs.forEach(input => {
+            input.addEventListener('keydown', moveToNextInput);
+        });
+
+
+        // Function to handle Enter key press for moving to the next input field for setSalesPrice model
+        function moveToNextField(event, nextFieldId) {
+            if (event.key === 'Enter') {
+                // Prevent the default Enter key action (e.g., form submission)
+                event.preventDefault();
+
+                // Focus on the next input field or element by id
+                const nextField = document.getElementById(nextFieldId);
+                if (nextField) {
+                    nextField.focus();
+                }
+            }
+        }
+
+        // Add event listeners for each input field (except the read-only ones and select elements)
+        document.getElementById('marginPercentage').addEventListener('keypress', function (event) {
+            moveToNextField(event, 'currency'); // Focus on 'currency' select when Enter is pressed
+        });
+
+        document.getElementById('currency').addEventListener('keypress', function (event) {
+            moveToNextField(event, 'mrp'); // Focus on 'mrp' input when Enter is pressed
+        });
+
+        document.getElementById('mrp').addEventListener('keypress', function (event) {
+            moveToNextField(event, 'salesPrice'); // Focus on 'salesPrice' input when Enter is pressed
+        });
+
+        document.getElementById('salesPrice').addEventListener('keypress', function (event) {
+            moveToNextField(event, 'saveSalesPrice'); // Focus on 'saveSalesPrice' button when Enter is pressed
+        });
+
+        // Add an event listener to the paymentMode select element
+        document.getElementById('adjustmentType').addEventListener('keydown', function (event) {
+            // Check if the Enter key is pressed (key code 13)
+            if (event.key === 'Enter') {
+                // Prevent the default form submission behavior
+                event.preventDefault();
+
+                // Move focus to the next input field
+                document.getElementById('billNumber').focus();
+            }
+        });
+        // Add an event listener to the paymentMode select element
+        document.getElementById('isVatExempt').addEventListener('keydown', function (event) {
+            // Check if the Enter key is pressed (key code 13)
+            if (event.key === 'Enter') {
+                // Prevent the default form submission behavior
+                event.preventDefault();
+
+                // Move focus to the next input field
+                document.getElementById('itemSearch').focus();
+            }
+        });
     </script>

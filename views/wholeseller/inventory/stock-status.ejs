@@ -92,8 +92,8 @@
             <div class="row g-3 align-items-center mb-4"> <!-- Align items vertically in the center -->
                 <div class="col-9">
                     <form class="input-group"> <!-- Use d-flex for horizontal alignment -->
-                        <input type="text" class="form-control" id="searchInput"
-                            placeholder="Search..." aria-label="Search" autofocus autocomplete="off">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search..."
+                            aria-label="Search" autofocus autocomplete="off">
                         <button class="btn btn-outline-secondary" type="button" id="clearSearch">Clear</button>
                         <!-- Added clear button -->
                     </form>
@@ -197,14 +197,14 @@
                             </td>
                             <% if (showPurchaseValue) { %>
                                 <td>
-                                    <%= item.totalStockValuePurchase.toFixed(2) %>
+                                    <%= (item.stockEntries ? item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0) * item.avgPuPrice : 0).toFixed(2) %>
                                 </td>
-                                <% } %>
-                                    <% if (showSalesValue) { %>
-                                        <td>
-                                            <%= item.totalStockValueSales.toFixed(2) %>
-                                        </td>
-                                        <% } %>
+                            <% } %>
+                            <% if (showSalesValue) { %>
+                                <td>
+                                    <%= (item.stockEntries ? item.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0) * item.avgPrice : 0).toFixed(2) %>
+                                </td>
+                            <% } %>
                         </tr>
                         <% }); %>
                 </tbody>
@@ -282,23 +282,27 @@
             const totalOpeningStockIndex = 5;
             const totalQtyInIndex = 6;
             const totalQtyOutIndex = 7;
-            const totalPurchaseValueIndex = hasPurchaseValue ? 12 : -1;
-            const totalSalesValueIndex = hasSalesValue ? (hasPurchaseValue ? 13 : 12) : -1;
+            const avgPuPriceIndex = 10; // C.P column index
+            const avgPriceIndex = 11;    // S.P column index
 
             visibleRows.forEach(row => {
-                totalStock += parseFloat(row.cells[totalStockIndex].textContent) || 0;
+                const stock = parseFloat(row.cells[totalStockIndex].textContent) || 0;
+                const avgPuPrice = parseFloat(row.cells[avgPuPriceIndex].textContent) || 0;
+                const avgPrice = parseFloat(row.cells[avgPriceIndex].textContent) || 0;
+
+                totalStock += stock;
                 totalOpeningStock += parseFloat(row.cells[totalOpeningStockIndex].textContent) || 0;
                 totalQtyIn += parseFloat(row.cells[totalQtyInIndex].textContent) || 0;
                 totalQtyOut += parseFloat(row.cells[totalQtyOutIndex].textContent) || 0;
 
-                // Only add purchase value if the column is present
-                if (hasPurchaseValue && totalPurchaseValueIndex !== -1) {
-                    totalPurchaseValue += parseFloat(row.cells[totalPurchaseValueIndex].textContent) || 0;
+                // Calculate purchase value (stock * avg purchase price)
+                if (hasPurchaseValue) {
+                    totalPurchaseValue += stock * avgPuPrice;
                 }
 
-                // Only add sales value if the column is present
-                if (hasSalesValue && totalSalesValueIndex !== -1) {
-                    totalSalesValue += parseFloat(row.cells[totalSalesValueIndex].textContent) || 0;
+                // Calculate sales value (stock * avg sales price)
+                if (hasSalesValue) {
+                    totalSalesValue += stock * avgPrice;
                 }
             });
 
@@ -381,55 +385,44 @@
 
             printWindow.document.write('</tr></thead><tbody>');
 
-            // Initialize totals
-            let totalStock = 0;
-            let totalOpStock = 0;
-            let totalQtyIn = 0;
-            let totalQtyOut = 0;
-            let totalPurchaseValue = 0;
-            let totalSalesValue = 0;
+// Initialize totals
+let totalStock = 0;
+    let totalOpStock = 0;
+    let totalQtyIn = 0;
+    let totalQtyOut = 0;
+    let totalPurchaseValue = 0;
+    let totalSalesValue = 0;
 
-            // Populate Table Rows and calculate totals
-            itemsRows.forEach((row, index) => {
-                printWindow.document.write('<tr>');
-                const cells = row.querySelectorAll('td');
+    // Populate Table Rows and calculate totals
+    itemsRows.forEach((row, index) => {
+        printWindow.document.write('<tr>');
+        const cells = row.querySelectorAll('td');
 
+        // Extract values from cells
+        const stock = parseFloat(cells[4]?.textContent) || 0;
+        const avgPuPrice = parseFloat(cells[10]?.textContent) || 0; // C.P column
+        const avgPrice = parseFloat(cells[11]?.textContent) || 0;   // S.P column
 
-                // Extract values from cells and update totals
-                const totalStockVal = parseFloat(cells[4]?.textContent) || 0;
-                const opStockVal = parseFloat(cells[5]?.textContent) || 0;
-                const qtyInVal = parseFloat(cells[6]?.textContent) || 0;
-                const qtyOutVal = parseFloat(cells[7]?.textContent) || 0;
+        totalStock += stock;
+        totalOpStock += parseFloat(cells[5]?.textContent) || 0;
+        totalQtyIn += parseFloat(cells[6]?.textContent) || 0;
+        totalQtyOut += parseFloat(cells[7]?.textContent) || 0;
 
-                // Determine the index for purchase and sales value based on the checkboxes
-                let purchaseValueIndex = -1;
-                let salesValueIndex = -1;
+        // Calculate values based on stock * price
+        if (document.getElementById('showPurchaseValue').checked) {
+            totalPurchaseValue += stock * avgPuPrice;
+        }
+        if (document.getElementById('showSalesValue').checked) {
+            totalSalesValue += stock * avgPrice;
+        }
 
-                if (document.getElementById('showPurchaseValue').checked) {
-                    purchaseValueIndex = 12;
-                    if (document.getElementById('showSalesValue').checked) {
-                        salesValueIndex = 13;
-                    }
-                } else if (document.getElementById('showSalesValue').checked) {
-                    salesValueIndex = 12;
-                }
+        // Print the row
+        cells.forEach(cell => {
+            printWindow.document.write(`<td>${cell.textContent}</td>`);
+        });
+        printWindow.document.write('</tr>');
+    });
 
-                const purchaseValue = purchaseValueIndex !== -1 ? parseFloat(cells[purchaseValueIndex]?.textContent) || 0 : 0;
-                const salesValue = salesValueIndex !== -1 ? parseFloat(cells[salesValueIndex]?.textContent) || 0 : 0;
-
-                totalStock += totalStockVal;
-                totalOpStock += opStockVal;
-                totalQtyIn += qtyInVal;
-                totalQtyOut += qtyOutVal;
-                totalPurchaseValue += purchaseValue;
-                totalSalesValue += salesValue;
-
-                // Print the row
-                cells.forEach(cell => {
-                    printWindow.document.write(`<td>${cell.textContent}</td>`);
-                });
-                printWindow.document.write('</tr>');
-            });
 
             // Add footer row for totals
             printWindow.document.write('<tr style="font-weight: bold;">');

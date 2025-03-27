@@ -9,6 +9,9 @@ const Item = require('../../models/wholeseller/Item');
 const { ensureAuthenticated, ensureCompanySelected, isLoggedIn } = require('../../middleware/auth');
 const { ensureTradeType } = require('../../middleware/tradeType');
 const Company = require('../../models/wholeseller/Company');
+const companyGroup = require('../../models/wholeseller/CompanyGroup');
+const Transaction = require('../../models/wholeseller/Transaction');
+const Account = require('../../models/wholeseller/Account');
 const ensureFiscalYear = require('../../middleware/checkActiveFiscalYear');
 const FiscalYear = require('../../models/wholeseller/FiscalYear');
 const SalesReturn = require('../../models/wholeseller/SalesReturn');
@@ -45,23 +48,6 @@ router.get('/wholesellerDashboard/indexv1', isLoggedIn, ensureAuthenticated, ens
                 isActive: true
             };
         }
-
-        // // Log the current fiscal year for debugging purposes
-        // console.log('Current fiscal year in session:', JSON.stringify(req.session.currentFiscalYear, null, 2));
-
-        // // Fetch total sales and purchase amounts within the fiscal year date range
-        // const totalSalesResult = await SalesBill.aggregate([
-        //     { $match: { company: new mongoose.Types.ObjectId(companyId), date: { $gte: currentFiscalYear.startDate, $lte: currentFiscalYear.endDate } } },
-        //     { $group: { _id: null, totalAmount: { $sum: '$totalAmount' } } }
-        // ]);
-
-        // const totalPurchaseResult = await PurchaseBill.aggregate([
-        //     { $match: { company: new mongoose.Types.ObjectId(companyId), date: { $gte: currentFiscalYear.startDate, $lte: currentFiscalYear.endDate } } },
-        //     { $group: { _id: null, totalAmount: { $sum: '$totalAmount' } } }
-        // ]);
-
-        // const totalSales = totalSalesResult.length > 0 ? totalSalesResult[0].totalAmount : 0;
-        // const totalPurchase = totalPurchaseResult.length > 0 ? totalPurchaseResult[0].totalAmount : 0;
 
         // Log the current fiscal year for debugging purposes
         console.log('Current fiscal year in session:', JSON.stringify(req.session.currentFiscalYear, null, 2));
@@ -130,6 +116,153 @@ router.get('/wholesellerDashboard/indexv1', isLoggedIn, ensureAuthenticated, ens
             }
         ]);
 
+        // ====== NEW: Fetch Cash in Hand Balance ======
+        // 1. Find the default Cash in Hand account (marked with `defaultCashAccount: true`)
+        const cashAccount = await Account.findOne({
+            company: companyId,
+            defaultCashAccount: true,
+            isActive: true,
+        });
+
+        let cashBalance = 0;
+
+        if (cashAccount) {
+            // 2. Get all transactions for this account up to the fiscal year end
+            const cashTransactions = await Transaction.find({
+                account: cashAccount._id,
+                date: { $lte: currentFiscalYear.endDate }
+            });
+
+            // 3. Calculate the balance (Debit - Credit)
+            cashTransactions.forEach(txn => {
+                cashBalance += (txn.debit || 0) - (txn.credit || 0);
+            });
+
+            // 4. Add opening balance (if any)
+            const openingBalanceEntry = cashAccount.openingBalanceByFiscalYear.find(
+                entry => entry.fiscalYear.equals(currentFiscalYear._id)
+            );
+
+            if (openingBalanceEntry) {
+                if (openingBalanceEntry.type === 'Dr') {
+                    cashBalance += openingBalanceEntry.amount;
+                } else {
+                    cashBalance -= openingBalanceEntry.amount;
+                }
+            }
+        }
+
+        // ====== Bank Balance ======
+        let bankBalance = 0;
+        // 1. Find the Bank Accounts group
+        const bankAccountsGroup = await companyGroup.findOne({
+            company: companyId,
+            name: 'Bank Accounts'
+        });
+
+        if (bankAccountsGroup) {
+            // 2. Find all accounts in this group
+            const bankAccounts = await Account.find({
+                company: companyId,
+                companyGroups: bankAccountsGroup._id,
+                isActive: true,
+                fiscalYear: currentFiscalYear._id // Only accounts from current fiscal year
+            });
+
+            // 3. Calculate balance for each bank account
+            for (const account of bankAccounts) {
+                const transactions = await Transaction.find({
+                    account: account._id,
+                    date: { $lte: currentFiscalYear.endDate }
+                });
+
+                let accountBalance = 0;
+                transactions.forEach(txn => {
+                    accountBalance += (txn.debit || 0) - (txn.credit || 0);
+                });
+
+                // Add opening balance
+                const openingBalance = account.openingBalance
+                if (openingBalance) {
+                    accountBalance += openingBalance.type === 'Dr'
+                        ? openingBalance.amount
+                        : -openingBalance.amount;
+                }
+
+                bankBalance += accountBalance;
+            }
+        }
+
+        // ====== (Optional) Bank OD Account ======
+        let bankODBalance = 0;
+        const bankODGroup = await companyGroup.findOne({
+            company: companyId,
+            name: 'Bank O/D Account',
+        });
+
+        if (bankODGroup) {
+            const odAccounts = await Account.find({
+                company: companyId,
+                companyGroups: bankODGroup._id,
+                isActive: true,
+                fiscalYear: currentFiscalYear._id // Only accounts from current fiscal year
+            });
+
+            for (const account of odAccounts) {
+                const transactions = await Transaction.find({
+                    account: account._id,
+                    date: { $lte: currentFiscalYear.endDate }
+                });
+
+                let accountBalance = 0;
+                transactions.forEach(txn => {
+                    accountBalance += (txn.debit || 0) - (txn.credit || 0);
+                });
+
+                const openingBalance = account.openingBalance
+                if (openingBalance) {
+                    accountBalance += openingBalance.type === 'Dr'
+                        ? openingBalance.amount
+                        : -openingBalance.amount;
+                }
+
+                bankODBalance += accountBalance;
+            }
+        }
+
+        // Net bank balance (Bank Accounts - Bank OD)
+        const netBankBalance = bankBalance + bankODBalance;
+
+        const totalStockValueResult = await Item.aggregate([
+            {
+                $match: {
+                    company: new mongoose.Types.ObjectId(companyId),
+                    fiscalYear: currentFiscalYear._id // Filter by the current fiscal year
+                }
+            },
+            {
+                $unwind: '$stockEntries' // Unwind the stockEntries array to process each entry
+            },
+            {
+                $project: {
+                    stockValue: {
+                        $multiply: ['$stockEntries.quantity', { $toDouble: '$stockEntries.puPrice' }] // Calculate stock value per batch
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalStockValue: { $sum: '$stockValue' } // Sum the stock value across all entries
+                }
+            }
+        ]);
+
+        const totalStockValue = totalStockValueResult.length > 0 ? totalStockValueResult[0].totalStockValue : 0;
+        console.log('Total Stock Value for Current Fiscal Year:', totalStockValue);
+
+
+
         const totalSales = totalSalesResult.length > 0 ? totalSalesResult[0].totalAmount : 0;
         const totalPurchase = totalPurchaseResult.length > 0 ? totalPurchaseResult[0].totalAmount : 0;
         const totalSalesReturn = totalSalesReturnResult.length > 0 ? totalSalesReturnResult[0].totalAmount : 0;
@@ -139,17 +272,110 @@ router.get('/wholesellerDashboard/indexv1', isLoggedIn, ensureAuthenticated, ens
         console.log('Total Sales Return (excluding VAT):', totalSalesReturn);
         console.log('Total Purchase (excluding VAT):', totalPurchase);
         console.log('Total Purchase Return (excluding VAT):', totalPurchaseReturn);
+        console.log('Cash in Hand Balance:', cashBalance);
 
         // Deduct sales returns and purchase returns
         const netSales = totalSales - totalSalesReturn;
         const netPurchase = totalPurchase - totalPurchaseReturn;
 
+        // Fetch monthly sales data
+        const monthlySalesData = await SalesBill.aggregate([
+            {
+                $match: {
+                    company: new mongoose.Types.ObjectId(companyId),
+                    date: { $gte: currentFiscalYear.startDate, $lte: currentFiscalYear.endDate }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: "$date" },
+                        month: { $month: "$date" }
+                    },
+                    totalSales: { $sum: { $add: ["$taxableAmount", "$nonVatSales"] } }
+                }
+            },
+            { $sort: { "_id.year": 1, "_id.month": 1 } }
+        ]);
 
+        // Fetch monthly returns data
+        const monthlyReturnsData = await SalesReturn.aggregate([
+            {
+                $match: {
+                    company: new mongoose.Types.ObjectId(companyId),
+                    date: { $gte: currentFiscalYear.startDate, $lte: currentFiscalYear.endDate }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: "$date" },
+                        month: { $month: "$date" }
+                    },
+                    totalReturns: { $sum: { $add: ["$taxableAmount", "$nonVatSalesReturn"] } }
+                }
+            },
+            { $sort: { "_id.year": 1, "_id.month": 1 } }
+        ]);
+
+        // Create a map for returns data for easy lookup
+        const returnsMap = new Map();
+        monthlyReturnsData.forEach(item => {
+            const key = `${item._id.year}-${item._id.month}`;
+            returnsMap.set(key, item.totalReturns);
+        });
+
+        // Process data for chart
+        const categories = [];
+        const netSalesData = [];
+        const isNepaliFormat = company?.dateFormat === 'nepali';
+        const nepaliMonths = ['Baisakh', 'Jestha', 'Ashad', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
+
+        monthlySalesData.forEach(monthData => {
+            if (!monthData._id) {
+                console.warn('Invalid monthData:', monthData);
+                return;
+            }
+
+            const { year, month } = monthData._id;
+            const key = `${year}-${month}`;
+            const returns = returnsMap.get(key) || 0;
+            const netSales = monthData.totalSales - returns;
+
+            // Format date based on company preference
+            let formattedDate;
+            if (isNepaliFormat) {
+                const nepaliMonthIndex = (month + 8) % 12; // Approximate conversion
+                formattedDate = `${nepaliMonths[nepaliMonthIndex]} ${year}`;
+            } else {
+                const date = new Date(year, month - 1);
+                formattedDate = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+            }
+
+            categories.push(formattedDate);
+            netSalesData.push(netSales);
+        });
+
+        // Handle case when no data is available
+        if (categories.length === 0) {
+            categories.push(isNepaliFormat ? 'कुनै डाटा उपलब्ध छैन' : 'No Data Available');
+            netSalesData.push(0);
+        }
 
         res.render('wholeseller/index/indexv1', {
+            cashBalance, // Pass cash balance to the view
+            bankBalance: netBankBalance,
+            totalStock: totalStockValue,
             netSales,
-            company,
             netPurchase,
+            chartData: {
+                categories,
+                series: [{
+                    name: 'Net Sales (Sales - Returns)',
+                    data: netSalesData
+                }]
+            },
+            company,
             currentFiscalYear,
             initialCurrentFiscalYear,
             user: req.user,
@@ -158,8 +384,6 @@ router.get('/wholesellerDashboard/indexv1', isLoggedIn, ensureAuthenticated, ens
         });
     }
 });
-
-
 
 // Home route
 router.get('/wholesellerDashboard/indexv2', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, async (req, res) => {
@@ -373,42 +597,42 @@ router.get('/wholesellerDashboard/indexv2', isLoggedIn, ensureAuthenticated, ens
 
         //---------------------------------------------------------------------------------------
         // Assuming you have the current fiscal year ID, you can get it using:
-// const currentFiscalYear = await FiscalYear.findOne({ startDate: { $lte: new Date() }, endDate: { $gte: new Date() } });
+        // const currentFiscalYear = await FiscalYear.findOne({ startDate: { $lte: new Date() }, endDate: { $gte: new Date() } });
 
-if (!currentFiscalYear) {
-    console.log('No current fiscal year found');
-    return;
-}
-
-const totalStockValueResult = await Item.aggregate([
-    {
-        $match: {
-            company: new mongoose.Types.ObjectId(companyId),
-            fiscalYear: currentFiscalYear._id // Filter by the current fiscal year
+        if (!currentFiscalYear) {
+            console.log('No current fiscal year found');
+            return;
         }
-    },
-    {
-        $unwind: '$stockEntries' // Unwind the stockEntries array to process each entry
-    },
-    {
-        $project: {
-            stockValue: { 
-                $multiply: ['$stockEntries.quantity', { $toDouble: '$stockEntries.puPrice' }] // Calculate stock value per batch
+
+        const totalStockValueResult = await Item.aggregate([
+            {
+                $match: {
+                    company: new mongoose.Types.ObjectId(companyId),
+                    fiscalYear: currentFiscalYear._id // Filter by the current fiscal year
+                }
+            },
+            {
+                $unwind: '$stockEntries' // Unwind the stockEntries array to process each entry
+            },
+            {
+                $project: {
+                    stockValue: {
+                        $multiply: ['$stockEntries.quantity', { $toDouble: '$stockEntries.puPrice' }] // Calculate stock value per batch
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalStockValue: { $sum: '$stockValue' } // Sum the stock value across all entries
+                }
             }
-        }
-    },
-    {
-        $group: {
-            _id: null,
-            totalStockValue: { $sum: '$stockValue' } // Sum the stock value across all entries
-        }
-    }
-]);
+        ]);
 
-const totalStockValue = totalStockValueResult.length > 0 ? totalStockValueResult[0].totalStockValue : 0;
-console.log('Total Stock Value for Current Fiscal Year:', totalStockValue);
+        const totalStockValue = totalStockValueResult.length > 0 ? totalStockValueResult[0].totalStockValue : 0;
+        console.log('Total Stock Value for Current Fiscal Year:', totalStockValue);
 
-        
+
         //----------------------------------------------------------------------------------------------------------------        
 
         res.render('wholeseller/index/indexv2', {
