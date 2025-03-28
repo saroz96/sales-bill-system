@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 
+const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
 const Item = require('../../models/wholeseller/Item');
 const Category = require('../../models/wholeseller/Category');
 const Unit = require('../../models/wholeseller/Unit');
@@ -887,22 +889,6 @@ router.get('/items/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected,
     }
 });
 
-
-// Route to render the edit item form
-// router.get('/items/:id/edit', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
-//     if (req.tradeType === 'Wholeseller') {
-//         try {
-//             const companyId = req.session.currentCompany;
-//             const item = await Item.findById(req.params.id, { company: companyId });
-//             res.render('wholeseller/item/editItem', { item, companyId });
-//         } catch (err) {
-//             console.error('Error fetching item:', err);
-//             req.flash('error', 'Error fetching item');
-//             res.redirect('/items');
-//         }
-//     }
-// });
-
 // Route to handle editing an item
 router.put('/items/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, async (req, res) => {
     if (req.tradeType === 'Wholeseller') {
@@ -1095,8 +1081,8 @@ router.get('/items-list', ensureAuthenticated, ensureCompanySelected, ensureTrad
                 .exec();
             res.render('wholeseller/item/listItems', {
                 items, company, currentCompanyName, currentFiscalYear,
-                title: 'Items List',
-                body: 'wholeseller >> Items >> all items',
+                title: '',
+                body: '',
                 user: req.user,
                 isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
             });
@@ -1105,6 +1091,154 @@ router.get('/items-list', ensureAuthenticated, ensureCompanySelected, ensureTrad
             req.flash('error_msg', 'Error fetching items');
             res.redirect('/');
         }
+    }
+});
+
+
+// Route to fetch sold items with quantities for current fiscal year
+router.get('/api/sold-items', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureFiscalYear, async (req, res) => {
+    try {
+        const companyId = req.session.currentCompany;
+        const currentCompanyName = req.session.currentCompanyName;
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+        const companyDateFormat = company ? company.dateFormat : 'english'; // Default to 'english'
+        // Add Nepali date
+        const nepaliDate = new NepaliDate(new Date());
+        // Check if fiscal year is already in the session or available in the company
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            // Fetch the fiscal year from the database if available in the session
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        // If no fiscal year is found in session or currentCompany, throw an error
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+
+            // Set the fiscal year in the session for future requests
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+
+            // Assign fiscal year ID for use
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+        // Aggregation to get sold items with quantities
+        const soldItems = await SalesBill.aggregate([
+            {
+                $match: {
+                    company: new mongoose.Types.ObjectId(companyId),
+                    fiscalYear: new mongoose.Types.ObjectId(currentFiscalYear.id),
+                    date: {
+                        $gte: new Date(currentFiscalYear.startDate),
+                        $lte: new Date(currentFiscalYear.endDate)
+                    }
+                }
+            },
+            { $unwind: "$items" }, // Split each item entry
+            {
+                $lookup: {
+                    from: "items",
+                    localField: "items.item",
+                    foreignField: "_id",
+                    as: "itemDetails"
+                }
+            },
+            { $unwind: "$itemDetails" }, // Flatten the joined item details
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "itemDetails.category",
+                    foreignField: "_id",
+                    as: "categoryDetails"
+                }
+            },
+            { $unwind: { path: "$categoryDetails", preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: "units",
+                    localField: "items.unit",
+                    foreignField: "_id",
+                    as: "unitDetails"
+                }
+            },
+            { $unwind: { path: "$unitDetails", preserveNullAndEmptyArrays: true } },
+
+            {
+                $group: {
+                    _id: "$items.item",
+                    itemName: { $first: "$itemDetails.name" },
+                    itemCode: { $first: "$itemDetails.uniqueNumber" }, // Using uniqueNumber as code
+                    categoryName: { $first: "$categoryDetails.name" },
+                    unitName: { $first: "$unitDetails.name" },
+                    totalQuantitySold: { $sum: "$items.quantity" },
+                    totalAmount: {
+                        $sum: {
+                            $multiply: ["$items.quantity", "$items.price"]
+                        }
+                    },
+                    averagePrice: {
+                        $avg: "$items.price"
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    itemId: "$_id",
+                    itemName: 1,
+                    itemCode: 1,
+                    categoryName: 1,
+                    unitName: 1,
+                    totalQuantitySold: 1,
+                    totalAmount: 1,
+                    averagePrice: { $round: ["$averagePrice", 2] }
+                }
+            },
+            { $sort: { totalQuantitySold: -1 } } // Sort by most sold items first
+        ]);
+
+        // Prepare the data for EJS
+        const salesData = {
+            items: soldItems,
+            summary: {
+                uniqueItemsCount: soldItems.length,
+                totalItemsSold: soldItems.reduce((sum, item) => sum + item.totalQuantitySold, 0),
+                totalRevenue: soldItems.reduce((sum, item) => sum + item.totalAmount, 0)
+            }
+        };
+
+        res.render('wholeseller/item/soldItems', {
+            company,
+            currentCompanyName,
+            currentFiscalYear,
+            companyDateFormat,
+            nepaliDate,
+            salesData,
+            title: '',
+            body: '',
+            user: req.user,
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+        })
+
+    } catch (error) {
+        console.error("Error:", error);
+        res.render('wholeseller/index/indexv2', {
+            salesData: { items: [], summary: { uniqueItemsCount: 0, totalItemsSold: 0, totalRevenue: 0 } },
+            error: error.message,
+            // ... (your other existing variables)
+        });
     }
 });
 

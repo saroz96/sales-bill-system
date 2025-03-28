@@ -188,7 +188,7 @@ async function showAllItems(input) {
                 <div>${item.name}</div>
                 <div>${totalStock}</div>
                 <div>${item.unit ? item.unit.name : ''}</div>
-                <div>Rs.${price.toFixed(2)}</div>
+                <div>Rs.${price}</div>
             `;
 
             dropdownItem.addEventListener('click', () => {

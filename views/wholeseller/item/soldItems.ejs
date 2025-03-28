@@ -1,0 +1,529 @@
+<%- include('../layouts/boilerplate', { title: 'Sales Report' , body: '' , salesData: salesData}) %>
+
+    <div class="container-fluid">
+        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="info-box">
+                        <div class="info-box-content">
+                            <span class="info-box-text">No. of Items Sold</span>
+                            <span class="info-box-number">
+                                <%= salesData.summary.uniqueItemsCount.toLocaleString() %>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-box">
+                        <div class="info-box-content">
+                            <span class="info-box-text">Total Quantity Sold</span>
+                            <span class="info-box-number">
+                                <%= salesData.summary.totalItemsSold.toLocaleString() %>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-box">
+                        <div class="info-box-content">
+                            <span class="info-box-text">Total Revenue</span>
+                            <span class="info-box-number">
+                                <%= salesData.summary.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2}) %>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">Item Wise Sales Details</h3>
+                    <div class="d-flex">
+                        <div class="input-group input-group-sm mr-2 me-2" style="width: 1000px;">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search items..."
+                                autofocus autocomplete="off">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="btn-group ml-3" role="group">
+
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="sortHighQty">
+                                <i class="fas fa-sort-amount-down"></i> High Qty
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="sortLowQty">
+                                <i class="fas fa-sort-amount-up"></i> Low Qty
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="printAllButton">
+                                <i class="fas fa-print"></i> Print All
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="printFilteredButton">
+                                <i class="fas fa-print"></i> Print Filtered
+                            </button>
+                        </div>
+                        <a href="/api/sold-items" class="btn btn-sm btn-primary">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="salesTable" class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Description of Goods</th>
+                                    <th>Category</th>
+                                    <th>Unit</th>
+                                    <th class="text-right">Qty Sold</th>
+                                    <th class="text-right">Avg Price</th>
+                                    <th class="text-right">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (salesData.items.length> 0) { %>
+                                    <% salesData.items.forEach(item=> { %>
+                                        <tr>
+                                            <td class="item-code">
+                                                <%= item.itemCode || 'N/A' %>
+                                            </td>
+                                            <td class="item-name">
+                                                <%= item.itemName || 'N/A' %>
+                                            </td>
+                                            <td class="item-category">
+                                                <%= item.categoryName || 'N/A' %>
+                                            </td>
+                                            <td class="item-unit">
+                                                <%= item.unitName || 'N/A' %>
+                                            </td>
+                                            <td class="text-right item-qty">
+                                                <%= item.totalQuantitySold.toLocaleString() %>
+                                            </td>
+                                            <td class="text-right item-price">
+                                                <%= item.averagePrice.toFixed(2) %>
+                                            </td>
+                                            <td class="text-right item-amount">
+                                                <%= item.totalAmount.toFixed(2) %>
+                                            </td>
+                                        </tr>
+                                        <% }); %>
+                                            <% } else { %>
+                                                <tr>
+                                                    <td colspan="7" class="text-center">No items sold in this period
+                                                    </td>
+                                                </tr>
+                                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3 d-flex justify-content-between align-items-center">
+                        <div class="text-muted" id="itemCount">
+                            Showing <%= salesData.items.length %> items
+                        </div>
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination pagination-sm mb-0" id="paginationControls">
+                                <!-- Pagination will be added by JavaScript -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // DOM elements
+            const searchInput = document.getElementById('searchInput');
+            const searchButton = document.getElementById('searchButton');
+            const table = document.getElementById('salesTable');
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+            const itemCount = document.getElementById('itemCount');
+            const sortHighQtyBtn = document.getElementById('sortHighQty');
+            const sortLowQtyBtn = document.getElementById('sortLowQty');
+
+            // State variables
+            let allItems = rows;
+            let filteredItems = rows;
+            let currentPage = 1;
+            const itemsPerPage = 10;
+            let currentSort = null;
+
+            // Main filter function
+            function filterItems() {
+                const searchTerm = searchInput.value.toLowerCase();
+
+                filteredItems = allItems.filter(row => {
+                    const code = row.querySelector('.item-code').textContent.toLowerCase();
+                    const name = row.querySelector('.item-name').textContent.toLowerCase();
+                    const category = row.querySelector('.item-category').textContent.toLowerCase();
+                    const unit = row.querySelector('.item-unit').textContent.toLowerCase();
+
+                    return code.includes(searchTerm) || name.includes(searchTerm) ||
+                        category.includes(searchTerm) || unit.includes(searchTerm);
+                });
+
+                // Re-apply current sort after filtering
+                if (currentSort) {
+                    sortItems(currentSort);
+                } else {
+                    currentPage = 1;
+                    updatePagination();
+                    showPage(currentPage);
+                }
+            }
+
+            // Sorting functions
+            function sortItems(sortType) {
+                currentSort = sortType;
+
+                filteredItems.sort((a, b) => {
+                    const aCategory = a.querySelector('.item-category').textContent.toLowerCase();
+                    const bCategory = b.querySelector('.item-category').textContent.toLowerCase();
+                    const aQty = parseFloat(a.querySelector('.item-qty').textContent.replace(/,/g, ''));
+                    const bQty = parseFloat(b.querySelector('.item-qty').textContent.replace(/,/g, ''));
+
+                    switch (sortType) {
+                        case 'category':
+                            return aCategory.localeCompare(bCategory);
+                        case 'high-qty':
+                            return bQty - aQty; // Descending
+                        case 'low-qty':
+                            return aQty - bQty; // Ascending
+                        default:
+                            return 0;
+                    }
+                });
+
+                currentPage = 1;
+                updatePagination();
+                showPage(currentPage);
+
+                // Update button states
+                [sortHighQtyBtn, sortLowQtyBtn].forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                switch (sortType) {
+                    case 'high-qty':
+                        sortHighQtyBtn.classList.add('active');
+                        break;
+                    case 'low-qty':
+                        sortLowQtyBtn.classList.add('active');
+                        break;
+                }
+            }
+
+            // Pagination functions
+            function updatePagination() {
+                const pageCount = Math.ceil(filteredItems.length / itemsPerPage);
+                const paginationControls = document.getElementById('paginationControls');
+                paginationControls.innerHTML = '';
+
+                if (pageCount > 1) {
+                    for (let i = 1; i <= pageCount; i++) {
+                        const li = document.createElement('li');
+                        li.className = 'page-item' + (i === currentPage ? ' active' : '');
+                        li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                        li.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            currentPage = i;
+                            showPage(currentPage);
+                        });
+                        paginationControls.appendChild(li);
+                    }
+                }
+
+                itemCount.textContent = `Showing ${filteredItems.length} items`;
+            }
+
+            function showPage(pageNum) {
+                const startIndex = (pageNum - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage;
+
+                allItems.forEach(row => row.style.display = 'none');
+                filteredItems.slice(startIndex, endIndex).forEach(row => {
+                    row.style.display = '';
+                });
+
+                document.querySelectorAll('#paginationControls .page-item').forEach((li, index) => {
+                    li.classList.toggle('active', (index + 1) === pageNum);
+                });
+
+                itemCount.textContent = `Showing items ${startIndex + 1}-${Math.min(endIndex, filteredItems.length)} of ${filteredItems.length}`;
+            }
+
+            // Event listeners
+            searchInput.addEventListener('input', filterItems);
+            searchButton.addEventListener('click', filterItems);
+            sortHighQtyBtn.addEventListener('click', () => sortItems('high-qty'));
+            sortLowQtyBtn.addEventListener('click', () => sortItems('low-qty'));
+
+            // Initialize
+            updatePagination();
+            showPage(currentPage);
+        });
+    </script>
+
+
+    <!-- Print functionality scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Print all items (original functionality)
+            document.getElementById('printAllButton').addEventListener('click', function () {
+                // Create a print-friendly version of the content
+                const printContent = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Sales Report - <%= new Date().toLocaleDateString() %></title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; }
+                            .print-header { text-align: center; margin-bottom: 20px; }
+                            .print-header h2 { margin: 0; }
+                            .print-summary { display: flex; justify-content: space-between; margin-bottom: 20px; }
+                            .print-summary-box { border: 1px solid #ddd; padding: 10px; width: 30%; text-align: center; }
+                            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            th { background-color: #f2f2f2; }
+                            .text-right { text-align: right; }
+                            .print-footer { margin-top: 20px; text-align: right; font-size: 0.8em; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="print-header">
+                            <h2>Item Sales Report</h2>
+                            <p>
+                                <% if (companyDateFormat === 'nepali') { %>
+                                    <%= nepaliDate.toLocaleString('ne-NP') %> <!-- Nepali date -->
+                                <% } else { %>
+                                    <%= new Date().toLocaleDateString() %> <!-- English date -->
+                                <% } %>
+                            </p>
+                        </div>
+                        
+                        <div class="print-summary">
+                            <div class="print-summary-box">
+                                <strong>No. of Items Sold</strong>
+                                <p><%= salesData.summary.uniqueItemsCount.toLocaleString() %></p>
+                            </div>
+                            <div class="print-summary-box">
+                                <strong>Total Quantity Sold</strong>
+                                <p><%= salesData.summary.totalItemsSold.toLocaleString() %></p>
+                            </div>
+                            <div class="print-summary-box">
+                                <strong>Total Revenue</strong>
+                                <p><%= salesData.summary.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) %></p>
+                            </div>
+                        </div>
+                        
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Description of Goods</th>
+                                    <th>Category</th>
+                                    <th>Unit</th>
+                                    <th class="text-right">Qty Sold</th>
+                                    <th class="text-right">Avg Price</th>
+                                    <th class="text-right">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (salesData.items.length > 0) { %>
+                                    <% salesData.items.forEach(item => { %>
+                                        <tr>
+                                            <td><%= item.itemCode || 'N/A' %></td>
+                                            <td><%= item.itemName || 'N/A' %></td>
+                                            <td><%= item.categoryName || 'N/A' %></td>
+                                            <td><%= item.unitName || 'N/A' %></td>
+                                            <td class="text-right"><%= item.totalQuantitySold.toLocaleString() %></td>
+                                            <td class="text-right"><%= item.averagePrice.toFixed(2) %></td>
+                                            <td class="text-right"><%= item.totalAmount.toFixed(2) %></td>
+                                        </tr>
+                                    <% }); %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="7" class="text-center">No items sold in this period</td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                        
+                        <div class="print-footer">
+                            Printed on: <%= new Date().toLocaleString() %>
+                        </div>
+                    </body>
+                    </html>
+                `;
+
+                // Open print window
+                const printWindow = window.open('', '_blank');
+                printWindow.document.open();
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+
+                // Wait for content to load before printing
+                printWindow.onload = function () {
+                    setTimeout(function () {
+                        printWindow.print();
+                    }, 500);
+                };
+            });
+
+            // Print filtered items (new functionality)
+            document.getElementById('printFilteredButton').addEventListener('click', function () {
+                // Get all currently visible rows (filtered rows)
+                const visibleRows = Array.from(document.querySelectorAll('#salesTable tbody tr[style=""]'));
+                
+                // Calculate summary for filtered items
+                const filteredSummary = {
+                    uniqueItemsCount: visibleRows.length,
+                    totalItemsSold: visibleRows.reduce((sum, row) => {
+                        return sum + parseFloat(row.querySelector('.item-qty').textContent.replace(/,/g, ''));
+                    }, 0),
+                    totalRevenue: visibleRows.reduce((sum, row) => {
+                        return sum + parseFloat(row.querySelector('.item-amount').textContent);
+                    }, 0)
+                };
+
+                // Create HTML for filtered items
+                const filteredItemsHTML = visibleRows.map(row => {
+                    return `
+                        <tr>
+                            <td>${row.querySelector('.item-code').textContent}</td>
+                            <td>${row.querySelector('.item-name').textContent}</td>
+                            <td>${row.querySelector('.item-category').textContent}</td>
+                            <td>${row.querySelector('.item-unit').textContent}</td>
+                            <td class="text-right">${row.querySelector('.item-qty').textContent}</td>
+                            <td class="text-right">${row.querySelector('.item-price').textContent}</td>
+                            <td class="text-right">${row.querySelector('.item-amount').textContent}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Create a print-friendly version of the content
+                const printContent = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Filtered Sales Report - <%= new Date().toLocaleDateString() %></title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; }
+                            .print-header { text-align: center; margin-bottom: 20px; }
+                            .print-header h2 { margin: 0; }
+                            .print-summary { display: flex; justify-content: space-between; margin-bottom: 20px; }
+                            .print-summary-box { border: 1px solid #ddd; padding: 10px; width: 30%; text-align: center; }
+                            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            th { background-color: #f2f2f2; }
+                            .text-right { text-align: right; }
+                            .print-footer { margin-top: 20px; text-align: right; font-size: 0.8em; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="print-header">
+                            <h2>Item Sales Report</h2>
+                            <p>
+                                <% if (companyDateFormat === 'nepali') { %>
+                                    <%= nepaliDate.toLocaleString('ne-NP') %> <!-- Nepali date -->
+                                <% } else { %>
+                                    <%= new Date().toLocaleDateString() %> <!-- English date -->
+                                <% } %>
+                            </p>
+                        </div>
+                        
+                        <div class="print-summary">
+                            <div class="print-summary-box">
+                                <strong>No. of Items</strong>
+                                <p>${filteredSummary.uniqueItemsCount.toLocaleString()}</p>
+                            </div>
+                            <div class="print-summary-box">
+                                <strong>Total Quantity</strong>
+                                <p>${filteredSummary.totalItemsSold.toLocaleString()}</p>
+                            </div>
+                            <div class="print-summary-box">
+                                <strong>Total Revenue</strong>
+                                <p>${filteredSummary.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                            </div>
+                        </div>
+                        
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Description of Goods</th>
+                                    <th>Category</th>
+                                    <th>Unit</th>
+                                    <th class="text-right">Qty Sold</th>
+                                    <th class="text-right">Avg Price</th>
+                                    <th class="text-right">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${filteredItemsHTML}
+                            </tbody>
+                        </table>
+                        
+                        <div class="print-footer">
+                            Printed on: <%= new Date().toLocaleString() %>
+                        </div>
+                    </body>
+                    </html>
+                `;
+
+                // Open print window
+                const printWindow = window.open('', '_blank');
+                printWindow.document.open();
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+
+                // Wait for content to load before printing
+                printWindow.onload = function () {
+                    setTimeout(function () {
+                        printWindow.print();
+                    }, 500);
+                };
+            });
+        });
+    </script>
+
+    <style>
+        .expanded-card {
+            transition: all 0.3s ease;
+        }
+
+        .expanded-card:hover {
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-item.active .page-link {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        .page-link {
+            color: #007bff;
+        }
+
+        #salesTable tbody tr {
+            display: none;
+        }
+
+        #salesTable tbody tr[style=""] {
+            display: table-row;
+        }
+
+        .btn-group .btn.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .btn-group .btn-outline-primary {
+            margin-right: 5px;
+        }
+    </style>

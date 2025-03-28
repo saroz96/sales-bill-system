@@ -22,6 +22,30 @@
                 /* Adjust width for medium and larger screens */
             }
         }
+        
+        /* Style for group filter buttons */
+        .group-filter-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .group-filter-btn {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+        
+        .group-filter-btn.active {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        /* Style for selected rows */
+        tr.selected-row {
+            background-color: #87CEFA !important;
+        }
     </style>
 
     <div class="container mt-4 expanded-container">
@@ -30,7 +54,19 @@
 
             <!-- Search Input for Live Search -->
             <div class="form-group">
-                <input type="text" id="searchInput" class="form-control" placeholder="Search Accounts...">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search Accounts..."
+                    autocomplete="off" autofocus>
+            </div>
+            
+            <!-- A/c Group Filter Buttons -->
+            <div class="group-filter-container" id="groupFilters">
+                <button class="btn btn-outline-secondary group-filter-btn active" data-group="all">All Groups</button>
+                <% const uniqueGroups = [...new Set(accounts.map(account => account.companyGroups ? account.companyGroups.name : 'N/A'))]; %>
+                <% uniqueGroups.forEach(group => { %>
+                    <button class="btn btn-outline-secondary group-filter-btn" data-group="<%= group %>">
+                        <%= group %>
+                    </button>
+                <% }); %>
             </div>
 
             <!-- Button to merge selected accounts -->
@@ -38,11 +74,13 @@
                 <button id="mergeAccountsBtn" class="btn btn-danger" disabled>Merge Selected Accounts</button>
             </div>
 
-            <table class="table table-bordered table-striped mt-3 ">
+            <table class="table table-bordered table-striped mt-3">
                 <thead>
                     <tr>
+                        <th>S.N</th>
                         <th>Select</th>
                         <th>Account Name</th>
+                        <th>A/c Group</th>
                         <th>Address</th>
                         <th>Phone</th>
                         <th>Action</th>
@@ -51,7 +89,7 @@
                 <tbody id="accountsTable">
                     <% if (accounts.length> 0) { %>
                         <% accounts.forEach((account, index)=> { %>
-                            <tr>
+                            <tr data-group="<%= account.companyGroups ? account.companyGroups.name : 'N/A' %>">
                                 <td>
                                     <%=index + 1 %>
                                 </td>
@@ -62,15 +100,17 @@
                                     <%= account.name %>
                                 </td>
                                 <td>
+                                    <%= account.companyGroups ? account.companyGroups.name: 'N/A' %>
+                                </td>
+                                <td>
                                     <%= account.address || 'N/A' %>
                                 </td>
                                 <td>
                                     <%= account.phone || 'N/A' %>
                                 </td>
                                 <td>
-                                    <a href="/aging/<%= account._id %>" class="btn btn-primary">View Ageing Report</a>
-                                    <a href="/day-count-aging/<%= account._id %>" class="btn btn-primary">Days Count
-                                        Ageing</a>
+                                    <a href="/aging/<%= account._id %>" class="btn btn-primary">Ageing (FIFO)</a>
+                                    <a href="/day-count-aging/<%= account._id %>" class="btn btn-primary">Ageing Day Wise</a>
                                 </td>
                             </tr>
                             <% }) %>
@@ -85,61 +125,115 @@
     </div>
 
 
-    <!-- JavaScript for Live Search and Merge functionality -->
+    <!-- JavaScript for Live Search, Group Filter and Merge functionality -->
     <script>
-        document.getElementById('searchInput').addEventListener('keyup', function () {
-            let filter = this.value.toLowerCase();
-            let rows = document.querySelectorAll('#accountsTable tr');
-
-            rows.forEach(row => {
-                let accountName = row.cells[1].textContent.toLowerCase();
-                let address = row.cells[2].textContent.toLowerCase();
-                let phone = row.cells[3].textContent.toLowerCase();
-
-                // Check if the search query matches any of the columns (name, address, phone)
-                if (accountName.includes(filter) || address.includes(filter) || phone.includes(filter)) {
-                    row.style.display = '';  // Show row
-                } else {
-                    row.style.display = 'none';  // Hide row
-                }
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM elements
+            const searchInput = document.getElementById('searchInput');
+            const groupFilterBtns = document.querySelectorAll('.group-filter-btn');
+            const mergeBtn = document.getElementById('mergeAccountsBtn');
+            const checkboxes = document.querySelectorAll('.accountCheckbox');
+            const accountsTable = document.getElementById('accountsTable');
+            
+            // Current filter state
+            let currentGroupFilter = 'all';
+            let currentSearchTerm = '';
+            
+            // Function to filter accounts based on search term and group filter
+            function filterAccounts() {
+                const rows = accountsTable.querySelectorAll('tr');
+                let visibleCount = 0;
+                
+                rows.forEach(row => {
+                    const accountName = row.cells[2].textContent.toLowerCase();
+                    const address = row.cells[4].textContent.toLowerCase();
+                    const phone = row.cells[5].textContent.toLowerCase();
+                    const group = row.getAttribute('data-group');
+                    
+                    // Check if row matches both search term and group filter
+                    const matchesSearch = currentSearchTerm === '' || 
+                        accountName.includes(currentSearchTerm) || 
+                        address.includes(currentSearchTerm) || 
+                        phone.includes(currentSearchTerm);
+                    
+                    const matchesGroup = currentGroupFilter === 'all' || group === currentGroupFilter;
+                    
+                    if (matchesSearch && matchesGroup) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                // Update row numbers for visible rows
+                let visibleIndex = 1;
+                rows.forEach(row => {
+                    if (row.style.display !== 'none') {
+                        row.cells[0].textContent = visibleIndex++;
+                    }
+                });
+            }
+            
+            // Search input event
+            searchInput.addEventListener('keyup', function() {
+                currentSearchTerm = this.value.toLowerCase();
+                filterAccounts();
             });
-        });
-
-        // Enable merge button only if multiple accounts are selected
-        const mergeBtn = document.getElementById('mergeAccountsBtn');
-        const checkboxes = document.querySelectorAll('.accountCheckbox');
-
-        // Function to update the merge button state
-        function updateMergeButtonState() {
-            const checkedBoxes = document.querySelectorAll('.accountCheckbox:checked');
-            mergeBtn.disabled = checkedBoxes.length < 2;  // Enable button only if two or more are selected
-        }
-
-        // Attach change event listener to each checkbox
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', updateMergeButtonState);
-        });
-
-        // Validate ObjectId format
-        function isValidObjectId(id) {
-            return /^[0-9a-fA-F]{24}$/.test(id);
-        }
-
-        // Handle the merging of accounts
-        mergeBtn.addEventListener('click', function () {
-            let selectedAccounts = Array.from(document.querySelectorAll('.accountCheckbox:checked'))
-                .map(cb => cb.value)
-                .filter(isValidObjectId);  // Only keep valid ObjectIds
-
-            if (selectedAccounts.length >= 2) {
-                // Send selected accounts for merging
-                fetch('/aging/merged', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ accountIds: selectedAccounts })
-                })
+            
+            // Group filter button events
+            groupFilterBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Update active state of buttons
+                    groupFilterBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update current filter and re-filter
+                    currentGroupFilter = this.getAttribute('data-group');
+                    filterAccounts();
+                });
+            });
+            
+            // Enable merge button only if multiple accounts are selected
+            function updateMergeButtonState() {
+                const checkedBoxes = document.querySelectorAll('.accountCheckbox:checked');
+                mergeBtn.disabled = checkedBoxes.length < 2;
+            }
+            
+            // Checkbox change events
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateMergeButtonState();
+                    // Highlight selected rows
+                    const row = this.closest('tr');
+                    if (this.checked) {
+                        row.classList.add('selected-row');
+                    } else {
+                        row.classList.remove('selected-row');
+                    }
+                });
+            });
+            
+            // Validate ObjectId format
+            function isValidObjectId(id) {
+                return /^[0-9a-fA-F]{24}$/.test(id);
+            }
+            
+            // Handle the merging of accounts
+            mergeBtn.addEventListener('click', function() {
+                let selectedAccounts = Array.from(document.querySelectorAll('.accountCheckbox:checked'))
+                    .map(cb => cb.value)
+                    .filter(isValidObjectId);
+                
+                if (selectedAccounts.length >= 2) {
+                    // Send selected accounts for merging
+                    fetch('/aging/merged', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ accountIds: selectedAccounts })
+                    })
                     .then(response => {
                         if (response.ok) {
                             return response.json();
@@ -149,7 +243,6 @@
                     })
                     .then(data => {
                         if (data.success) {
-                            // Redirect to the new page with aging report for selected accounts
                             window.location.href = `/aging/mergedReport?accountIds=${selectedAccounts.join(',')}`;
                         } else {
                             alert('Error merging accounts. Please try again.');
@@ -159,9 +252,76 @@
                         console.error('Error:', error);
                         alert('Error merging accounts. Please try again.');
                     });
-            } else {
-                alert('Please select at least two valid accounts to merge.');
+                } else {
+                    alert('Please select at least two valid accounts to merge.');
+                }
+            });
+            
+            // Keyboard navigation for rows
+            document.addEventListener('keydown', function(e) {
+                const visibleRows = Array.from(accountsTable.querySelectorAll('tr')).filter(
+                    row => row.style.display !== 'none'
+                );
+                
+                if (visibleRows.length === 0) return;
+                
+                let currentIndex = -1;
+                visibleRows.forEach((row, index) => {
+                    if (row.classList.contains('selected-row')) {
+                        currentIndex = index;
+                    }
+                });
+                
+                switch(e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        if (currentIndex === -1) {
+                            // Select first row if none selected
+                            visibleRows[0].classList.add('selected-row');
+                            visibleRows[0].querySelector('.accountCheckbox').checked = true;
+                        } else if (currentIndex < visibleRows.length - 1) {
+                            // Move selection down
+                            visibleRows[currentIndex].classList.remove('selected-row');
+                            visibleRows[currentIndex + 1].classList.add('selected-row');
+                            visibleRows[currentIndex + 1].querySelector('.accountCheckbox').checked = true;
+                        }
+                        updateMergeButtonState();
+                        scrollToSelectedRow();
+                        break;
+                        
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        if (currentIndex === -1) {
+                            // Select last row if none selected
+                            visibleRows[visibleRows.length - 1].classList.add('selected-row');
+                            visibleRows[visibleRows.length - 1].querySelector('.accountCheckbox').checked = true;
+                        } else if (currentIndex > 0) {
+                            // Move selection up
+                            visibleRows[currentIndex].classList.remove('selected-row');
+                            visibleRows[currentIndex - 1].classList.add('selected-row');
+                            visibleRows[currentIndex - 1].querySelector('.accountCheckbox').checked = true;
+                        }
+                        updateMergeButtonState();
+                        scrollToSelectedRow();
+                        break;
+                        
+                    case 'Enter':
+                        if (currentIndex >= 0) {
+                            // Trigger click on first action button (FIFO aging)
+                            visibleRows[currentIndex].querySelector('.btn-primary').click();
+                        }
+                        break;
+                }
+            });
+            
+            function scrollToSelectedRow() {
+                const selectedRow = document.querySelector('.selected-row');
+                if (selectedRow) {
+                    selectedRow.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest'
+                    });
+                }
             }
         });
-
     </script>

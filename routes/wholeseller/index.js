@@ -635,6 +635,64 @@ router.get('/wholesellerDashboard/indexv2', isLoggedIn, ensureAuthenticated, ens
 
         //----------------------------------------------------------------------------------------------------------------        
 
+        // Find the Sundry Debtors company group and count
+        const sundryDebtorsGroup = await companyGroup.findOne({
+            name: 'Sundry Debtors',
+            company: companyId
+        });
+
+        let sundryDebtorsCount = 0;
+
+        if (sundryDebtorsGroup) {
+            // 2. Count accounts that belong to this group
+            sundryDebtorsCount = await Account.countDocuments({
+                companyGroups: sundryDebtorsGroup._id,
+                company: companyId
+            });
+        }
+
+        console.log('Total Sundry Debtors:', sundryDebtorsCount);
+
+        //------------------------------------------------------------------
+
+
+        // Count sales bills for the current fiscal year
+        const salesCount = await SalesBill.countDocuments({
+            company: new mongoose.Types.ObjectId(companyId),
+            date: {
+                $gte: currentFiscalYear.startDate,
+                $lte: currentFiscalYear.endDate
+            }
+        });
+
+        // Count unique items sold in the current fiscal year
+        const soldItemsCount = await SalesBill.aggregate([
+            {
+                $match: {
+                    company: new mongoose.Types.ObjectId(companyId),
+                    date: {
+                        $gte: currentFiscalYear.startDate,
+                        $lte: currentFiscalYear.endDate
+                    }
+                }
+            },
+            { $unwind: "$items" }, // Split each item in the sales bill into separate documents
+            {
+                $group: {
+                    _id: "$items.item", // Group by item ID to get distinct items
+                }
+            },
+            {
+                $count: "totalUniqueItemsSold" // Count the distinct items
+            }
+        ]);
+
+        const totalUniqueItemsSold = soldItemsCount.length > 0 ? soldItemsCount[0].totalUniqueItemsSold : 0;
+
+        console.log('Total Unique Items Sold:', totalUniqueItemsSold);
+
+        console.log('Total Sales Count:', salesCount);
+
         res.render('wholeseller/index/indexv2', {
             netSales,
             company,
@@ -644,6 +702,9 @@ router.get('/wholesellerDashboard/indexv2', isLoggedIn, ensureAuthenticated, ens
             purchasePercentageChange,
             totalProfitPercentage,
             totalStockValue,
+            sundryDebtorsCount: sundryDebtorsCount.toLocaleString(),
+            salesCount: salesCount.toLocaleString(),
+            totalUniqueItemsSold: totalUniqueItemsSold.toLocaleString(), // Add this line
             currentFiscalYear,
             initialCurrentFiscalYear,
             user: req.user,

@@ -1,6 +1,4 @@
-<div class="form-control">
     <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-</div>
 
 <style id="printStyles" media="print">
     body {
@@ -60,13 +58,6 @@
                 <h2 class="card-subtitle">
                     <%= currentCompanyName %>
                 </h2>
-                <h4>
-                    <b>
-                        <%= currentCompany.address %>-<%= currentCompany.ward %>, <%= currentCompany.city %>,
-                                    <%= currentCompany.country %>
-                    </b>
-                    <br>
-                </h4>
                 <h3>Ageing Receivables/Payables</h3>
                 <hr style="border: 0.5px solid;">
             </div>
@@ -152,19 +143,56 @@
 </div>
 
 <script>
+//     function printBill() {
+//         var printContents = document.getElementById('printableContent').innerHTML;
+//         var styles = document.getElementById('printStyles') ? document.getElementById('printStyles').innerHTML : '';
+//         var originalContents = document.body.innerHTML;
+
+//         // Debugging
+//         console.log("Printing...");
+
+//         document.body.innerHTML = '<style>' + styles + '</style>' + printContents;
+//         window.print();
+//         document.body.innerHTML = originalContents;
+
+//         // Optional: refresh the page or keep original content
+//         // location.reload(); 
+//     }
+// </script>
+
+<script>
     function printBill() {
-        var printContents = document.getElementById('printableContent').innerHTML;
-        var styles = document.getElementById('printStyles') ? document.getElementById('printStyles').innerHTML : '';
-        var originalContents = document.body.innerHTML;
-
-        // Debugging
-        console.log("Printing...");
-
-        document.body.innerHTML = '<style>' + styles + '</style>' + printContents;
-        window.print();
-        document.body.innerHTML = originalContents;
-
-        // Optional: refresh the page or keep original content
-        // location.reload(); 
+        // Get the printable content and styles
+        const printContents = document.getElementById('printableContent').innerHTML;
+        const styles = document.getElementById('printStyles') ? document.getElementById('printStyles').innerHTML : '';
+        
+        // Create a new window for printing
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        
+        // Write the content to the new window
+        printWindow.document.open();
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Print - Aging Report</title>
+                <style>${styles}</style>
+            </head>
+            <body>
+                ${printContents}
+                <script>
+                    // Automatically trigger print when window loads
+                    window.onload = function() {
+                        setTimeout(function() {
+                            window.print();
+                            // Close the window after printing (optional)
+                            // window.close();
+                        }, 200);
+                    };
+                <\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     }
 </script>

@@ -85,7 +85,7 @@ router.get('/aging/accounts', isLoggedIn, ensureAuthenticated, ensureCompanySele
             fiscalYear: fiscalYear,
             isActive: true,
             companyGroups: { $in: relevantGroupIds }
-        });
+        }).populate('companyGroups');
 
         res.render('wholeseller/outstanding/accounts', {
             company,
@@ -105,7 +105,7 @@ router.get('/aging/accounts', isLoggedIn, ensureAuthenticated, ensureCompanySele
 
 
 // Route to get aging report for a specific account
-router.get('/aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensureFiscalYear, ensureTradeType, checkFiscalYearDateRange, async (req, res) => {
+router.get('/aging/:accountId', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureFiscalYear, ensureTradeType, checkFiscalYearDateRange, async (req, res) => {
     try {
         const { accountId } = req.params;
         const companyId = req.session.currentCompany;
@@ -163,6 +163,7 @@ router.get('/aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensu
         const transactions = await Transaction.find({
             company: companyId,
             account: accountId,
+            isActive: true,
             $or: [
                 { billId: { $exists: true } }, // Sales
                 { purchaseBillId: { $exists: true } }, // Purchase
@@ -245,13 +246,15 @@ router.get('/aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensu
                 }
             } else if (transaction.receiptAccountId) {
                 if (transaction.debit > 0) {
-                    runningBalance -= transaction.debit;
-                    agingData.totalOutstanding += transaction.debit;
+                    runningBalance += transaction.debit;
+                    agingData.totalOutstanding -= transaction.debit;
                 } else if (transaction.credit > 0) {
                     // Apply receipt credit to outstanding sales amounts using FIFO
-                    const remainingCredit = applyReceiptFIFO(transaction.credit, agingData);
-                    agingData.totalOutstanding -= (transaction.credit - remainingCredit); // Adjust total outstanding
+                    // const remainingCredit = applyReceiptFIFO(transaction.credit, agingData);
+                    // agingData.totalOutstanding -= (transaction.credit - remainingCredit); // Adjust total outstanding
+                    // runningBalance += transaction.credit;
                     runningBalance += transaction.credit;
+                    agingData.totalOutstanding += transaction.credit;
                 }
             } else if (transaction.debitNoteId) {
                 // Journal Entry (can be either debit or credit)
@@ -377,7 +380,7 @@ router.get('/aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensu
 
 
 // Route to get aging report for a specific account
-router.get('/day-count-aging/:accountId', ensureAuthenticated, ensureCompanySelected, ensureFiscalYear, ensureTradeType, checkFiscalYearDateRange, async (req, res) => {
+router.get('/day-count-aging/:accountId', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureFiscalYear, ensureTradeType, checkFiscalYearDateRange, async (req, res) => {
     try {
         const { accountId } = req.params;
         const companyId = req.session.currentCompany;
@@ -428,6 +431,7 @@ router.get('/day-count-aging/:accountId', ensureAuthenticated, ensureCompanySele
 
         let runningBalance = openingBalance.type === 'Cr' ? openingBalance.amount : -openingBalance.amount;
 
+        // Get all transactions sorted strictly by date in ascending order
         const transactions = await Transaction.find({
             company: companyId,
             account: accountId,
@@ -443,36 +447,27 @@ router.get('/day-count-aging/:accountId', ensureAuthenticated, ensureCompanySele
                 { debitNoteId: { $exists: true } },
                 { creditNoteId: { $exists: true } },
             ],
-        }).populate('billId')
-            .populate('purchaseBillId')
-            .populate('purchaseReturnBillId')
-            .populate('salesReturnBillId')
-            .populate('paymentAccountId')
-            .populate('receiptAccountId')
-            .populate('journalBillId')
-            .populate('debitNoteId')
-            .populate('creditNoteId')
-            .sort({ date: 'asc' })
-            .exec();
+        })
+        .populate('billId')
+        .populate('purchaseBillId')
+        .populate('purchaseReturnBillId')
+        .populate('salesReturnBillId')
+        .populate('paymentAccountId')
+        .populate('receiptAccountId')
+        .populate('journalBillId')
+        .populate('debitNoteId')
+        .populate('creditNoteId')
+        .sort({ date: 1 }) // Strictly sort by date in ascending order
+        .lean() // Convert to plain JavaScript objects for better performance
+        .exec();
 
-        // Custom sort: prioritize payment and receipt, then others by date
-        transactions.sort((a, b) => {
-            const isPaymentA = !!a.paymentAccountId;
-            const isReceiptA = !!a.receiptAccountId;
-            const isPaymentB = !!b.paymentAccountId;
-            const isReceiptB = !!b.receiptAccountId;
-
-            // If A is a payment or receipt and B is not, A should come first
-            if ((isPaymentA || isReceiptA) && !(isPaymentB || isReceiptB)) {
-                return -1;
-            }
-            // If B is a payment or receipt and A is not, B should come first
-            if ((isPaymentB || isReceiptB) && !(isPaymentA || isReceiptA)) {
-                return 1;
-            }
-            // Otherwise, sort by date (already sorted by date, so no change needed)
-            return new Date(a.date) - new Date(b.date);
+        // Convert dates to proper Date objects for accurate sorting
+        transactions.forEach(t => {
+            t.date = new Date(t.date);
         });
+
+        // Re-sort to ensure proper date ordering (in case some dates were strings)
+        transactions.sort((a, b) => a.date - b.date);
 
         // Initialize data for aging analysis
         const agingData = {
@@ -485,32 +480,49 @@ router.get('/day-count-aging/:accountId', ensureAuthenticated, ensureCompanySele
             openingBalance: openingBalance.amount,
             transactions: []
         };
-        // Loop through transactions to calculate outstanding amounts and balance
-        transactions.forEach(transaction => {
-            // Determine debit or credit effect on totalOutstanding
+
+        // Process transactions in strict date order
+        for (const transaction of transactions) {
+            // Calculate age in days
+            let age;
+            if (companyDateFormat === 'nepali') {
+                try {
+                    const nepaliTransactionDate = new Date(transaction.date);
+                    const nepaliCurrentDate = new Date(nepaliDate);
+                    age = (nepaliCurrentDate - nepaliTransactionDate) / (1000 * 60 * 60 * 24);
+                } catch (error) {
+                    age = 0;
+                }
+            } else {
+                try {
+                    age = (today - transaction.date) / (1000 * 60 * 60 * 24);
+                } catch (error) {
+                    age = 0;
+                }
+            }
+
+            // Update running balance based on transaction type
             if (transaction.billId) {
                 // Sales
-                runningBalance -= transaction.debit; // Debit increases outstanding
-                agingData.totalOutstanding += transaction.debit; // Increase total outstanding for sales
+                runningBalance -= transaction.debit;
+                agingData.totalOutstanding += transaction.debit;
             } else if (transaction.salesReturnBillId) {
                 // Sales Return
-                runningBalance += transaction.credit; // Credit decreases outstanding
-                agingData.totalOutstanding -= transaction.credit; // Decrease total outstanding for sales return
+                runningBalance += transaction.credit;
+                agingData.totalOutstanding -= transaction.credit;
             } else if (transaction.purchaseBillId) {
                 // Purchase
-                runningBalance += transaction.credit; // Debit for purchases
-                agingData.totalOutstanding -= transaction.credit; // Decrease total outstanding for purchases
+                runningBalance += transaction.credit;
+                agingData.totalOutstanding -= transaction.credit;
             } else if (transaction.purchaseReturnBillId) {
                 // Purchase Return
-                runningBalance -= transaction.debit; // Debit for purchases
-                agingData.totalOutstanding += transaction.debit; // Decrease total outstanding for purchases
+                runningBalance -= transaction.debit;
+                agingData.totalOutstanding += transaction.debit;
             } else if (transaction.paymentAccountId) {
                 if (transaction.debit > 0) {
                     runningBalance -= transaction.debit;
-                    // agingData.totalOutstanding += transaction.debit;
                 } else if (transaction.credit > 0) {
                     runningBalance += transaction.credit;
-                    // agingData.totalOutstanding -= transaction.credit;
                 }
             } else if (transaction.receiptAccountId) {
                 if (transaction.debit > 0) {
@@ -520,66 +532,23 @@ router.get('/day-count-aging/:accountId', ensureAuthenticated, ensureCompanySele
                     runningBalance += transaction.credit;
                     agingData.totalOutstanding -= transaction.credit;
                 }
-            } else if (transaction.debitNoteId) {
-                // Journal Entry (can be either debit or credit)
+            } else if (transaction.debitNoteId || transaction.creditNoteId || transaction.journalBillId) {
                 if (transaction.debit > 0) {
-                    runningBalance -= transaction.debit; // Debit increases outstanding
-                    agingData.totalOutstanding += transaction.debit; // Increase total outstanding for journal debit
+                    runningBalance -= transaction.debit;
+                    agingData.totalOutstanding += transaction.debit;
                 } else if (transaction.credit > 0) {
-                    runningBalance += transaction.credit; // Credit decreases outstanding
-                    agingData.totalOutstanding -= transaction.credit; // Decrease total outstanding for journal credit
-                }
-            } else if (transaction.creditNoteId) {
-                // Journal Entry (can be either debit or credit)
-                if (transaction.debit > 0) {
-                    runningBalance -= transaction.debit; // Debit increases outstanding
-                    agingData.totalOutstanding += transaction.debit; // Increase total outstanding for journal debit
-                } else if (transaction.credit > 0) {
-                    runningBalance += transaction.credit; // Credit decreases outstanding
-                    agingData.totalOutstanding -= transaction.credit; // Decrease total outstanding for journal credit
-                }
-            } else if (transaction.journalBillId) {
-                // Journal Entry (can be either debit or credit)
-                if (transaction.debit > 0) {
-                    runningBalance -= transaction.debit; // Debit increases outstanding
-                    agingData.totalOutstanding += transaction.debit; // Increase total outstanding for journal debit
-                } else if (transaction.credit > 0) {
-                    runningBalance += transaction.credit; // Credit decreases outstanding
-                    agingData.totalOutstanding -= transaction.credit; // Decrease total outstanding for journal credit
+                    runningBalance += transaction.credit;
+                    agingData.totalOutstanding -= transaction.credit;
                 }
             }
 
-            let transactionDate, age;
-            if (companyDateFormat === 'nepali') {
-                try {
-                    const nepaliTransactionDate = transaction.date; // NepaliDate instance
-                    const nepaliCurrentDate = nepaliDate; // NepaliDate instance
-
-                    const nepaliTransactionDateObject = new Date(nepaliTransactionDate); // Date object from transaction.date
-                    const nepaliCurrentDateObject = new Date(nepaliCurrentDate); // Convert string to Date object
-
-                    age = (nepaliCurrentDateObject - nepaliTransactionDateObject) / (1000 * 60 * 60 * 24); // Age in days
-                    transactionDate = transaction.date;
-                } catch (error) {
-                    age = 0; // Default to 0 if the date conversion fails
-                }
-            } else {
-                try {
-                    const transactionDateObject = new Date(transaction.date);
-                    age = (today - transactionDateObject) / (1000 * 60 * 60 * 24); // Age in days
-                    transactionDate = transaction.date;
-                } catch (error) {
-                    age = 0; // Default to 0 if the date conversion fails
-                }
-            }
-
-            // Add age to transaction object for rendering
-            transaction.age = Math.round(age); // Store as an integer
+            // Add age information
+            transaction.age = Math.round(age);
             transaction.ageCategory = age <= 30 ? '0-30 days' :
                 age <= 60 ? '31-60 days' :
                     age <= 90 ? '61-90 days' : '90+ days';
 
-            // Categorize the transaction into the correct aging period based on the calculated age
+            // Categorize by age
             if (age <= 30) {
                 agingData.oneToThirty += transaction.debit - transaction.credit;
             } else if (age <= 60) {
@@ -590,10 +559,10 @@ router.get('/day-count-aging/:accountId', ensureAuthenticated, ensureCompanySele
                 agingData.ninetyPlus += transaction.debit - transaction.credit;
             }
 
-            // Attach the running balance to each transaction
+            // Store running balance and add to transactions list
             transaction.balance = runningBalance;
             agingData.transactions.push(transaction);
-        });
+        }
 
         // Include opening balance in the total outstanding calculation
         agingData.totalOutstanding += agingData.openingBalance;
@@ -606,8 +575,8 @@ router.get('/day-count-aging/:accountId', ensureAuthenticated, ensureCompanySele
             currentCompany,
             companyDateFormat,
             currentCompanyName: req.session.currentCompanyName,
-            title: 'Outstanding Analysis',
-            body: 'wholeseller >> account >> aging',
+            title: '',
+            body: '',
             user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
