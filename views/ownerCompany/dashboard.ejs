@@ -5,102 +5,208 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Dashboard</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #4895ef;
+            --light-bg: #f8f9fa;
+            --dark-text: #212529;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--dark-text);
         }
 
-        .container {
-            margin-top: 20px;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 15px;
         }
 
-        .btn-primary,
-        .btn-info {
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-
-        .btn-primary:hover,
-        .btn-info:hover {
-            background-color: #0056b3;
-            transform: scale(1.05);
+        .dashboard-card {
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+            border: none;
+            overflow: hidden;
         }
 
         .navbar {
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 0.8rem 1rem;
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        .nav-link {
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(67, 97, 238, 0.1);
+            color: var(--primary-color);
+        }
+
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1.25rem 1.5rem;
+        }
+
+        .card-title {
+            font-weight: 600;
+            color: var(--dark-text);
+            margin: 0;
+        }
+
+        .welcome-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+            margin-bottom: 1rem;
+        }
+
+        .search-container {
+            max-width: 400px;
+            margin-bottom: 1.5rem;
         }
 
         .search-input {
-            max-width: 400px;
-            margin-bottom: 20px;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            border: 1px solid #dee2e6;
+            transition: all 0.3s ease;
         }
 
-        .table th,
+        .search-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+        }
+
+        .table {
+            margin-bottom: 0;
+            font-size: 0.95rem;
+        }
+
+        .table th {
+            background-color: #f1f5f9;
+            border-bottom-width: 2px;
+            font-weight: 600;
+            color: #4b5563;
+            padding: 1rem;
+        }
+
         .table td {
+            padding: 1rem;
             vertical-align: middle;
+            border-top: 1px solid #f1f5f9;
         }
 
-        .alert {
-            position: relative;
+        .table-hover tbody tr:hover {
+            background-color: #f8fafc;
         }
 
-        .btn-close {
-            position: absolute;
-            top: 8px;
-            right: 10px;
-            font-size: 1.2em;
-            color: #666;
-            cursor: pointer;
+        .btn {
+            font-weight: 500;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            transform: translateY(-1px);
+        }
+
+        .btn-info {
+            background-color: #3a86ff;
+            border-color: #3a86ff;
+        }
+
+        .btn-info:hover {
+            background-color: #2667cc;
+            border-color: #2667cc;
+            transform: translateY(-1px);
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .badge {
+            font-weight: 500;
+            padding: 0.35em 0.65em;
         }
 
         .no-results {
             display: none;
-            color: red;
+            padding: 2rem;
+            text-align: center;
+            color: #6c757d;
         }
 
+        .no-results i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #adb5bd;
+        }
 
-        *#loader {
+        /* Focused row styling */
+        .focused-row {
+            background-color: rgba(67, 97, 238, 0.15) !important;
+            box-shadow: inset 0 0 0 2px var(--primary-color);
+            transition: all 0.2s ease;
+        }
+
+        /* Loader styles */
+        #loader {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(255, 255, 255, 0.7);
+            background-color: rgba(255, 255, 255, 0.9);
             display: flex;
             flex-direction: column;
-            /* Stack spinner and percentage */
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 9999;
         }
-
-        #loader {
-        margin-top: 1rem;
-        font-size: 1.2rem;
-        color: #007bff;
-    }
 
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-top-color: #007bff;
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(67, 97, 238, 0.2);
+            border-top-color: var(--primary-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
         }
 
-        #loader-percentage {
-            margin-top: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            color: #007bff;
+        #loader-percentage-text {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            font-weight: 500;
         }
 
         @keyframes spin {
@@ -108,245 +214,489 @@
                 transform: rotate(360deg);
             }
         }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .table-responsive {
+                overflow-x: auto;
+            }
+            
+            .action-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 
 <body>
     <!-- Top Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="navbar-brand" href="/dashboard">Dashboard | <%= user.name %></a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
-            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ml-auto">
-                <% if (isAdminOrSupervisor) { %>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/company/new">Create New Company</a>
-                    </li>
-                    <% } %>
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard | <%= user.name %>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <% if (isAdminOrSupervisor) { %>
                         <li class="nav-item">
-                            <a class="nav-link" href="/logout">Logout</a>
+                            <a class="nav-link" href="/company/new">
+                                <i class="fas fa-plus-circle me-1"></i>Create Company
+                            </a>
                         </li>
-            </ul>
+                    <% } %>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">
+                            <i class="fas fa-sign-out-alt me-1"></i>Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
-            <% if (messages && messages.length) { %>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <%= messages %>
-                    <span class="btn-close" data-bs-dismiss="alert" aria-label="Close">&times;</span>
+    <div class="dashboard-container">
+        <div class="card dashboard-card animate__animated animate__fadeInUp">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="welcome-title">Welcome, <%= user.name %></h1>
+                        <h2 class="card-title">Your Companies</h2>
+                    </div>
+                    <div class="search-container">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" class="form-control search-input" id="searchInput" placeholder="Search companies..." autocomplete="off">
+                        </div>
+                    </div>
                 </div>
-            <% } %>
-    
-            <% if (error && error.length) { %>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <%= error %>
-                    <span class="btn-close" data-bs-dismiss="alert" aria-label="Close">&times;</span>
-                </div>
-            <% } %>
-    
-            <h1 class="mb-4">Welcome, <%= user.name %></h1>
-            <h2 class="mb-3">Your Companies</h2>
-    
-            <!-- Search Form -->
-            <div class="search-input">
-                <input type="text" class="form-control" id="searchInput" placeholder="Search company by name...">
             </div>
-    
-            <div class="no-results" id="noResultsMessage">No companies found.</div>
-    
-            <table class="table table-striped mt-3">
-                <thead>
-                    <tr>
-                        <th>S.n</th>
-                        <th>Company Name</th>
-                        <th>Trade Type</th>
-                        <th>Date Format</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="companyList">
-                    <% companies.forEach((company, index) => { %>
-                        <tr class="searchClass" tabindex="0">
-                            <td><%= index + 1 %></td>
-                            <td><strong><%= company.name %></strong></td>
-                            <td><small><b><%= company.tradeType %></b></small></td>
-                            <td><small><b><%= company.dateFormat.charAt(0).toUpperCase() + company.dateFormat.slice(1) %></b></small></td>
-                            <td>
-                                <form action="/switch/<%= company._id %>" method="GET" style="display:inline;">
-                                    <button type="submit" class="btn btn-primary btn-sm switch-button">Open</button>
-                                </form>
-                                <a href="/company/<%= company._id %>" class="btn btn-info btn-sm ml-1" title="View Company">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-    
-                                <div id="loader" style="display: none;">
-                                    <div class="spinner"></div>
-                                    <p id="loader-percentage-text">Loading... <span id="loader-percentage">0%</span></p>
-                                </div>
-                            </td>
-                        </tr>
-                    <% }) %>
-                </tbody>
-            </table>
+            
+            <div class="card-body p-0">
+                <% if (messages && messages.length) { %>
+                    <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+                        <i class="fas fa-check-circle me-2"></i><%= messages %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <% } %>
+                
+                <% if (error && error.length) { %>
+                    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i><%= error %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <% } %>
+                
+                <div class="no-results" id="noResultsMessage">
+                    <i class="fas fa-building"></i>
+                    <h4>No Companies Found</h4>
+                    <p>Try adjusting your search or create a new company</p>
+                </div>
+                
+                <% if (companies.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Company Name</th>
+                                    <th>Trade Type</th>
+                                    <th>Date Format</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="companyList">
+                                <% companies.forEach((company, index) => { %>
+                                    <tr class="searchable-row" tabindex="0" data-id="<%= company._id %>">
+                                        <td><%= index + 1 %></td>
+                                        <td>
+                                            <strong><%= company.name %></strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary"><%= company.tradeType %></span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info text-dark"><%= company.dateFormat.charAt(0).toUpperCase() + company.dateFormat.slice(1) %></span>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="action-buttons d-flex justify-content-end">
+                                                <form action="/switch/<%= company._id %>" method="GET" class="me-2">
+                                                    <button type="submit" class="btn btn-primary btn-sm open-btn">
+                                                        <i class="fas fa-door-open me-1"></i>Open
+                                                    </button>
+                                                </form>
+                                                <a href="/company/<%= company._id %>" class="btn btn-info btn-sm view-btn" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                        <h4>No Companies Available</h4>
+                        <p class="text-muted">You don't have any companies yet. Create your first company to get started.</p>
+                        <a href="/company/new" class="btn btn-primary mt-3">
+                            <i class="fas fa-plus-circle me-2"></i>Create Company
+                        </a>
+                    </div>
+                <% } %>
+            </div>
         </div>
     </div>
-    
+
+    <!-- Loader -->
+    <div id="loader" style="display: none;">
+        <div class="spinner"></div>
+        <p id="loader-percentage-text">Loading... <span id="loader-percentage">0%</span></p>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            let rows = document.querySelectorAll("#companyList tr.searchClass");
+            // Initialize keyboard navigation
+            const rows = document.querySelectorAll("#companyList tr.searchable-row");
             let currentRowIndex = 0;
-    
-            // Focus on the first row when page loads
-            rows[currentRowIndex].focus();
-            rows[currentRowIndex].style.backgroundColor = "#5897FB"; // Highlight the first row
-            rows[currentRowIndex].style.color="white";
-    
-            // Arrow key navigation
+            
+            // Highlight the first row by default
+            if (rows.length > 0) {
+                highlightRow(rows[currentRowIndex]);
+                rows[currentRowIndex].focus();
+            }
+            
+            // Keyboard navigation handler
             document.addEventListener('keydown', function(event) {
-                // Remove background color from the previous row
-                rows[currentRowIndex].style.backgroundColor = "white";
-                rows[currentRowIndex].style.color="black";
-    
-                if (event.key === "ArrowDown") {
-                    if (currentRowIndex < rows.length - 1) {
-                        currentRowIndex++;
-                        rows[currentRowIndex].focus();
-                    }
-                } else if (event.key === "ArrowUp") {
-                    if (currentRowIndex > 0) {
-                        currentRowIndex--;
-                        rows[currentRowIndex].focus();
-                    }
-                }
-    
-                // Add background color (light blue) to the new focused row
-                rows[currentRowIndex].style.backgroundColor = "#5897FB";
-                rows[currentRowIndex].style.color="white";
-
-                // Enter key to trigger the "Open" action
-                if (event.key === "Enter") {
-                    const currentRow = rows[currentRowIndex];
-                    const form = currentRow.querySelector("form");
-                    if (form) {
-                        form.submit(); // Trigger the form submission to open the company
-                    } else {
-                        const viewButton = currentRow.querySelector("a.btn-info");
-                        if (viewButton) {
-                            window.location.href = viewButton.href; // Navigate to the company view page
+                // Only handle arrow keys and Enter when not in an input field
+                if (document.activeElement.tagName === 'INPUT') return;
+                
+                if (rows.length === 0) return;
+                
+                switch(event.key) {
+                    case 'ArrowDown':
+                        event.preventDefault();
+                        if (currentRowIndex < rows.length - 1) {
+                            unhighlightRow(rows[currentRowIndex]);
+                            currentRowIndex++;
+                            highlightRow(rows[currentRowIndex]);
+                            rows[currentRowIndex].focus();
                         }
+                        break;
+                        
+                    case 'ArrowUp':
+                        event.preventDefault();
+                        if (currentRowIndex > 0) {
+                            unhighlightRow(rows[currentRowIndex]);
+                            currentRowIndex--;
+                            highlightRow(rows[currentRowIndex]);
+                            rows[currentRowIndex].focus();
+                        }
+                        break;
+                        
+                    case 'Enter':
+                        event.preventDefault();
+                        const currentRow = rows[currentRowIndex];
+                        const openButton = currentRow.querySelector('.open-btn');
+                        if (openButton) {
+                            openButton.click();
+                        }
+                        break;
+                }
+            });
+            
+            // Row highlighting functions
+            function highlightRow(row) {
+                row.classList.add('focused-row');
+            }
+            
+            function unhighlightRow(row) {
+                row.classList.remove('focused-row');
+            }
+            
+            // Mouse interaction
+            rows.forEach(row => {
+                row.addEventListener('mouseenter', () => {
+                    // Remove highlight from currently focused row
+                    if (currentRowIndex >= 0 && currentRowIndex < rows.length) {
+                        unhighlightRow(rows[currentRowIndex]);
                     }
-                }
-            });
-        });
-    </script>
-    
-
-    <!-- Bootstrap JS and dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
-    <!-- Live Search Script -->
-    <script>
-        document.getElementById('searchInput').addEventListener('input', function () {
-            const searchTerm = this.value.toLowerCase();
-            const companyList = document.querySelectorAll('.searchClass');
-            let found = false; // Flag to check if any companies are found
-
-            companyList.forEach(company => {
-                const companyName = company.querySelector('td strong').textContent.toLowerCase();
-                if (companyName.includes(searchTerm)) {
-                    company.style.display = '';
-                    found = true; // A company was found
-                } else {
-                    company.style.display = 'none';
-                }
-            });
-
-            // Show/hide the no results message
-            document.getElementById('noResultsMessage').style.display = found ? 'none' : 'block';
-        });
-    </script>
-
-    <script>
-        if (performance.navigation.type === 2) { // If the user navigates via the back button
-            window.location.reload(); // Reload the page to trigger authentication check
-        }
-    </script>
-
-
-    <script>
-        function showLoader() {
-            document.getElementById("loader").style.display = "flex";
-            updateLoaderPercentage();
-        }
-
-        function hideLoader() {
-            document.getElementById("loader").style.display = "none";
-        }
-
-        function updateLoaderPercentage() {
-            let percentage = 0;
-            const loaderPercentage = document.getElementById("loader-percentage");
-
-            // Simulate loading progress
-            const interval = setInterval(() => {
-                percentage += 10; // Increment by 10%
-                loaderPercentage.textContent = `${percentage}%`;
-
-                if (percentage >= 100) {
-                    clearInterval(interval); // Stop when 100% is reached
-                }
-            }, 100); // Update every 100ms
-        }
-
-        document.addEventListener("DOMContentLoaded", function () {
-            // Handle form submissions
-            const forms = document.querySelectorAll("form");
-            forms.forEach(function (form) {
-                form.addEventListener("submit", function () {
-                    showLoader();
+                    
+                    // Highlight hovered row and update current index
+                    currentRowIndex = Array.from(rows).indexOf(row);
+                    highlightRow(row);
+                });
+                
+                row.addEventListener('click', () => {
+                    // When clicking a row, focus it for keyboard navigation
+                    if (currentRowIndex >= 0 && currentRowIndex < rows.length) {
+                        unhighlightRow(rows[currentRowIndex]);
+                    }
+                    currentRowIndex = Array.from(rows).indexOf(row);
+                    highlightRow(row);
+                    row.focus();
                 });
             });
-
-            // Handle link clicks
-            const links = document.querySelectorAll("a[href]");
-            links.forEach(function (link) {
-                link.addEventListener("click", function (event) {
-                    const href = link.getAttribute("href");
-
-                    // Show loader only for valid links
-                    if (
-                        href !== "#" &&
-                        href !== "#!" &&
-                        (!link.hasAttribute("target") || link.getAttribute("target") !== "_blank") &&
-                        link.hostname === window.location.hostname
-                    ) {
-                        showLoader();
+            
+            // Live search functionality
+            const searchInput = document.getElementById('searchInput');
+            const noResultsMessage = document.getElementById('noResultsMessage');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase().trim();
+                    let hasResults = false;
+                    
+                    document.querySelectorAll('.searchable-row').forEach(row => {
+                        const companyName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                        if (companyName.includes(searchTerm)) {
+                            row.style.display = '';
+                            hasResults = true;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                    
+                    noResultsMessage.style.display = hasResults ? 'none' : 'block';
+                    
+                    // Reset row highlighting after search
+                    if (rows.length > 0) {
+                        if (currentRowIndex >= 0 && currentRowIndex < rows.length) {
+                            unhighlightRow(rows[currentRowIndex]);
+                        }
+                        currentRowIndex = 0;
+                        highlightRow(rows[currentRowIndex]);
+                        rows[currentRowIndex].focus();
                     }
                 });
+            }
+            
+            // Loader functionality
+            function showLoader() {
+                document.getElementById("loader").style.display = "flex";
+                updateLoaderPercentage();
+            }
+            
+            function hideLoader() {
+                document.getElementById("loader").style.display = "none";
+            }
+            
+            function updateLoaderPercentage() {
+                let percentage = 0;
+                const loaderPercentage = document.getElementById("loader-percentage");
+                const interval = setInterval(() => {
+                    percentage += 10;
+                    loaderPercentage.textContent = `${percentage}%`;
+                    if (percentage >= 100) clearInterval(interval);
+                }, 100);
+            }
+            
+            // Attach loader to form submissions and link clicks
+            document.querySelectorAll("form").forEach(form => {
+                form.addEventListener("submit", showLoader);
             });
+            
+            document.querySelectorAll("a[href]").forEach(link => {
+                if (!link.href.includes('javascript:') && 
+                    !link.hasAttribute('target') && 
+                    link.hostname === window.location.hostname) {
+                    link.addEventListener("click", showLoader);
+                }
+            });
+            
+            // Handle back button navigation
+            window.onpageshow = function(event) {
+                if (event.persisted) {
+                    hideLoader();
+                }
+            };
         });
+    </script> -->
 
-        // Hide loader if user navigates back or the page is restored from cache
-    window.onpageshow = function (event) {
-        if (event.persisted) {
-            hideLoader();  // Hide the loader when coming from cache (back button or forward)
-        }
-    };
-
-        // Show loader on page navigation (e.g., reload or back/forward)
-        window.addEventListener("beforeunload", function () {
-            showLoader();
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Initialize keyboard navigation
+            const rows = document.querySelectorAll("#companyList tr.searchable-row");
+            let currentRowIndex = 0;
+            let firstVisibleRowIndex = 0; // Track first visible row after search
+            
+            // Highlight the first row by default
+            if (rows.length > 0) {
+                highlightRow(rows[currentRowIndex]);
+                rows[currentRowIndex].focus();
+            }
+            
+            // Keyboard navigation handler
+            document.addEventListener('keydown', function(event) {
+                // Only handle arrow keys and Enter when not in an input field
+                if (document.activeElement.tagName === 'INPUT' && event.key !== 'Enter') return;
+                
+                if (rows.length === 0) return;
+                
+                switch(event.key) {
+                    case 'ArrowDown':
+                        event.preventDefault();
+                        if (currentRowIndex < rows.length - 1) {
+                            unhighlightRow(rows[currentRowIndex]);
+                            currentRowIndex++;
+                            highlightRow(rows[currentRowIndex]);
+                            rows[currentRowIndex].focus();
+                        }
+                        break;
+                        
+                    case 'ArrowUp':
+                        event.preventDefault();
+                        if (currentRowIndex > 0) {
+                            unhighlightRow(rows[currentRowIndex]);
+                            currentRowIndex--;
+                            highlightRow(rows[currentRowIndex]);
+                            rows[currentRowIndex].focus();
+                        }
+                        break;
+                        
+                    case 'Enter':
+                        event.preventDefault();
+                        // Get the currently focused row (could be from search results)
+                        const focusedRow = document.querySelector('.searchable-row.focused-row');
+                        if (focusedRow) {
+                            const openButton = focusedRow.querySelector('.open-btn');
+                            if (openButton) {
+                                openButton.click();
+                            }
+                        }
+                        break;
+                }
+            });
+            
+            // Row highlighting functions
+            function highlightRow(row) {
+                row.classList.add('focused-row');
+            }
+            
+            function unhighlightRow(row) {
+                row.classList.remove('focused-row');
+            }
+            
+            // Mouse interaction
+            rows.forEach(row => {
+                row.addEventListener('mouseenter', () => {
+                    // Remove highlight from currently focused row
+                    if (currentRowIndex >= 0 && currentRowIndex < rows.length) {
+                        unhighlightRow(rows[currentRowIndex]);
+                    }
+                    
+                    // Highlight hovered row and update current index
+                    currentRowIndex = Array.from(rows).indexOf(row);
+                    highlightRow(row);
+                });
+                
+                row.addEventListener('click', () => {
+                    // When clicking a row, focus it for keyboard navigation
+                    if (currentRowIndex >= 0 && currentRowIndex < rows.length) {
+                        unhighlightRow(rows[currentRowIndex]);
+                    }
+                    currentRowIndex = Array.from(rows).indexOf(row);
+                    highlightRow(row);
+                    row.focus();
+                });
+            });
+            
+            // Live search functionality
+            const searchInput = document.getElementById('searchInput');
+            const noResultsMessage = document.getElementById('noResultsMessage');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase().trim();
+                    let hasResults = false;
+                    let firstVisibleRow = null;
+                    
+                    document.querySelectorAll('.searchable-row').forEach((row, index) => {
+                        const companyName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                        if (companyName.includes(searchTerm)) {
+                            row.style.display = '';
+                            hasResults = true;
+                            if (!firstVisibleRow) {
+                                firstVisibleRow = row;
+                                firstVisibleRowIndex = index;
+                            }
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                    
+                    noResultsMessage.style.display = hasResults ? 'none' : 'block';
+                    
+                    // Keep focus on search input during typing
+                    searchInput.focus();
+                    
+                    // Update the first visible row index but don't move focus
+                    if (firstVisibleRow) {
+                        // Unhighlight all rows first
+                        document.querySelectorAll('.searchable-row').forEach(row => {
+                            unhighlightRow(row);
+                        });
+                        // Highlight the first visible row (but don't focus it)
+                        highlightRow(firstVisibleRow);
+                        currentRowIndex = firstVisibleRowIndex;
+                    }
+                });
+            }
+            
+            // Loader functionality
+            function showLoader() {
+                document.getElementById("loader").style.display = "flex";
+                updateLoaderPercentage();
+            }
+            
+            function hideLoader() {
+                document.getElementById("loader").style.display = "none";
+            }
+            
+            function updateLoaderPercentage() {
+                let percentage = 0;
+                const loaderPercentage = document.getElementById("loader-percentage");
+                const interval = setInterval(() => {
+                    percentage += 10;
+                    loaderPercentage.textContent = `${percentage}%`;
+                    if (percentage >= 100) clearInterval(interval);
+                }, 100);
+            }
+            
+            // Attach loader to form submissions and link clicks
+            document.querySelectorAll("form").forEach(form => {
+                form.addEventListener("submit", showLoader);
+            });
+            
+            document.querySelectorAll("a[href]").forEach(link => {
+                if (!link.href.includes('javascript:') && 
+                    !link.hasAttribute('target') && 
+                    link.hostname === window.location.hostname) {
+                    link.addEventListener("click", showLoader);
+                }
+            });
+            
+            // Handle back button navigation
+            window.onpageshow = function(event) {
+                if (event.persisted) {
+                    hideLoader();
+                }
+            };
         });
     </script>
-
-
 </body>
-
 </html>

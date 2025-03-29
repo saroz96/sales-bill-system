@@ -47,30 +47,6 @@ router.get('/aging/accounts', isLoggedIn, ensureAuthenticated, ensureCompanySele
         if (!fiscalYear) {
             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
         }
-        // const debtorsCreditorsGroups = await CompanyGroup.find({ name: {$in: ['Sundry Debtors', 'Sundry Creditors']} }).exec();
-        // // const bankGroups = await CompanyGroup.find({ name: { $in: ['Bank Accounts', 'Bank O/D Account'] } }).exec();
-
-        // if (!debtorsCreditorsGroups) {
-        //     console.warn('Cash in Hand group not found');
-        // }
-        // // if (bankGroups.length === 0) {
-        // //     console.warn('No bank groups found');
-        // // }
-        // // Convert bank group IDs to an array of ObjectIds
-        // // const bankGroupIds = bankGroups.map(group => group._id);
-        // const debtorsCreditorsGroupsIds = debtorsCreditorsGroups.map(group => group._id);
-
-        // // Fetch accounts excluding 'Cash in Hand' and 'Bank Accounts'
-        // const accounts = await Account.find({
-        //     company: companyId,
-        //     fiscalYear: fiscalYear,
-        //     isActive: true,
-        //     companyGroups: { $nin: [...debtorsCreditorsGroupsIds ? debtorsCreditorsGroupsIds : null] }
-        // })
-        //     .populate('companyGroups')
-        //     .exec();
-
-        // const accounts = await Account.find({ company: companyId, fiscalYear: fiscalYear }).populate('companyGroups');
 
         // Fetch only the required company groups: Cash in Hand, Sundry Debtors, Sundry Creditors
         const relevantGroups = await CompanyGroup.find({
@@ -379,23 +355,224 @@ router.get('/aging/:accountId', isLoggedIn, ensureAuthenticated, ensureCompanySe
 });
 
 
-// Route to get aging report for a specific account
+// // Route to get aging report for a specific account
+// router.get('/day-count-aging/:accountId', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureFiscalYear, ensureTradeType, checkFiscalYearDateRange, async (req, res) => {
+//     try {
+//         const { accountId } = req.params;
+//         const companyId = req.session.currentCompany;
+//         const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+//         const currentCompany = await Company.findById(companyId);
+//         const today = new Date();
+//         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD');
+//         const companyDateFormat = currentCompany ? currentCompany.dateFormat : 'english';
+
+//         let currentDate;
+//         if (companyDateFormat === 'nepali') {
+//             currentDate = nepaliDate;
+//         } else {
+//             currentDate = today;
+//         }
+
+//         let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+//         let currentFiscalYear = null;
+
+//         if (fiscalYear) {
+//             currentFiscalYear = await FiscalYear.findById(fiscalYear);
+//         }
+
+//         if (!currentFiscalYear && company.fiscalYear) {
+//             currentFiscalYear = company.fiscalYear;
+//             req.session.currentFiscalYear = {
+//                 id: currentFiscalYear._id.toString(),
+//                 startDate: currentFiscalYear.startDate,
+//                 endDate: currentFiscalYear.endDate,
+//                 name: currentFiscalYear.name,
+//                 dateFormat: currentFiscalYear.dateFormat,
+//                 isActive: currentFiscalYear.isActive
+//             };
+//             fiscalYear = req.session.currentFiscalYear.id;
+//         }
+
+//         if (!fiscalYear) {
+//             return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+//         }
+
+//         // Fetch the account
+//         const account = await Account.findById(accountId);
+
+//         // Fetch opening balance for the current fiscal year
+//         const openingBalance = account.openingBalance && account.openingBalance.fiscalYear.equals(currentFiscalYear._id)
+//             ? account.openingBalance
+//             : { amount: 0, type: 'Cr' };
+
+//         let runningBalance = openingBalance.type === 'Cr' ? openingBalance.amount : -openingBalance.amount;
+
+//         // Get all transactions sorted strictly by date in ascending order
+//         const transactions = await Transaction.find({
+//             company: companyId,
+//             account: accountId,
+//             isActive: true,
+//             $or: [
+//                 { billId: { $exists: true } },
+//                 { purchaseBillId: { $exists: true } },
+//                 { purchaseReturnBillId: { $exists: true } },
+//                 { salesReturnBillId: { $exists: true } },
+//                 { paymentAccountId: { $exists: true } },
+//                 { receiptAccountId: { $exists: true } },
+//                 { journalBillId: { $exists: true } },
+//                 { debitNoteId: { $exists: true } },
+//                 { creditNoteId: { $exists: true } },
+//             ],
+//         })
+//         .populate('billId')
+//         .populate('purchaseBillId')
+//         .populate('purchaseReturnBillId')
+//         .populate('salesReturnBillId')
+//         .populate('paymentAccountId')
+//         .populate('receiptAccountId')
+//         .populate('journalBillId')
+//         .populate('debitNoteId')
+//         .populate('creditNoteId')
+//         .sort({ date: 1 }) // Strictly sort by date in ascending order
+//         .lean() // Convert to plain JavaScript objects for better performance
+//         .exec();
+
+//         // Convert dates to proper Date objects for accurate sorting
+//         transactions.forEach(t => {
+//             t.date = new Date(t.date);
+//         });
+
+//         // Re-sort to ensure proper date ordering (in case some dates were strings)
+//         transactions.sort((a, b) => a.date - b.date);
+
+//         // Initialize data for aging analysis
+//         const agingData = {
+//             totalOutstanding: 0,
+//             current: 0,
+//             oneToThirty: 0,
+//             thirtyOneToSixty: 0,
+//             sixtyOneToNinety: 0,
+//             ninetyPlus: 0,
+//             openingBalance: openingBalance.amount,
+//             transactions: []
+//         };
+
+//         // Process transactions in strict date order
+//         for (const transaction of transactions) {
+//             // Calculate age in days
+//             let age;
+//             if (companyDateFormat === 'nepali') {
+//                 try {
+//                     const nepaliTransactionDate = new Date(transaction.date);
+//                     const nepaliCurrentDate = new Date(nepaliDate);
+//                     age = (nepaliCurrentDate - nepaliTransactionDate) / (1000 * 60 * 60 * 24);
+//                 } catch (error) {
+//                     age = 0;
+//                 }
+//             } else {
+//                 try {
+//                     age = (today - transaction.date) / (1000 * 60 * 60 * 24);
+//                 } catch (error) {
+//                     age = 0;
+//                 }
+//             }
+
+//             // Update running balance based on transaction type
+//             if (transaction.billId) {
+//                 // Sales
+//                 runningBalance -= transaction.debit;
+//                 agingData.totalOutstanding += transaction.debit;
+//             } else if (transaction.salesReturnBillId) {
+//                 // Sales Return
+//                 runningBalance += transaction.credit;
+//                 agingData.totalOutstanding -= transaction.credit;
+//             } else if (transaction.purchaseBillId) {
+//                 // Purchase
+//                 runningBalance += transaction.credit;
+//                 agingData.totalOutstanding -= transaction.credit;
+//             } else if (transaction.purchaseReturnBillId) {
+//                 // Purchase Return
+//                 runningBalance -= transaction.debit;
+//                 agingData.totalOutstanding += transaction.debit;
+//             } else if (transaction.paymentAccountId) {
+//                 if (transaction.debit > 0) {
+//                     runningBalance -= transaction.debit;
+//                 } else if (transaction.credit > 0) {
+//                     runningBalance += transaction.credit;
+//                 }
+//             } else if (transaction.receiptAccountId) {
+//                 if (transaction.debit > 0) {
+//                     runningBalance -= transaction.debit;
+//                     agingData.totalOutstanding += transaction.debit;
+//                 } else if (transaction.credit > 0) {
+//                     runningBalance += transaction.credit;
+//                     agingData.totalOutstanding -= transaction.credit;
+//                 }
+//             } else if (transaction.debitNoteId || transaction.creditNoteId || transaction.journalBillId) {
+//                 if (transaction.debit > 0) {
+//                     runningBalance -= transaction.debit;
+//                     agingData.totalOutstanding += transaction.debit;
+//                 } else if (transaction.credit > 0) {
+//                     runningBalance += transaction.credit;
+//                     agingData.totalOutstanding -= transaction.credit;
+//                 }
+//             }
+
+//             // Add age information
+//             transaction.age = Math.round(age);
+//             transaction.ageCategory = age <= 30 ? '0-30 days' :
+//                 age <= 60 ? '31-60 days' :
+//                     age <= 90 ? '61-90 days' : '90+ days';
+
+//             // Categorize by age
+//             if (age <= 30) {
+//                 agingData.oneToThirty += transaction.debit - transaction.credit;
+//             } else if (age <= 60) {
+//                 agingData.thirtyOneToSixty += transaction.debit - transaction.credit;
+//             } else if (age <= 90) {
+//                 agingData.sixtyOneToNinety += transaction.debit - transaction.credit;
+//             } else {
+//                 agingData.ninetyPlus += transaction.debit - transaction.credit;
+//             }
+
+//             // Store running balance and add to transactions list
+//             transaction.balance = runningBalance;
+//             agingData.transactions.push(transaction);
+//         }
+
+//         // Include opening balance in the total outstanding calculation
+//         agingData.totalOutstanding += agingData.openingBalance;
+
+//         res.render('wholeseller/outstanding/dayCountAgeing', {
+//             company,
+//             currentFiscalYear,
+//             account,
+//             agingData,
+//             currentCompany,
+//             companyDateFormat,
+//             currentCompanyName: req.session.currentCompanyName,
+//             title: '',
+//             body: '',
+//             user: req.user,
+//             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+//         });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).send('Internal Server Error');
+//     }
+// });
+
 router.get('/day-count-aging/:accountId', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureFiscalYear, ensureTradeType, checkFiscalYearDateRange, async (req, res) => {
     try {
         const { accountId } = req.params;
+        const { fromDate, toDate } = req.query;
         const companyId = req.session.currentCompany;
         const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
         const currentCompany = await Company.findById(companyId);
+        const currentCompanyName = req.session.currentCompanyName;
         const today = new Date();
         const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD');
         const companyDateFormat = currentCompany ? currentCompany.dateFormat : 'english';
-
-        let currentDate;
-        if (companyDateFormat === 'nepali') {
-            currentDate = nepaliDate;
-        } else {
-            currentDate = today;
-        }
 
         let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
         let currentFiscalYear = null;
@@ -429,47 +606,7 @@ router.get('/day-count-aging/:accountId', isLoggedIn, ensureAuthenticated, ensur
             ? account.openingBalance
             : { amount: 0, type: 'Cr' };
 
-        let runningBalance = openingBalance.type === 'Cr' ? openingBalance.amount : -openingBalance.amount;
-
-        // Get all transactions sorted strictly by date in ascending order
-        const transactions = await Transaction.find({
-            company: companyId,
-            account: accountId,
-            isActive: true,
-            $or: [
-                { billId: { $exists: true } },
-                { purchaseBillId: { $exists: true } },
-                { purchaseReturnBillId: { $exists: true } },
-                { salesReturnBillId: { $exists: true } },
-                { paymentAccountId: { $exists: true } },
-                { receiptAccountId: { $exists: true } },
-                { journalBillId: { $exists: true } },
-                { debitNoteId: { $exists: true } },
-                { creditNoteId: { $exists: true } },
-            ],
-        })
-        .populate('billId')
-        .populate('purchaseBillId')
-        .populate('purchaseReturnBillId')
-        .populate('salesReturnBillId')
-        .populate('paymentAccountId')
-        .populate('receiptAccountId')
-        .populate('journalBillId')
-        .populate('debitNoteId')
-        .populate('creditNoteId')
-        .sort({ date: 1 }) // Strictly sort by date in ascending order
-        .lean() // Convert to plain JavaScript objects for better performance
-        .exec();
-
-        // Convert dates to proper Date objects for accurate sorting
-        transactions.forEach(t => {
-            t.date = new Date(t.date);
-        });
-
-        // Re-sort to ensure proper date ordering (in case some dates were strings)
-        transactions.sort((a, b) => a.date - b.date);
-
-        // Initialize data for aging analysis
+        // Initialize empty aging data
         const agingData = {
             totalOutstanding: 0,
             current: 0,
@@ -481,110 +618,496 @@ router.get('/day-count-aging/:accountId', isLoggedIn, ensureAuthenticated, ensur
             transactions: []
         };
 
-        // Process transactions in strict date order
-        for (const transaction of transactions) {
-            // Calculate age in days
-            let age;
-            if (companyDateFormat === 'nepali') {
-                try {
-                    const nepaliTransactionDate = new Date(transaction.date);
-                    const nepaliCurrentDate = new Date(nepaliDate);
-                    age = (nepaliCurrentDate - nepaliTransactionDate) / (1000 * 60 * 60 * 24);
-                } catch (error) {
-                    age = 0;
-                }
-            } else {
-                try {
-                    age = (today - transaction.date) / (1000 * 60 * 60 * 24);
-                } catch (error) {
-                    age = 0;
+        // Only process transactions if both fromDate and toDate are provided
+        if (fromDate && toDate) {
+            // Calculate initial running balance from opening balance
+            let initialRunningBalance = openingBalance.type === 'Cr' ? openingBalance.amount : -openingBalance.amount;
+
+            // Get transactions before the date range to calculate correct initial balance
+            const transactionsBeforeRange = await Transaction.find({
+                company: companyId,
+                account: accountId,
+                isActive: true,
+                date: { $lt: new Date(fromDate) },
+                $or: [
+                    { billId: { $exists: true } },
+                    { purchaseBillId: { $exists: true } },
+                    { purchaseReturnBillId: { $exists: true } },
+                    { salesReturnBillId: { $exists: true } },
+                    { paymentAccountId: { $exists: true } },
+                    { receiptAccountId: { $exists: true } },
+                    { journalBillId: { $exists: true } },
+                    { debitNoteId: { $exists: true } },
+                    { creditNoteId: { $exists: true } },
+                ],
+            })
+                .sort({ date: 1 })
+                .lean()
+                .exec();
+
+            // Calculate running balance up to the start of the date range
+            for (const transaction of transactionsBeforeRange) {
+                if (transaction.billId) {
+                    initialRunningBalance -= transaction.debit;
+                } else if (transaction.salesReturnBillId) {
+                    initialRunningBalance += transaction.credit;
+                } else if (transaction.purchaseBillId) {
+                    initialRunningBalance += transaction.credit;
+                } else if (transaction.purchaseReturnBillId) {
+                    initialRunningBalance -= transaction.debit;
+                } else if (transaction.paymentAccountId) {
+                    if (transaction.debit > 0) initialRunningBalance -= transaction.debit;
+                    if (transaction.credit > 0) initialRunningBalance += transaction.credit;
+                } else if (transaction.receiptAccountId) {
+                    if (transaction.debit > 0) initialRunningBalance -= transaction.debit;
+                    if (transaction.credit > 0) initialRunningBalance += transaction.credit;
+                } else if (transaction.debitNoteId || transaction.creditNoteId || transaction.journalBillId) {
+                    if (transaction.debit > 0) initialRunningBalance -= transaction.debit;
+                    if (transaction.credit > 0) initialRunningBalance += transaction.credit;
                 }
             }
 
-            // Update running balance based on transaction type
-            if (transaction.billId) {
-                // Sales
-                runningBalance -= transaction.debit;
-                agingData.totalOutstanding += transaction.debit;
-            } else if (transaction.salesReturnBillId) {
-                // Sales Return
-                runningBalance += transaction.credit;
-                agingData.totalOutstanding -= transaction.credit;
-            } else if (transaction.purchaseBillId) {
-                // Purchase
-                runningBalance += transaction.credit;
-                agingData.totalOutstanding -= transaction.credit;
-            } else if (transaction.purchaseReturnBillId) {
-                // Purchase Return
-                runningBalance -= transaction.debit;
-                agingData.totalOutstanding += transaction.debit;
-            } else if (transaction.paymentAccountId) {
-                if (transaction.debit > 0) {
-                    runningBalance -= transaction.debit;
-                } else if (transaction.credit > 0) {
-                    runningBalance += transaction.credit;
+            // Get transactions within the date range
+            const startDate = new Date(fromDate);
+            const endDate = new Date(toDate);
+            endDate.setHours(23, 59, 59, 999);
+
+            const transactions = await Transaction.find({
+                company: companyId,
+                account: accountId,
+                isActive: true,
+                date: {
+                    $gte: startDate,
+                    $lte: endDate
+                },
+                $or: [
+                    { billId: { $exists: true } },
+                    { purchaseBillId: { $exists: true } },
+                    { purchaseReturnBillId: { $exists: true } },
+                    { salesReturnBillId: { $exists: true } },
+                    { paymentAccountId: { $exists: true } },
+                    { receiptAccountId: { $exists: true } },
+                    { journalBillId: { $exists: true } },
+                    { debitNoteId: { $exists: true } },
+                    { creditNoteId: { $exists: true } },
+                ],
+            })
+                .populate('billId')
+                .populate('purchaseBillId')
+                .populate('purchaseReturnBillId')
+                .populate('salesReturnBillId')
+                .populate('paymentAccountId')
+                .populate('receiptAccountId')
+                .populate('journalBillId')
+                .populate('debitNoteId')
+                .populate('creditNoteId')
+                .sort({ date: 1 })
+                .lean()
+                .exec();
+
+            // Process transactions with the initial running balance
+            let runningBalance = initialRunningBalance;
+            agingData.transactions = [];
+
+            for (const transaction of transactions) {
+                // Calculate age in days
+                let age;
+                if (companyDateFormat === 'nepali') {
+                    try {
+                        const nepaliTransactionDate = new Date(transaction.date);
+                        const nepaliCurrentDate = new Date(nepaliDate);
+                        age = (nepaliCurrentDate - nepaliTransactionDate) / (1000 * 60 * 60 * 24);
+                    } catch (error) {
+                        age = 0;
+                    }
+                } else {
+                    try {
+                        age = (today - transaction.date) / (1000 * 60 * 60 * 24);
+                    } catch (error) {
+                        age = 0;
+                    }
                 }
-            } else if (transaction.receiptAccountId) {
-                if (transaction.debit > 0) {
+
+                // Update running balance based on transaction type
+                if (transaction.billId) {
                     runningBalance -= transaction.debit;
                     agingData.totalOutstanding += transaction.debit;
-                } else if (transaction.credit > 0) {
+                } else if (transaction.salesReturnBillId) {
                     runningBalance += transaction.credit;
                     agingData.totalOutstanding -= transaction.credit;
-                }
-            } else if (transaction.debitNoteId || transaction.creditNoteId || transaction.journalBillId) {
-                if (transaction.debit > 0) {
+                } else if (transaction.purchaseBillId) {
+                    runningBalance += transaction.credit;
+                    agingData.totalOutstanding -= transaction.credit;
+                } else if (transaction.purchaseReturnBillId) {
                     runningBalance -= transaction.debit;
                     agingData.totalOutstanding += transaction.debit;
-                } else if (transaction.credit > 0) {
-                    runningBalance += transaction.credit;
-                    agingData.totalOutstanding -= transaction.credit;
+                } else if (transaction.paymentAccountId) {
+                    if (transaction.debit > 0) runningBalance -= transaction.debit;
+                    if (transaction.credit > 0) runningBalance += transaction.credit;
+                } else if (transaction.receiptAccountId) {
+                    if (transaction.debit > 0) {
+                        runningBalance -= transaction.debit;
+                        agingData.totalOutstanding += transaction.debit;
+                    }
+                    if (transaction.credit > 0) {
+                        runningBalance += transaction.credit;
+                        agingData.totalOutstanding -= transaction.credit;
+                    }
+                } else if (transaction.debitNoteId || transaction.creditNoteId || transaction.journalBillId) {
+                    if (transaction.debit > 0) {
+                        runningBalance -= transaction.debit;
+                        agingData.totalOutstanding += transaction.debit;
+                    }
+                    if (transaction.credit > 0) {
+                        runningBalance += transaction.credit;
+                        agingData.totalOutstanding -= transaction.credit;
+                    }
                 }
+
+                // Add age information
+                transaction.age = Math.round(age);
+                transaction.ageCategory = age <= 30 ? '0-30 days' :
+                    age <= 60 ? '31-60 days' :
+                        age <= 90 ? '61-90 days' : '90+ days';
+
+                // Categorize by age
+                if (age <= 30) {
+                    agingData.oneToThirty += transaction.debit - transaction.credit;
+                } else if (age <= 60) {
+                    agingData.thirtyOneToSixty += transaction.debit - transaction.credit;
+                } else if (age <= 90) {
+                    agingData.sixtyOneToNinety += transaction.debit - transaction.credit;
+                } else {
+                    agingData.ninetyPlus += transaction.debit - transaction.credit;
+                }
+
+                // Store running balance and add to transactions list
+                transaction.balance = runningBalance;
+                agingData.transactions.push(transaction);
             }
 
-            // Add age information
-            transaction.age = Math.round(age);
-            transaction.ageCategory = age <= 30 ? '0-30 days' :
-                age <= 60 ? '31-60 days' :
-                    age <= 90 ? '61-90 days' : '90+ days';
-
-            // Categorize by age
-            if (age <= 30) {
-                agingData.oneToThirty += transaction.debit - transaction.credit;
-            } else if (age <= 60) {
-                agingData.thirtyOneToSixty += transaction.debit - transaction.credit;
-            } else if (age <= 90) {
-                agingData.sixtyOneToNinety += transaction.debit - transaction.credit;
-            } else {
-                agingData.ninetyPlus += transaction.debit - transaction.credit;
-            }
-
-            // Store running balance and add to transactions list
-            transaction.balance = runningBalance;
-            agingData.transactions.push(transaction);
+            // Include opening balance in the total outstanding calculation
+            agingData.totalOutstanding += agingData.openingBalance;
         }
 
-        // Include opening balance in the total outstanding calculation
-        agingData.totalOutstanding += agingData.openingBalance;
-
-        res.render('wholeseller/outstanding/dayCountAgeing', {
+        res.render('wholeseller/outstanding/dayCountAgeing2', {
             company,
             currentFiscalYear,
             account,
             agingData,
             currentCompany,
             companyDateFormat,
-            currentCompanyName: req.session.currentCompanyName,
+            nepaliDate,
+            currentCompanyName,
+            fromDate: fromDate || '',
+            toDate: toDate || '',
             title: '',
             body: '',
             user: req.user,
-            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor',
+            hasDateFilter: !!fromDate && !!toDate // Add flag to indicate if date filter is applied
         });
+
     } catch (error) {
         console.error(error);
         res.status(500).send('Internal Server Error');
     }
 });
+
+
+router.get('/day-count-aging', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureFiscalYear, ensureTradeType, checkFiscalYearDateRange, async (req, res) => {
+    try {
+        // const { accountId } = req.params;
+        const { accountId, fromDate, toDate } = req.query;
+        const companyId = req.session.currentCompany;
+        const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
+        const currentCompany = await Company.findById(companyId);
+        const currentCompanyName = req.session.currentCompanyName;
+        const today = new Date();
+        const nepaliDate = new NepaliDate(today).format('YYYY-MM-DD');
+        const companyDateFormat = currentCompany ? currentCompany.dateFormat : 'english';
+
+        let fiscalYear = req.session.currentFiscalYear ? req.session.currentFiscalYear.id : null;
+        let currentFiscalYear = null;
+
+        if (fiscalYear) {
+            currentFiscalYear = await FiscalYear.findById(fiscalYear);
+        }
+
+        if (!currentFiscalYear && company.fiscalYear) {
+            currentFiscalYear = company.fiscalYear;
+            req.session.currentFiscalYear = {
+                id: currentFiscalYear._id.toString(),
+                startDate: currentFiscalYear.startDate,
+                endDate: currentFiscalYear.endDate,
+                name: currentFiscalYear.name,
+                dateFormat: currentFiscalYear.dateFormat,
+                isActive: currentFiscalYear.isActive
+            };
+            fiscalYear = req.session.currentFiscalYear.id;
+        }
+
+        if (!fiscalYear) {
+            return res.status(400).json({ error: 'No fiscal year found in session or company.' });
+        }
+
+        // Fetch the account
+        const account = await Account.findById(accountId);
+
+        // Fetch only the required company groups: Cash in Hand, Sundry Debtors, Sundry Creditors
+        const relevantGroups = await CompanyGroup.find({
+            name: { $in: ['Sundry Debtors', 'Sundry Creditors'] }
+        }).exec();
+
+        // Convert relevant group IDs to an array of ObjectIds
+        const relevantGroupIds = relevantGroups.map(group => group._id);
+
+        const accounts = await Account.find({
+            company: companyId,
+            fiscalYear: fiscalYear,
+            isActive: true,
+            companyGroups: { $in: relevantGroupIds }
+        }).sort({ name: 1 });
+
+        // Get all accounts for the dropdown
+        // const accounts = await Account.find({ company: req.session.currentCompany }).sort({ name: 1 });
+
+
+        if (!accountId) {
+            return res.render('wholeseller/outstanding/dayCountAgeing', {
+                accounts,
+                // other necessary variables
+                company,
+                account,
+                currentFiscalYear,
+                currentCompany,
+                companyDateFormat,
+                nepaliDate,
+                currentCompanyName,
+                fromDate: fromDate || '',
+                toDate: toDate || '',
+                title: '',
+                body: '',
+                user: req.user,
+                isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor',
+                hasDateFilter: !!fromDate && !!toDate // Add flag to indicate if date filter is applied
+            });
+        }
+
+        // Fetch opening balance for the current fiscal year
+        const openingBalance = account.openingBalance && account.openingBalance.fiscalYear.equals(currentFiscalYear._id)
+            ? account.openingBalance
+            : { amount: 0, type: 'Cr' };
+
+        // Initialize empty aging data
+        const agingData = {
+            totalOutstanding: 0,
+            current: 0,
+            oneToThirty: 0,
+            thirtyOneToSixty: 0,
+            sixtyOneToNinety: 0,
+            ninetyPlus: 0,
+            openingBalance: openingBalance.amount,
+            transactions: []
+        };
+
+        // Only process transactions if both fromDate and toDate are provided
+        if (fromDate && toDate) {
+            // Calculate initial running balance from opening balance
+            let initialRunningBalance = openingBalance.type === 'Cr' ? openingBalance.amount : -openingBalance.amount;
+
+            // Get transactions before the date range to calculate correct initial balance
+            const transactionsBeforeRange = await Transaction.find({
+                company: companyId,
+                account: accountId,
+                isActive: true,
+                date: { $lt: new Date(fromDate) },
+                $or: [
+                    { billId: { $exists: true } },
+                    { purchaseBillId: { $exists: true } },
+                    { purchaseReturnBillId: { $exists: true } },
+                    { salesReturnBillId: { $exists: true } },
+                    { paymentAccountId: { $exists: true } },
+                    { receiptAccountId: { $exists: true } },
+                    { journalBillId: { $exists: true } },
+                    { debitNoteId: { $exists: true } },
+                    { creditNoteId: { $exists: true } },
+                ],
+            })
+                .sort({ date: 1 })
+                .lean()
+                .exec();
+
+            // Calculate running balance up to the start of the date range
+            for (const transaction of transactionsBeforeRange) {
+                if (transaction.billId) {
+                    initialRunningBalance -= transaction.debit;
+                } else if (transaction.salesReturnBillId) {
+                    initialRunningBalance += transaction.credit;
+                } else if (transaction.purchaseBillId) {
+                    initialRunningBalance += transaction.credit;
+                } else if (transaction.purchaseReturnBillId) {
+                    initialRunningBalance -= transaction.debit;
+                } else if (transaction.paymentAccountId) {
+                    if (transaction.debit > 0) initialRunningBalance -= transaction.debit;
+                    if (transaction.credit > 0) initialRunningBalance += transaction.credit;
+                } else if (transaction.receiptAccountId) {
+                    if (transaction.debit > 0) initialRunningBalance -= transaction.debit;
+                    if (transaction.credit > 0) initialRunningBalance += transaction.credit;
+                } else if (transaction.debitNoteId || transaction.creditNoteId || transaction.journalBillId) {
+                    if (transaction.debit > 0) initialRunningBalance -= transaction.debit;
+                    if (transaction.credit > 0) initialRunningBalance += transaction.credit;
+                }
+            }
+
+            // Get transactions within the date range
+            const startDate = new Date(fromDate);
+            const endDate = new Date(toDate);
+            endDate.setHours(23, 59, 59, 999);
+
+            const transactions = await Transaction.find({
+                company: companyId,
+                account: accountId,
+                isActive: true,
+                date: {
+                    $gte: startDate,
+                    $lte: endDate
+                },
+                $or: [
+                    { billId: { $exists: true } },
+                    { purchaseBillId: { $exists: true } },
+                    { purchaseReturnBillId: { $exists: true } },
+                    { salesReturnBillId: { $exists: true } },
+                    { paymentAccountId: { $exists: true } },
+                    { receiptAccountId: { $exists: true } },
+                    { journalBillId: { $exists: true } },
+                    { debitNoteId: { $exists: true } },
+                    { creditNoteId: { $exists: true } },
+                ],
+            })
+                .populate('billId')
+                .populate('purchaseBillId')
+                .populate('purchaseReturnBillId')
+                .populate('salesReturnBillId')
+                .populate('paymentAccountId')
+                .populate('receiptAccountId')
+                .populate('journalBillId')
+                .populate('debitNoteId')
+                .populate('creditNoteId')
+                .sort({ date: 1 })
+                .lean()
+                .exec();
+
+            // Process transactions with the initial running balance
+            let runningBalance = initialRunningBalance;
+            agingData.transactions = [];
+
+            for (const transaction of transactions) {
+                // Calculate age in days
+                let age;
+                if (companyDateFormat === 'nepali') {
+                    try {
+                        const nepaliTransactionDate = new Date(transaction.date);
+                        const nepaliCurrentDate = new Date(nepaliDate);
+                        age = (nepaliCurrentDate - nepaliTransactionDate) / (1000 * 60 * 60 * 24);
+                    } catch (error) {
+                        age = 0;
+                    }
+                } else {
+                    try {
+                        age = (today - transaction.date) / (1000 * 60 * 60 * 24);
+                    } catch (error) {
+                        age = 0;
+                    }
+                }
+
+                // Update running balance based on transaction type
+                if (transaction.billId) {
+                    runningBalance -= transaction.debit;
+                    agingData.totalOutstanding += transaction.debit;
+                } else if (transaction.salesReturnBillId) {
+                    runningBalance += transaction.credit;
+                    agingData.totalOutstanding -= transaction.credit;
+                } else if (transaction.purchaseBillId) {
+                    runningBalance += transaction.credit;
+                    agingData.totalOutstanding -= transaction.credit;
+                } else if (transaction.purchaseReturnBillId) {
+                    runningBalance -= transaction.debit;
+                    agingData.totalOutstanding += transaction.debit;
+                } else if (transaction.paymentAccountId) {
+                    if (transaction.debit > 0) runningBalance -= transaction.debit;
+                    if (transaction.credit > 0) runningBalance += transaction.credit;
+                } else if (transaction.receiptAccountId) {
+                    if (transaction.debit > 0) {
+                        runningBalance -= transaction.debit;
+                        agingData.totalOutstanding += transaction.debit;
+                    }
+                    if (transaction.credit > 0) {
+                        runningBalance += transaction.credit;
+                        agingData.totalOutstanding -= transaction.credit;
+                    }
+                } else if (transaction.debitNoteId || transaction.creditNoteId || transaction.journalBillId) {
+                    if (transaction.debit > 0) {
+                        runningBalance -= transaction.debit;
+                        agingData.totalOutstanding += transaction.debit;
+                    }
+                    if (transaction.credit > 0) {
+                        runningBalance += transaction.credit;
+                        agingData.totalOutstanding -= transaction.credit;
+                    }
+                }
+
+                // Add age information
+                transaction.age = Math.round(age);
+                transaction.ageCategory = age <= 30 ? '0-30 days' :
+                    age <= 60 ? '31-60 days' :
+                        age <= 90 ? '61-90 days' : '90+ days';
+
+                // Categorize by age
+                if (age <= 30) {
+                    agingData.oneToThirty += transaction.debit - transaction.credit;
+                } else if (age <= 60) {
+                    agingData.thirtyOneToSixty += transaction.debit - transaction.credit;
+                } else if (age <= 90) {
+                    agingData.sixtyOneToNinety += transaction.debit - transaction.credit;
+                } else {
+                    agingData.ninetyPlus += transaction.debit - transaction.credit;
+                }
+
+                // Store running balance and add to transactions list
+                transaction.balance = runningBalance;
+                agingData.transactions.push(transaction);
+            }
+
+            // Include opening balance in the total outstanding calculation
+            agingData.totalOutstanding += agingData.openingBalance;
+        }
+
+        res.render('wholeseller/outstanding/dayCountAgeing', {
+            company,
+            currentFiscalYear,
+            accounts,
+            account,
+            agingData,
+            currentCompany,
+            companyDateFormat,
+            nepaliDate,
+            currentCompanyName,
+            fromDate: fromDate || '',
+            toDate: toDate || '',
+            title: '',
+            body: '',
+            user: req.user,
+            isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor',
+            hasDateFilter: !!fromDate && !!toDate // Add flag to indicate if date filter is applied
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
 
 router.post('/aging/merged', ensureAuthenticated, async (req, res) => {
     try {

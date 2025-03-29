@@ -1,603 +1,554 @@
-<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css"
-    rel="stylesheet">
+<%- include('../layouts/boilerplate', { title: 'Sales Vouchers' , body: '' }) %>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
-  <style>
+<style>
+  /* Main Layout */
+  .expanded-container {
+    width: 95%;
+    max-width: 100%;
+    margin: 20px auto;
+  }
+
+  .expanded-card {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+  }
+
+  /* Table Styling */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #212529;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .table thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #dee2e6;
+    background-color: #f8f9fa;
+    font-weight: 600;
+    padding: 12px;
+    white-space: nowrap;
+  }
+
+  .table tbody tr {
+    transition: all 0.2s;
+  }
+
+  .table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  .table td {
+    padding: 10px;
+    vertical-align: middle;
+    border-top: 1px solid #dee2e6;
+    white-space: nowrap;
+  }
+
+  /* Action Buttons */
+  .action-buttons .btn {
+    margin-right: 5px;
+    margin-bottom: 5px;
+  }
+
+  /* Search and Filter */
+  .search-filter-container {
+    margin-bottom: 20px;
+  }
+
+  /* Highlighting */
+  .selected-row {
+    background-color: #5897FB !important;
+    color: white !important;
+  }
+
+  .selected-row td {
+    background-color: #5897FB !important;
+    color: white !important;
+  }
+
+  /* Print Styles */
+  @media print {
+    body {
+      -webkit-print-color-adjust: exact;
+      color-adjust: exact;
+      font-size: 12px;
+      margin: 10mm;
+    }
+
+    .no-print {
+      display: none !important;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      table-layout: auto;
-      /* Let columns size automatically based on content */
     }
 
-    th,
-    td {
-      padding: 8px;
+    th, td {
+      border: 1px solid #000 !important;
+      padding: 6px;
       text-align: left;
-      border: 1px solid black;
-      white-space: nowrap;
     }
 
     th {
-      background-color: #f2f2f2;
+      background-color: #f2f2f2 !important;
     }
 
-
-    @media print {
-      /* @page {
-                size: A4 landscape;
-                margin: 10mm;
-            } */
-
-      body {
-        font-size: 12px;
-        margin: 10mm;
-      }
-
-      #printHeader {
-        display: block;
-        /* Show header when printing */
-      }
-
-      /* Ensure no text wrapping when printing */
-      th,
-      td {
-        white-space: nowrap;
-      }
-
-      /* Hide unnecessary elements during printing */
-      #filterForm,
-      #searchInput,
-      #billsList .searchClass td:last-child {
-        display: none;
-      }
-
-      /* Adjust the container width to fit landscape */
-      #mainContainer {
-        width: 100%;
-      }
+    .print-header {
+      text-align: center;
+      margin-bottom: 15px;
     }
+  }
 
-    @media screen {
-      #printHeader {
-        display: none;
-        /* Hide header when on screen */
-      }
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .table td, .table th {
+      padding: 6px;
+      font-size: 0.8rem;
     }
-
-    /* Custom styles to resize the form */
-    .expanded-container {
-      max-width: 90%;
-      /* Expand the container to 90% of the viewport width */
+    
+    .action-buttons .btn {
+      margin-right: 3px;
+      padding: 5px 8px;
+      font-size: 0.8rem;
     }
+  }
+</style>
 
-    .expanded-card {
-      width: 100%;
-      /* Ensure the card takes full width of the container */
-    }
-
-    @media (min-width: 768px) {
-      .expanded-container {
-        max-width: 90%;
-        /* Adjust width for medium and larger screens */
-      }
-    }
-
-    /* Ensuring the background color remains even with Bootstrap styles */
-    .selected-row {
-      background-color: #5897FB !important;
-      /* Solid blue highlight */
-      color: white !important;
-    }
-
-    /* Ensuring text color is white for visibility */
-    .selected-row td {
-      background-color: #5897FB !important;
-      color: white !important;
-    }
-  </style>
-
-
-  <div class="container wow-form expanded-container">
-    <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
-
-      <!-- Print Header -->
-      <div id="printHeader" class="d-none text-center">
-        <div class="header" style="text-align: center;">
-          <h2 class="card-subtitle mb-2">
-            <%= currentCompanyName %>
-          </h2>
-          <b>
-            <h4>
-              <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
-                    <%=currentCompany.country%> <br>
-                      Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%>
-                          <br>
-                          VAT NO.: <span>
-                            <%=currentCompany.pan%>
-                        </span>            </h4>
-          </b>
-          <hr style="border: 0.5px solid;">
+<div class="container expanded-container">
+  <div class="card expanded-card">
+    <div class="card-body">
+      <!-- Print Header (hidden on screen) -->
+      <div id="printHeader" class="d-none print-only">
+        <div class="print-header">
+          <h2><%= currentCompanyName %></h2>
+          <p>
+            <%= currentCompany.address %>-<%=currentCompany.ward%>, <%=currentCompany.city%>,
+            <%=currentCompany.country%><br>
+            Tel.: <%=currentCompany.phone%>, Email: <%=currentCompany.email%><br>
+            VAT NO.: <%=currentCompany.pan%>
+          </p>
+          <hr>
         </div>
       </div>
-      <br>
-      <h1 class="mb-4 text-center" id="printh1" style="text-decoration: underline;">List of Sales Vouchers</h1>
 
-      <!-- Container for search and filter forms -->
-      <div class="row g-3 align-items-center mb-4"> <!-- Added g-3 for better gap between elements -->
-        <!-- Search Input Section -->
-        <div class="col-9">
-          <form class="input-group">
-            <input type="text" class="form-control" id="searchInput"
-              placeholder="Search by invoice number, party name, or user..." aria-label="Search" autofocus
-              autocomplete="off">
-            <button class="btn btn-outline-secondary" type="button" id="clearSearch">Clear</button>
-            <!-- Added clear button -->
-          </form>
+      <h1 class="mb-4 text-center" style="text-decoration: underline;">List of Sales Vouchers</h1>
+
+      <!-- Search and Filter Section -->
+      <div class="row search-filter-container no-print">
+        <div class="col-md-8">
+          <div class="input-group">
+            <input type="text" class="form-control" id="searchInput" 
+                   placeholder="Search by invoice number, party name, or user..." 
+                   aria-label="Search" autofocus autocomplete="off">
+            <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
         </div>
-
-        <!-- Filter Section -->
-        <div class="col-md-3">
-          <form id="filterForm" class="d-flex align-items-center justify-content-md-end">
-            <!-- Center on small, right-align on larger screens -->
+        <div class="col-md-4">
+          <div class="d-flex align-items-center">
             <label for="paymentModeFilter" class="form-label me-2 mb-0">Payment Mode:</label>
-            <select class="form-select" id="paymentModeFilter" aria-label="Filter by Payment Mode"
-              style="width: auto;">
+            <select class="form-select" id="paymentModeFilter" aria-label="Filter by Payment Mode">
               <option value="">All</option>
               <option value="cash">Cash</option>
               <option value="credit">Credit</option>
             </select>
-          </form>
+          </div>
         </div>
       </div>
 
-      <div class="row">
-        <div class="col">
-          <a href="/bills" class="btn btn-primary mb-3"><i class="bi bi-receipt"></i></a>
-          <!-- Print Button -->
-          <button id="printAllBills" class="btn btn-secondary mb-3"><i class="bi bi-printer"> All</i></button>
-          <button id="printFilteredBills" class="btn btn-secondary mb-3"><i class="bi bi-printer">
-              Filtered</i></button>
-        </div>
+      <!-- Action Buttons -->
+      <div class="action-buttons no-print mb-3">
+        <a href="/bills" class="btn btn-primary">
+          <i class="fas fa-receipt"></i> New Voucher
+        </a>
+        <button id="printAllBills" class="btn btn-secondary">
+          <i class="fas fa-print"></i> Print All
+        </button>
+        <button id="printFilteredBills" class="btn btn-secondary">
+          <i class="fas fa-filter"></i> Print Filtered
+        </button>
+      </div>
 
+      <!-- Bills Table -->
+      <div class="table-responsive">
         <table class="table table-striped" id="billsList">
           <thead>
             <tr>
               <th>Date</th>
-              <th>Inv. no.</th>
+              <th>Inv. No.</th>
               <th>Party Name</th>
-              <th>Pay.Mode</th>
-              <th>Sub Total</th>
-              <th>Discount</th>
-              <th>Taxable</th>
-              <th>Vat</th>
-              <th>Off(-/+)</th>
-              <th>Total</th>
+              <th>Pay Mode</th>
+              <th class="text-end">Sub Total</th>
+              <th class="text-end">Discount</th>
+              <th class="text-end">Taxable</th>
+              <th class="text-end">VAT</th>
+              <th class="text-end">Round Off</th>
+              <th class="text-end">Total</th>
               <th>User</th>
-              <th>Actions</th>
+              <th class="no-print">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <% bills.forEach(salesBill=> { %>
+            <% bills.forEach(salesBill => { %>
               <tr class="searchClass bill-row" data-payment-mode="<%= salesBill.paymentMode %>">
-                <td>
-                  <%= new Date(salesBill.date).toLocaleDateString() %>
-                </td>
-                <td>
-                  <%= salesBill.billNumber %>
-                </td>
-                <td>
-                  <%= salesBill.account && salesBill.account.name ? salesBill.account.name : (salesBill.cashAccount
-                    || 'Account Not Found' ) %>
-                </td>
-                <td>
-                  <%= salesBill.paymentMode %>
-                </td>
-                <td>
-                  <%= salesBill.subTotal.toFixed(2) %>
-                </td>
-                <td>
-                  <%= salesBill.discountPercentage.toFixed(2) %>% - Rs.<%= salesBill.discountAmount.toFixed(2) %>
-                </td>
-                <td>
-                  <%= salesBill.taxableAmount.toFixed(2) %>
-                </td>
-                <td>
-                  <%= salesBill.vatPercentage %>% - Rs.<%= salesBill.vatAmount.toFixed(2) %>
-                </td>
-                <td>
-                  <%= salesBill.roundOffAmount.toFixed(2) %>
-                </td>
-                <td>
-                  <%= salesBill.totalAmount.toFixed(2) %>
-                </td>
-                <td>
-                  <%= salesBill.user?salesBill.user.name:'User Not Found' %>
-                </td>
-                <td>
-                  <a href="/bills/<%= salesBill._id %>/print" class="btn-sm btn-info"><i
-                        class="fas fa-eye"></i></a>
-                  <% if (salesBill.account && salesBill.account._id) { %>
-                    <!-- Edit link for account -->
-                    <a href="/bills/edit/<%=salesBill._id%>" class="btn btn-sm btn-warning"><i
-                          class="fas fa-edit"></i></a>
-                    <% } else if(salesBill.cashAccount) { %>
-                      <!-- Edit link for cashAccount (different route if needed) -->
-                      <a href="/bills/editCashAccount/<%= salesBill._id %>" class="btn btn-sm btn-warning">
-                          <i class="fas fa-edit"></i>
+                <td><%= new Date(salesBill.date).toLocaleDateString() %></td>
+                <td><%= salesBill.billNumber %></td>
+                <td><%= salesBill.account && salesBill.account.name ? salesBill.account.name : (salesBill.cashAccount || 'N/A') %></td>
+                <td><%= salesBill.paymentMode %></td>
+                <td class="text-end"><%= salesBill.subTotal.toFixed(2) %></td>
+                <td class="text-end"><%= salesBill.discountPercentage.toFixed(2) %>% - <%= salesBill.discountAmount.toFixed(2) %></td>
+                <td class="text-end"><%= salesBill.taxableAmount.toFixed(2) %></td>
+                <td class="text-end"><%= salesBill.vatPercentage %>% - <%= salesBill.vatAmount.toFixed(2) %></td>
+                <td class="text-end"><%= salesBill.roundOffAmount.toFixed(2) %></td>
+                <td class="text-end"><%= salesBill.totalAmount.toFixed(2) %></td>
+                <td><%= salesBill.user ? salesBill.user.name : 'N/A' %></td>
+                <td class="no-print">
+                  <div class="d-flex">
+                    <a href="/bills/<%= salesBill._id %>/print" class="btn btn-sm btn-info me-1">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <% if (salesBill.account && salesBill.account._id) { %>
+                      <a href="/bills/edit/<%=salesBill._id%>" class="btn btn-sm btn-warning me-1">
+                        <i class="fas fa-edit"></i>
                       </a>
-                      <% } else { %>
-                        <!-- Optional: Display a message if neither account type is found -->
-                        <span class="text-danger"></span>
-                        <% } %>
+                    <% } else if(salesBill.cashAccount) { %>
+                      <a href="/bills/editCashAccount/<%= salesBill._id %>" class="btn btn-sm btn-warning me-1">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                    <% } %>
+                  </div>
                 </td>
               </tr>
-              <% }); %>
+            <% }); %>
           </tbody>
-          <!-- Totals row outside tbody -->
           <tfoot>
             <tr id="totalsRow">
               <td colspan="4"><strong>Total:</strong></td>
-              <td><strong id="totalSubTotal">0.00</strong></td>
-              <td><strong id="totalDiscount">0.00</strong></td>
-              <td><strong id="totalTaxable">0.00</strong></td>
-              <td><strong id="totalVat">0.00</strong></td>
-              <td><strong id="totalRoundOff">0.00</strong></td>
-              <td><strong id="totalAmount">0.00</strong></td>
+              <td class="text-end"><strong id="totalSubTotal">0.00</strong></td>
+              <td class="text-end"><strong id="totalDiscount">0.00</strong></td>
+              <td class="text-end"><strong id="totalTaxable">0.00</strong></td>
+              <td class="text-end"><strong id="totalVat">0.00</strong></td>
+              <td class="text-end"><strong id="totalRoundOff">0.00</strong></td>
+              <td class="text-end"><strong id="totalAmount">0.00</strong></td>
               <td></td>
-              <td></td>
+              <td class="no-print"></td>
             </tr>
           </tfoot>
         </table>
-
-        <script>
-          document.addEventListener("DOMContentLoaded", function () {
-            let billRows = document.querySelectorAll(".bill-row");
-            let currentBillIndex = -1;
-
-            // Update rows highlighting and scroll to selected row
-            function updateBillRowHighlight() {
-              const visibleRows = getVisibleRows();
-              visibleRows.forEach(row => row.classList.remove("selected-row"));
-              if (currentBillIndex >= 0 && currentBillIndex < visibleRows.length) {
-                visibleRows[currentBillIndex].classList.add("selected-row");
-                visibleRows[currentBillIndex].scrollIntoView({ behavior: "smooth", block: "nearest" });
-              }
-            }
-
-            // Get only the visible rows after filtering
-            function getVisibleRows() {
-              return Array.from(document.querySelectorAll(".bill-row")).filter(row => row.style.display !== 'none');
-            }
-
-
-            document.addEventListener("keydown", function (event) {
-              let visibleRows = getVisibleRows();
-
-              if (event.key === "ArrowDown") {
-                if (currentBillIndex < visibleRows.length - 1) {
-                  currentBillIndex++;
-                  updateBillRowHighlight();
-                }
-              } else if (event.key === "ArrowUp") {
-                if (currentBillIndex > 0) {
-                  currentBillIndex--;
-                  updateBillRowHighlight();
-                }
-              } else if (event.key === "Enter" && currentBillIndex >= 0) {
-                window.location.href = visibleRows[currentBillIndex].getAttribute("data-url");
-              }
-            });
-
-            // Highlight row on mouse click
-            billRows.forEach((row, index) => {
-              row.addEventListener("click", function () {
-                let visibleRows = getVisibleRows();
-                currentBillIndex = visibleRows.indexOf(row);
-                updateBillRowHighlight();
-              });
-
-              row.addEventListener("dblclick", function () {
-                window.location.href = row.getAttribute("data-url");
-              });
-            });
-          });
-        </script>
       </div>
     </div>
+  </div>
+</div>
 
-    <script>
-      // Function to handle search input changes
-      document.getElementById("searchInput").addEventListener("input", function () {
-        filterBills();
-      });
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Initialize variables
+    let billRows = document.querySelectorAll(".bill-row");
+    let currentBillIndex = 0;
+    
+    // Filter bills based on search and payment mode
+    function filterBills() {
+      const searchQuery = document.getElementById("searchInput").value.trim().toLowerCase();
+      const selectedPaymentMode = document.getElementById("paymentModeFilter").value.trim().toLowerCase();
+      
+      let visibleCount = 0;
+      
+      billRows.forEach((row) => {
+        const billNumber = row.cells[1].textContent.trim().toLowerCase();
+        const companyName = row.cells[2].textContent.trim().toLowerCase();
+        const paymentMode = row.cells[3].textContent.trim().toLowerCase();
+        const users = row.cells[10].textContent.trim().toLowerCase();
 
-      // Function to handle payment mode filter changes
-      document
-        .getElementById("paymentModeFilter")
-        .addEventListener("change", function () {
-          filterBills();
-        });
+        const matchesSearch = companyName.includes(searchQuery) || 
+                            billNumber.includes(searchQuery) || 
+                            users.includes(searchQuery);
+        const matchesPaymentMode = selectedPaymentMode === "" || 
+                                 paymentMode === selectedPaymentMode;
 
-      // Function to filter bills based on search input and payment mode filter
-      function filterBills() {
-        const searchQuery = document
-          .getElementById("searchInput")
-          .value.trim()
-          .toLowerCase();
-        const selectedPaymentMode = document
-          .getElementById("paymentModeFilter")
-          .value.trim()
-          .toLowerCase();
-        const billsList = document.getElementById("billsList");
-        const rows = billsList.querySelectorAll("tbody tr.searchClass");
-
-        rows.forEach((row) => {
-          const billNumber = row.cells[1].textContent.trim().toLowerCase();
-          const companyName = row.cells[2].textContent.trim().toLowerCase();
-          const paymentMode = row.cells[3].textContent.trim().toLowerCase();
-          const users = row.cells[10].textContent.trim().toLowerCase();
-
-          const matchesSearch =
-            companyName.includes(searchQuery) ||
-            billNumber.includes(searchQuery) ||
-            users.includes(searchQuery);
-          const matchesPaymentMode =
-            selectedPaymentMode === "" || paymentMode === selectedPaymentMode;
-
-          if (matchesSearch && matchesPaymentMode) {
-            row.style.display = "";
-          } else {
-            row.style.display = "none";
-          }
-        });
-
-        // Update totals based on visible rows
-        updateTotals();
-      }
-
-      // Function to update totals based on visible rows
-      function updateTotals() {
-        let totalSubTotal = 0;
-        let totalDiscount = 0;
-        let totalTaxable = 0;
-        let totalVat = 0;
-        let totalRoundOff = 0;
-        let totalAmount = 0;
-
-        const visibleRows = document.querySelectorAll(
-          '#billsList tbody tr.searchClass:not([style*="display: none"])'
-        );
-
-        visibleRows.forEach((row) => {
-          totalSubTotal += parseFloat(row.cells[4].textContent); // Sub Total
-          totalDiscount += parseFloat(row.cells[5].textContent.split(" - Rs.")[1]); // Discount
-          totalTaxable += parseFloat(row.cells[6].textContent); // Taxable
-          totalVat += parseFloat(row.cells[7].textContent.split(" - Rs.")[1]); // Vat
-          totalRoundOff += parseFloat(row.cells[8].textContent); // Round Off
-          totalAmount += parseFloat(row.cells[9].textContent); // Total
-        });
-
-        // Update totals row in the footer
-        document.getElementById("totalSubTotal").textContent =
-          totalSubTotal.toFixed(2);
-        document.getElementById("totalDiscount").textContent =
-          totalDiscount.toFixed(2);
-        document.getElementById("totalTaxable").textContent = totalTaxable.toFixed(2);
-        document.getElementById("totalVat").textContent = totalVat.toFixed(2);
-        document.getElementById("totalRoundOff").textContent =
-          totalRoundOff.toFixed(2);
-        document.getElementById("totalAmount").textContent = totalAmount.toFixed(2);
-      }
-
-      // Initial call to filterBills to apply any initial filters (if needed)
-      filterBills();
-
-      // Print all bills
-      document.getElementById("printAllBills").addEventListener("click", function () {
-        printBills(document.querySelectorAll("#billsList tbody tr.searchClass"));
-      });
-
-      // Print filtered bills
-      document
-        .getElementById("printFilteredBills")
-        .addEventListener("click", function () {
-          printBills(
-            document.querySelectorAll(
-              '#billsList tbody tr.searchClass:not([style*="display: none"])'
-            )
-          );
-        });
-
-      // Function to print the selected bills
-      function printBills(billRows) {
-        const printWindow = window.open("", "_blank");
-
-        // Basic HTML and styling for the print view
-        const headerHTML = `
-        <html>
-            <head>
-                <title>Print Bills</title>
-                <style>
-                    table { width: 100%; border-collapse: collapse; }
-                    th, td { padding: 8px; text-align: left; border: 1px solid black; white-space: nowrap; }
-                    th { background-color: #f2f2f2; }
-                </style>
-            </head>
-            <body>
-                ${document.getElementById("printHeader").innerHTML}
-                <h1 style="text-align: center; text-decoration:underline;">List of Sales Voucher's</h1>
-        `;
-
-        // Table header for the printed bills
-        const tableHeaderHTML = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Inv. no.</th>
-                    <th>Party Name</th>
-                    <th>Pay.Mode</th>
-                    <th>Sub Total</th>
-                    <th>Discount</th>
-                    <th>Taxable</th>
-                    <th>Vat</th>
-                    <th>Off(-/+)</th>
-                    <th>Total</th>
-                    <th>User</th>
-                </tr>
-            </thead>
-            <tbody>
-        `;
-
-        // Initialize variables for totals
-        let totalSubTotal = 0;
-        let totalDiscount = 0;
-        let totalTaxable = 0;
-        let totalVat = 0;
-        let totalRoundOff = 0;
-        let totalAmount = 0;
-
-        // Construct table rows and calculate totals
-        let tableRowsHTML = "";
-        billRows.forEach((row) => {
-          const cells = row.querySelectorAll("td");
-          tableRowsHTML += "<tr>";
-
-          // Exclude the last cell (Actions) from printing
-          for (let i = 0; i < cells.length - 1; i++) {
-            const cellText = cells[i]?.textContent || "";
-            tableRowsHTML += `<td>${cellText}</td>`;
-
-            // Calculate totals for visible rows
-            if (row.style.display !== "none") {
-              switch (i) {
-                case 4: // Sub Total
-                  totalSubTotal += parseFloat(cellText) || 0;
-                  break;
-                case 5: // Discount
-                  totalDiscount += parseFloat(cellText.split(" - Rs.")[1]) || 0;
-                  break;
-                case 6: // Taxable
-                  totalTaxable += parseFloat(cellText) || 0;
-                  break;
-                case 7: // Vat
-                  totalVat += parseFloat(cellText.split(" - Rs.")[1]) || 0;
-                  break;
-                case 8: // Round Off
-                  totalRoundOff += parseFloat(cellText) || 0;
-                  break;
-                case 9: // Total Amount
-                  totalAmount += parseFloat(cellText) || 0;
-                  break;
-              }
-            }
-          }
-
-          tableRowsHTML += "</tr>";
-        });
-
-        // Add a totals row at the end of the table
-        const totalsRowHTML = `
-        <tr style="font-weight: bold; background-color: #f9f9f9;">
-            <td colspan="4">Totals</td>
-            <td>${totalSubTotal.toFixed(2)}</td>
-            <td>${totalDiscount.toFixed(2)}</td>
-            <td>${totalTaxable.toFixed(2)}</td>
-            <td>${totalVat.toFixed(2)}</td>
-            <td>${totalRoundOff.toFixed(2)}</td>
-            <td>${totalAmount.toFixed(2)}</td>
-            <td></td> <!-- Empty cell for the User column -->
-        </tr>
-        `;
-
-        // Construct the final HTML for printing
-        const finalHTML = `
-        ${headerHTML}
-        ${tableHeaderHTML}
-        ${tableRowsHTML}
-        ${totalsRowHTML}
-        </tbody></table>
-        </body></html>
-        `;
-
-        // Write to the print window and initiate print
-        printWindow.document.write(finalHTML);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-      }
-
-      document.getElementById("clearSearch").addEventListener("click", () => {
-        const inputField = document.getElementById("searchInput");
-
-        // Check if the input field has a value
-        if (inputField.value !== "") {
-          inputField.value = ""; // Clear the input field
+        if (matchesSearch && matchesPaymentMode) {
+          row.style.display = "";
+          visibleCount++;
         } else {
-          alert("Input field is already empty.");
+          row.style.display = "none";
         }
       });
 
-      //to make scrolling by arrow key
-      document.addEventListener("DOMContentLoaded", function () {
-        let billRows = document.querySelectorAll(".bill-row");
-        let currentBillIndex = 0;
+      updateTotals();
+      
+      // Reset current index when filtering
+      currentBillIndex = visibleCount > 0 ? 0 : -1;
+      updateBillRowHighlight();
+    }
 
-        // Update rows highlighting and scroll to selected row
-        function updateBillRowHighlight() {
-          const visibleRows = getVisibleRows();
-          visibleRows.forEach((row) => row.classList.remove("selected-row"));
-          if (currentBillIndex >= 0 && currentBillIndex < visibleRows.length) {
-            visibleRows[currentBillIndex].classList.add("selected-row");
-            visibleRows[currentBillIndex].scrollIntoView({
-              behavior: "smooth",
-              block: "nearest",
-            });
-          }
-        }
+    // Update totals based on visible rows
+    function updateTotals() {
+      let totals = {
+        subTotal: 0,
+        discount: 0,
+        taxable: 0,
+        vat: 0,
+        roundOff: 0,
+        amount: 0
+      };
 
-        // Highlight the first row initially
+      document.querySelectorAll('#billsList tbody tr.searchClass:not([style*="display: none"])').forEach(row => {
+        totals.subTotal += parseFloat(row.cells[4].textContent);
+        totals.discount += parseFloat(row.cells[5].textContent.split(" - ")[1]);
+        totals.taxable += parseFloat(row.cells[6].textContent);
+        totals.vat += parseFloat(row.cells[7].textContent.split(" - ")[1]);
+        totals.roundOff += parseFloat(row.cells[8].textContent);
+        totals.amount += parseFloat(row.cells[9].textContent);
+      });
+
+      document.getElementById("totalSubTotal").textContent = totals.subTotal.toFixed(2);
+      document.getElementById("totalDiscount").textContent = totals.discount.toFixed(2);
+      document.getElementById("totalTaxable").textContent = totals.taxable.toFixed(2);
+      document.getElementById("totalVat").textContent = totals.vat.toFixed(2);
+      document.getElementById("totalRoundOff").textContent = totals.roundOff.toFixed(2);
+      document.getElementById("totalAmount").textContent = totals.amount.toFixed(2);
+    }
+
+    // Update row highlighting
+    function updateBillRowHighlight() {
+      const visibleRows = getVisibleRows();
+      visibleRows.forEach(row => row.classList.remove("selected-row"));
+      
+      if (currentBillIndex >= 0 && currentBillIndex < visibleRows.length) {
+        visibleRows[currentBillIndex].classList.add("selected-row");
+        visibleRows[currentBillIndex].scrollIntoView({
+          behavior: "smooth",
+          block: "nearest"
+        });
+      }
+    }
+
+    // Get visible rows after filtering
+    function getVisibleRows() {
+      return Array.from(document.querySelectorAll(".bill-row")).filter(
+        row => row.style.display !== "none"
+      );
+    }
+
+    // Keyboard navigation
+    document.addEventListener("keydown", function(event) {
+      const visibleRows = getVisibleRows();
+      
+      if (event.key === "ArrowDown" && currentBillIndex < visibleRows.length - 1) {
+        currentBillIndex++;
         updateBillRowHighlight();
+      } else if (event.key === "ArrowUp" && currentBillIndex > 0) {
+        currentBillIndex--;
+        updateBillRowHighlight();
+      } else if (event.key === "Enter" && currentBillIndex >= 0) {
+        const viewLink = visibleRows[currentBillIndex].querySelector("a.btn-info");
+        if (viewLink) viewLink.click();
+      }
+    });
 
-        // Get only the visible rows after filtering
-        function getVisibleRows() {
-          return Array.from(document.querySelectorAll(".bill-row")).filter(
-            (row) => row.style.display !== "none"
-          );
-        }
+    // Row click handlers
+    billRows.forEach((row, index) => {
+      row.addEventListener("click", function() {
+        const visibleRows = getVisibleRows();
+        currentBillIndex = visibleRows.indexOf(row);
+        updateBillRowHighlight();
+      });
 
-        document.addEventListener("keydown", function (event) {
-          let visibleRows = getVisibleRows();
+      row.addEventListener("dblclick", function() {
+        const viewLink = row.querySelector("a.btn-info");
+        if (viewLink) viewLink.click();
+      });
+    });
 
-          if (event.key === "ArrowDown") {
-            if (currentBillIndex < visibleRows.length - 1) {
-              currentBillIndex++;
-              updateBillRowHighlight();
-            }
-          } else if (event.key === "ArrowUp") {
-            if (currentBillIndex > 0) {
-              currentBillIndex--;
-              updateBillRowHighlight();
-            }
-          } else if (event.key === "Enter" && currentBillIndex >= 0) {
-            window.location.href =
-              visibleRows[currentBillIndex].getAttribute("data-url");
+    // Event listeners
+    document.getElementById("searchInput").addEventListener("input", filterBills);
+    document.getElementById("paymentModeFilter").addEventListener("change", filterBills);
+    
+    document.getElementById("clearSearch").addEventListener("click", () => {
+      document.getElementById("searchInput").value = "";
+      filterBills();
+    });
+
+    // Update existing print buttons to use landscape by default (for backward compatibility)
+    document.getElementById("printAllBills").addEventListener("click", () => printAllBills('landscape'));
+    document.getElementById("printFilteredBills").addEventListener("click", () => printFilteredBills('landscape'));
+
+    function printAllBills(orientation) {
+      printBills(document.querySelectorAll(".bill-row"), orientation);
+    }
+
+    function printFilteredBills(orientation) {
+      printBills(document.querySelectorAll('.bill-row:not([style*="display: none"])'), orientation);
+    }
+
+    function printBills(rowsToPrint, orientation = 'landscape') {
+      if (rowsToPrint.length === 0) {
+        alert("No bills to print");
+        return;
+      }
+
+      const printWindow = window.open("", "_blank");
+      const printHeader = document.getElementById("printHeader").innerHTML;
+      
+      let tableContent = `
+        <style>
+          @page {
+            size: ${orientation === 'landscape' ? 'A4 landscape' : 'A4'};
+            margin: 10mm;
           }
-        });
+          body { 
+            font-family: Arial, sans-serif; 
+            font-size: 10px; 
+            margin: 0;
+            padding: 10mm;
+          }
+          table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            page-break-inside: auto;
+          }
+          tr { 
+            page-break-inside: avoid; 
+            page-break-after: auto; 
+          }
+          th, td { 
+            border: 1px solid #000; 
+            padding: 4px; 
+            text-align: left; 
+            white-space: nowrap; /* Prevent text wrapping */
+          }
+          th { 
+            background-color: #f2f2f2 !important; 
+            -webkit-print-color-adjust: exact; 
+          }
+          .print-header { 
+            text-align: center; 
+            margin-bottom: 15px; 
+          }
+          .page-break {
+            page-break-after: always;
+          }
+          .nowrap {
+            white-space: nowrap;
+          }
+          /* Reduce font size for better fit */
+          .compact {
+            font-size: 9px;
+          }
+        </style>
+        ${printHeader}
+        <h1 style="text-align:center;text-decoration:underline;">List of Sales Vouchers</h1>
+        <table class="${orientation === 'portrait' ? 'compact' : ''}">
+          <thead>
+            <tr>
+              <th class="nowrap">Date</th>
+              <th class="nowrap">Inv No.</th>
+              <th class="nowrap">Party Name</th>
+              <th class="nowrap">Pay Mode</th>
+              <th class="nowrap">Sub Total</th>
+              <th class="nowrap">Discount</th>
+              <th class="nowrap">Taxable</th>
+              <th class="nowrap">VAT</th>
+              <th class="nowrap">Round Off</th>
+              <th class="nowrap">Total</th>
+              <th class="nowrap">User</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
 
-        // Highlight row on mouse click
-        billRows.forEach((row, index) => {
-          row.addEventListener("click", function () {
-            let visibleRows = getVisibleRows();
-            currentBillIndex = visibleRows.indexOf(row);
-            updateBillRowHighlight();
-          });
+      let totals = {
+        subTotal: 0,
+        discount: 0,
+        taxable: 0,
+        vat: 0,
+        roundOff: 0,
+        amount: 0
+      };
 
-          row.addEventListener("dblclick", function () {
-            window.location.href = row.getAttribute("data-url");
-          });
+      // Split rows into chunks for pagination
+      const rowsPerPage = orientation === 'landscape' ? 25 : 15; // Adjust based on orientation
+      const rowChunks = [];
+      for (let i = 0; i < rowsToPrint.length; i += rowsPerPage) {
+        rowChunks.push(Array.from(rowsToPrint).slice(i, i + rowsPerPage));
+      }
+
+      rowChunks.forEach((chunk, chunkIndex) => {
+        chunk.forEach(row => {
+          const cells = row.cells;
+          tableContent += `
+            <tr>
+              <td class="nowrap">${cells[0].textContent}</td>
+              <td class="nowrap">${cells[1].textContent}</td>
+              <td class="nowrap">${cells[2].textContent}</td>
+              <td class="nowrap">${cells[3].textContent}</td>
+              <td class="nowrap">${cells[4].textContent}</td>
+              <td class="nowrap">${cells[5].textContent}</td>
+              <td class="nowrap">${cells[6].textContent}</td>
+              <td class="nowrap">${cells[7].textContent}</td>
+              <td class="nowrap">${cells[8].textContent}</td>
+              <td class="nowrap">${cells[9].textContent}</td>
+              <td class="nowrap">${cells[10].textContent}</td>
+            </tr>
+          `;
+
+          totals.subTotal += parseFloat(cells[4].textContent);
+          totals.discount += parseFloat(cells[5].textContent.split(" - ")[1]);
+          totals.taxable += parseFloat(cells[6].textContent);
+          totals.vat += parseFloat(cells[7].textContent.split(" - ")[1]);
+          totals.roundOff += parseFloat(cells[8].textContent);
+          totals.amount += parseFloat(cells[9].textContent);
         });
       });
-    </script>
+
+      // Add final totals row
+      tableContent += `
+          <tr style="font-weight:bold; border-top: 2px solid #000;">
+            <td colspan="4">Grand Totals</td>
+            <td>${totals.subTotal.toFixed(2)}</td>
+            <td>${totals.discount.toFixed(2)}</td>
+            <td>${totals.taxable.toFixed(2)}</td>
+            <td>${totals.vat.toFixed(2)}</td>
+            <td>${totals.roundOff.toFixed(2)}</td>
+            <td>${totals.amount.toFixed(2)}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+      `;
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Sales Vouchers Report</title>
+          </head>
+          <body>
+            ${tableContent}
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                }, 200);
+              };
+            <\/script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
+    // Initial calculations
+    filterBills();
+  });
+</script>

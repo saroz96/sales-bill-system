@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const passport = require('passport');
 const User = require('../models/User');
-const { forwardAuthenticated, ensureAuthenticated, ensureCompanySelected } = require('../middleware/auth');
+const { forwardAuthenticated, ensureAuthenticated, ensureCompanySelected, isLoggedIn } = require('../middleware/auth');
 const Company = require('../models/wholeseller/Company');
 const FiscalYear = require('../models/wholeseller/FiscalYear');
 const ensureAdminOrSupervisor = require('../middleware/isAdminMiddleware');
@@ -12,58 +12,90 @@ const ensureAdminOrSupervisor = require('../middleware/isAdminMiddleware');
 //register Page
 router.get('/register', forwardAuthenticated, (req, res) => res.render('register'));
 // Register
+
+// router.post('/register', forwardAuthenticated, async (req, res) => {
+//     const { name, email, password, password2 } = req.body;
+
+//     // Check if all fields are filled
+//     if (!name || !email || !password || !password2) {
+//         req.flash('error', 'Please enter all fields');
+//         return res.redirect('/register'); // Redirect back to registration form
+//     }
+
+//     // Check if passwords match
+//     if (password !== password2) {
+//         req.flash('error', 'Passwords do not match');
+//         return res.redirect('/register'); // Redirect back to registration form
+//     }
+
+//     // Check if password is long enough
+//     if (password.length < 5) {
+//         req.flash('error', 'Password must be at least 5 characters');
+//         return res.redirect('/register'); // Redirect back to registration form
+//     }
+
+//     try {
+//         // Check if user already exists
+//         const existingUser = await User.findOne({ email }); // Ensure you are checking by email
+//         if (existingUser) {
+//             req.flash('error', 'Email already exists');
+//             return res.redirect('/register'); // Redirect back to registration form
+//         }
+
+//         // Proceed with registration
+//         const hashedPassword = await bcrypt.hash(password, 10);
+
+//         const newUser = new User({
+//             name,
+//             email,
+//             password: hashedPassword,
+//             isAdmin: true,
+//             role: 'Admin'  // Assign the "Admin" role
+//         });
+
+//         await newUser.save();
+//         console.log(newUser);
+//         req.flash('success', 'You are now registered and can log in');
+//         res.redirect('/login');
+//     } catch (err) {
+//         console.error(err);
+//         req.flash('error', 'An error occurred during registration');
+//         res.redirect('/register'); // Redirect back to registration form on error
+//     }
+// });
+
 router.post('/register', forwardAuthenticated, async (req, res) => {
     const { name, email, password, password2 } = req.body;
 
-    // Check if all fields are filled
-    if (!name || !email || !password || !password2) {
-        req.flash('error', 'Please enter all fields');
-        return res.redirect('/register'); // Redirect back to registration form
-    }
-
-    // Check if passwords match
-    if (password !== password2) {
-        req.flash('error', 'Passwords do not match');
-        return res.redirect('/register'); // Redirect back to registration form
-    }
-
-    // Check if password is long enough
-    if (password.length < 5) {
-        req.flash('error', 'Password must be at least 5 characters');
-        return res.redirect('/register'); // Redirect back to registration form
-    }
+    // Validation checks remain the same...
 
     try {
-        // Check if user already exists
-        const existingUser = await User.findOne({ email }); // Ensure you are checking by email
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
             req.flash('error', 'Email already exists');
-            return res.redirect('/register'); // Redirect back to registration form
+            return res.redirect('/register');
         }
 
-        // Proceed with registration
-        const hashedPassword = await bcrypt.hash(password, 10);
-
+        // Create user with plain password - the pre-save hook will hash it
         const newUser = new User({
             name,
             email,
-            password: hashedPassword,
+            password, // <-- No manual hashing here
             isAdmin: true,
-            role: 'Admin'  // Assign the "Admin" role
+            role: 'Admin'
         });
 
         await newUser.save();
-        console.log(newUser);
         req.flash('success', 'You are now registered and can log in');
         res.redirect('/login');
     } catch (err) {
         console.error(err);
         req.flash('error', 'An error occurred during registration');
-        res.redirect('/register'); // Redirect back to registration form on error
+        res.redirect('/register');
     }
 });
 
-router.get('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) => {
+router.get('/admin/create-user/new', isLoggedIn, ensureAdminOrSupervisor, async (req, res) => {
     const companyId = req.session.currentCompany;
 
     const company = await Company.findById(companyId).select('renewalDate fiscalYear dateFormat').populate('fiscalYear');
@@ -113,17 +145,104 @@ router.get('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) =
 
 })
 
-// Route to create a new user by the company admin
+// // Route to create a new user by the company admin
+// router.post('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) => {
+//     const { name, email, password, password2, role } = req.body;
+
+//     try {
+//         const companyId = req.session.currentCompany;
+//         const currentFiscalYear = req.session.currentFiscalYear.id
+//         const userId = req.user._id;
+//         let errors = [];
+
+
+//         if (!name || !email || !password || !password2) {
+//             errors.push({ msg: 'Please enter all fields' });
+//         }
+
+//         if (password !== password2) {
+//             errors.push({ msg: 'Passwords do not match' });
+//         }
+
+//         if (password.length < 5) {
+//             errors.push({ msg: 'Password must be at least 5 characters' });
+//         }
+
+
+//         if (!companyId) {
+//             req.flash('error', 'No company associated with your session');
+//             return res.redirect('/admin/create-user/new');
+//         }
+
+//         // Check if the role is valid
+//         if (!['Admin', 'Sales', 'Purchase', 'Supervisor'].includes(role)) {
+//             req.flash('error', 'Invalid role');
+//             return res.redirect('/admin/create-user/new');
+//         }
+
+//         // Find the company to associate the user with
+//         const company = await Company.findById(companyId);
+
+//         if (!company) {
+//             req.flash('error', 'Company not found');
+//             return res.redirect('/admin/create-user/new');
+//         }
+
+//         // Check if a user with the same email already exists
+//         const existingUser = await User.findOne({ email });
+
+//         if (existingUser) {
+//             req.flash('error', 'User with this email already exists');
+//             return res.redirect('/admin/create-user/new');
+//         }
+
+//         if (errors.length > 0) {
+//             errors.push({ msg: 'Errors' });
+//             res.render('wholeseller/users/user', {
+//                 errors,
+//                 name,
+//                 email,
+//                 password,
+//                 password2,
+//                 role
+//             });
+//         } else {
+
+//             // Create a new user
+//             const newUser = new User({
+//                 name,
+//                 email,
+//                 password: await bcrypt.hash(password, 10),  // Hash the password
+//                 role,
+//                 company: companyId,
+//                 user: userId,
+//                 fiscalYear: currentFiscalYear
+//             });
+
+//             // Save the new user
+//             await newUser.save();
+//             console.log(newUser);
+
+//             req.flash('success', `User ${name} created successfully with role ${role}`);
+//             res.redirect('/admin/create-user/new');
+//         }
+//     } catch (err) {
+//         console.error(err);
+//         req.flash('error', 'An error occurred while creating the user');
+//         res.redirect('/admin/create-user/new');
+//     }
+// });
+
 router.post('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) => {
     const { name, email, password, password2, role } = req.body;
 
     try {
         const companyId = req.session.currentCompany;
-        const currentFiscalYear = req.session.currentFiscalYear.id
+        const currentFiscalYear = req.session.currentFiscalYear.id;
         const userId = req.user._id;
         let errors = [];
 
-
+        // Validation
         if (!name || !email || !password || !password2) {
             errors.push({ msg: 'Please enter all fields' });
         }
@@ -136,7 +255,6 @@ router.post('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) 
             errors.push({ msg: 'Password must be at least 5 characters' });
         }
 
-
         if (!companyId) {
             req.flash('error', 'No company associated with your session');
             return res.redirect('/admin/create-user/new');
@@ -148,25 +266,15 @@ router.post('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) 
             return res.redirect('/admin/create-user/new');
         }
 
-        // Find the company to associate the user with
-        const company = await Company.findById(companyId);
-
-        if (!company) {
-            req.flash('error', 'Company not found');
-            return res.redirect('/admin/create-user/new');
-        }
-
-        // Check if a user with the same email already exists
+        // Check if user exists
         const existingUser = await User.findOne({ email });
-
         if (existingUser) {
             req.flash('error', 'User with this email already exists');
             return res.redirect('/admin/create-user/new');
         }
 
         if (errors.length > 0) {
-            errors.push({ msg: 'Errors' });
-            res.render('wholeseller/users/user', {
+            return res.render('wholeseller/users/user', {
                 errors,
                 name,
                 email,
@@ -174,26 +282,23 @@ router.post('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) 
                 password2,
                 role
             });
-        } else {
-
-            // Create a new user
-            const newUser = new User({
-                name,
-                email,
-                password: await bcrypt.hash(password, 10),  // Hash the password
-                role,
-                company: companyId,
-                user: userId,
-                fiscalYear: currentFiscalYear
-            });
-
-            // Save the new user
-            await newUser.save();
-            console.log(newUser);
-
-            req.flash('success', `User ${name} created successfully with role ${role}`);
-            res.redirect('/admin/create-user/new');
         }
+
+        // Create new user - let the pre-save hook handle password hashing
+        const newUser = new User({
+            name,
+            email,
+            password, // <-- Pass plain password here
+            role,
+            company: companyId,
+            user: userId,
+            fiscalYear: currentFiscalYear
+        });
+
+        await newUser.save();
+
+        req.flash('success', `User ${name} created successfully with role ${role}`);
+        res.redirect('/admin/create-user/new');
     } catch (err) {
         console.error(err);
         req.flash('error', 'An error occurred while creating the user');
@@ -786,6 +891,46 @@ router.get('/user/change-password', ensureAuthenticated, ensureCompanySelected, 
     });
 });
 
+// // Route to handle password change form submission
+// router.post('/user/change-password', ensureAuthenticated, async (req, res) => {
+//     try {
+//         const { currentPassword, newPassword, confirmNewPassword } = req.body;
+
+//         // Find the user from the session
+//         const user = await User.findById(req.user.id);
+
+//         if (!user) {
+//             req.flash('error', 'User not found.');
+//             return res.redirect('/user/change-password');
+//         }
+
+//         // Check if current password matches
+//         const isMatch = await user.comparePassword(currentPassword);
+//         if (!isMatch) {
+//             req.flash('error', 'Current password is incorrect.');
+//             return res.redirect('/user/change-password');
+//         }
+
+//         // Check if new password and confirm new password match
+//         if (newPassword !== confirmNewPassword) {
+//             req.flash('error', 'New passwords do not match.');
+//             return res.redirect('/user/change-password');
+//         }
+
+//         // Update the user's password
+//         user.password = newPassword;
+//         await user.save();
+
+//         req.flash('success', 'Password updated successfully.');
+//         res.redirect('/user/change-password');
+//     } catch (err) {
+//         console.error(err);
+//         req.flash('error', 'An error occurred while changing the password.');
+//         res.redirect('/user/change-password');
+//     }
+// });
+
+
 // Route to handle password change form submission
 router.post('/user/change-password', ensureAuthenticated, async (req, res) => {
     try {
@@ -824,6 +969,7 @@ router.post('/user/change-password', ensureAuthenticated, async (req, res) => {
         res.redirect('/user/change-password');
     }
 });
+
 
 
 

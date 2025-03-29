@@ -2,169 +2,499 @@
     <%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
 </div>
 
-    <link rel="stylesheet" href="/stylesheet/purchase/purchaseVatReport.css">
+<style>
+    /* Main container styling */
+    .wider-container {
+        max-width: 95%;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
 
-    <div class="container mt-4 wow-form">
-        <div class="card mt-4 shadow-lg p-4 animate_animated animate_fadeInUp">
-            <h1 style="text-align: center;">Purchase VAT Report</h1>
-                <div class="card-body">
-                    <form action="/purchase-vat-report" method="get" class="mb-4">
-                        <div class="row">
-                            <% if (companyDateFormat==='english' ) { %>
-                                <div class="col">
-                                    <div class="form-group">
-                                        <label for="fromDate">From:</label>
-                                        <input type="text" name="fromDate" id="fromDate" class="form-control"
-                                            value="<%= fromDate ? fromDate : (currentFiscalYear ? new Date(currentFiscalYear.startDate).toISOString().substr(0, 10) : new Date().toISOString().substr(0, 10)) %>"
-                                            autofocus>
-                                    </div>
-                                </div>
-                                <div class="col">
-                                    <div class="form-group">
-                                        <label for="toDate">To:</label>
-                                        <input type="text" name="toDate" id="toDate" class="form-control"
-                                            value="<%= new Date().toISOString().split('T')[0] %>">
-                                    </div>
-                                </div>
-                                <% } else { %>
-                                    <div class="col">
-                                        <div class="form-group">
-                                            <label for="fromDate">From:</label>
-                                            <input type="text" name="fromDate" id="fromDate" class="form-control"
-                                                value="<%= fromDate ? fromDate : (currentFiscalYear ? new Date(currentFiscalYear.startDate).toISOString().substr(0, 10) : new Date().toISOString().substr(0, 10)) %>"
-                                                autofocus>
-                                        </div>
-                                    </div>
-                                    <div class="col">
-                                        <div class="form-group">
-                                            <label for="toDate">To:</label>
-                                            <input type="text" name="toDate" id="toDate" class="form-control"
-                                                value="<%= nepaliDate %>">
-                                        </div>
-                                    </div>
-                                    <% } %>
-                                        <div class="col">
-                                            <label for=""><i class="fas fa-chart-line"></i></label>
-                                            <div class="form-group">
-                                                <button type="submit" class="btn btn-primary">Generate Report</button>
-                                            </div>
-                                        </div>
-                                        <div class="col">
-                                            <label for=""><i class="fas fa-print"></i></label>
-                                            <div class="form-group">
-                                                <button type="button" class="btn btn-info" onclick="printReport()">Print
-                                                    Report</button>
-                                            </div>
-                                        </div>
-                                        <div class="col">
-                                            <label for=""><i class="fas fa-sync-alt"></i></label>
-                                            <div class="form-group">
-                                                <button type="button" class="btn btn-secondary"
-                                                    onclick="refreshPage()">Refresh
-                                                    Page</button>
-                                            </div>
-                                        </div>
+    @media print {
+        @page {
+            size: A4 landscape;
+            margin: 5mm;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9pt;
+        }
+
+        .wider-container {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .card-body {
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8pt;
+        }
+
+        th,
+        td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .report-container {
+            page-break-after: always;
+        }
+
+        .totals-row {
+            display: none;
+        }
+
+        /* Display the totals row only on the last page */
+        .totals-row:last-of-type {
+            display: table-row;
+        }
+
+        .report-container:last-of-type .totals-row {
+            display: table-row;
+            page-break-before: always;
+        }
+    }
+
+    /* Improved button styling */
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 25px;
+    }
+
+    .action-buttons .btn {
+        flex: 1;
+        white-space: nowrap;
+    }
+
+    /* Better table styling */
+    #billsList {
+        font-size: 0.85rem;
+    }
+
+    #billsList th {
+        white-space: nowrap;
+    }
+
+    /* Numeric columns right-aligned */
+    .numeric-cell {
+        text-align: right !important;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+        .wider-container {
+            max-width: 100%;
+        }
+
+        .action-buttons {
+            flex-wrap: wrap;
+        }
+
+        .action-buttons .btn {
+            flex: 1 0 45%;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .action-buttons .btn {
+            flex: 1 0 100%;
+        }
+    }
+</style>
+
+<div class="wider-container mt-4 wow-form">
+    <div class="card mt-4 shadow-lg p-4 animate_animated animate_fadeInUp">
+        <h1 class="text-center mb-4">Purchase VAT Report</h1>
+        <div class="card-body">
+            <form action="/purchase-vat-report" method="get" class="mb-4">
+                <div class="row g-3">
+                    <% if (companyDateFormat==='english' ) { %>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="fromDate">From Date</label>
+                                <input type="text" name="fromDate" id="fromDate" class="form-control datepicker"
+                                    value="<%= fromDate ? fromDate : (currentFiscalYear ? new Date(currentFiscalYear.startDate).toISOString().substr(0, 10) : new Date().toISOString().substr(0, 10)) %>"
+                                    autofocus>
+                            </div>
                         </div>
-                    </form>
-
-                    <% if (purchaseVatReport.length===0) { %>
-                        <div class="alert alert-info">Please generate to view report</div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="toDate">To Date</label>
+                                <input type="text" name="toDate" id="toDate" class="form-control datepicker"
+                                    value="<%= new Date().toISOString().split('T')[0] %>">
+                            </div>
+                        </div>
                         <% } else { %>
-                            <div class="report-container">
-                                <h2 style="text-align: center;">
-                                    <%= currentCompanyName %>
-                                </h2>
-
-                                <p style="text-align: center;">
-                                    <%= currentCompany.address %>-<%= currentCompany.ward %>, <%= currentCompany.city %>
-                                                ,
-                                                <%= currentCompany.country %> <br>
-                                                    <strong>PAN:</strong>
-                                                    <%= currentCompany.pan %>
-                                </p>
-                                <hr style="border: 0.5px solid;">
-
-                                <div class="form-group row">
-                                    <div class="col" style="display: flex; justify-content: space-between;">
-                                        <p><strong>From:</strong>
-                                            <%= fromDate %>
-                                        </p>
-                                        <p><strong>Purchase Book</strong></p>
-                                        <p><strong>To:</strong>
-                                            <%= toDate %>
-                                        </p>
-                                    </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="fromDate">From Date</label>
+                                    <input type="text" name="fromDate" id="fromDate" class="form-control datepicker"
+                                        value="<%= fromDate ? fromDate : (currentFiscalYear ? new Date(currentFiscalYear.startDate).toISOString().substr(0, 10) : new Date().toISOString().substr(0, 10)) %>"
+                                        autofocus>
                                 </div>
-
-                                <table class="table table-bordered table-hover" id="billsList" style="font-size: 0.8rem;">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th style="width: 9%;">Vch. No.</th>
-                                            <th style="width: 20%;">Supplier's Name</th>
-                                            <th>Supplier's PAN</th>
-                                            <th>Total Purchase Amt</th>
-                                            <th>Discount Amt</th>
-                                            <th>Non VAT Purchase</th>
-                                            <th>Taxable Amount</th>
-                                            <th>VAT Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <% if (purchaseVatReport.length> 0) { %>
-                                            <% purchaseVatReport.forEach(report=> { %>
-                                                <tr>
-                                                    <td>
-                                                        <%= new Date(report.date).toLocaleDateString() %>
-                                                    </td>
-                                                    <td>
-                                                        <%= report.billNumber %>
-                                                    </td>
-                                                    <td style="white-space: nowrap;">
-                                                        <%= report.account %>
-                                                    </td>
-                                                    <td>
-                                                        <%= report.panNumber %>
-                                                    </td>
-                                                    <td>
-                                                        <%= report.totalAmount.toFixed(2) %>
-                                                    </td>
-                                                    <td>
-                                                        <%= report.discountAmount.toFixed(2) %>
-                                                    </td>
-                                                    <td>
-                                                        <%= report.nonVatPurchase %>
-                                                    </td>
-                                                    <td>
-                                                        <%= report.taxableAmount.toFixed(2) %>
-                                                    </td>
-                                                    <td>
-                                                        <%= report.vatAmount.toFixed(2) %>
-                                                    </td>
-                                                </tr>
-                                                <% }) %>
-                                                    <% } else { %>
-                                                        <tr>
-                                                            <td colspan="9">No transactions found for the selected date
-                                                                range.</td>
-                                                        </tr>
-                                                        <% } %>
-                                    </tbody>
-                                    <tfoot>
-                                        <tr id="totals-row">
-                                            <td colspan="4"><strong>Total:</strong></td>
-                                            <td><strong id="totalPurchaseAmount">0.00</strong></td>
-                                            <td><strong id="totalDiscountAmount">0.00</strong></td>
-                                            <td><strong id="totalNonVatPurchase">0.00</strong></td>
-                                            <td><strong id="totalTaxableAmount">0.00</strong></td>
-                                            <td><strong id="totalVatAmount">0.00</strong></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="toDate">To Date</label>
+                                    <input type="text" name="toDate" id="toDate" class="form-control datepicker"
+                                        value="<%= nepaliDate %>">
+                                </div>
                             </div>
                             <% } %>
-                </div>
-            </div>
-        </div>
 
-    <script src="/javascript/purchase/purchaseVatReport.js"></script>
+                                <div class="col-md-6">
+                                    <div class="action-buttons">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-chart-line me-2"></i>Generate Report
+                                        </button>
+                                        <button type="button" class="btn btn-success no-print" onclick="exportToExcel()"
+                                            <%=purchaseVatReport.length===0 ? 'disabled' : '' %>>
+                                            <i class="fas fa-file-excel me-2"></i>Export Excel
+                                        </button>
+                                        <button type="button" class="btn btn-info no-print" onclick="printReport()"
+                                            <%=purchaseVatReport.length===0 ? 'disabled' : '' %>>
+                                            <i class="fas fa-print me-2"></i>Print Report
+                                        </button>
+                                        <button type="button" class="btn btn-secondary no-print"
+                                            onclick="refreshPage()">
+                                            <i class="fas fa-sync-alt me-2"></i>Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                </div>
+            </form>
+
+            <% if (purchaseVatReport.length===0) { %>
+                <div class="alert alert-info text-center py-3">
+                    <i class="fas fa-info-circle me-2"></i>Please select date range and click "Generate Report" to view
+                    data
+                </div>
+                <% } else { %>
+                    <div class="report-container">
+                        <div class="text-center mb-4">
+                            <h2>
+                                <%= currentCompanyName %>
+                            </h2>
+                            <p class="mb-1">
+                                <%= currentCompany.address %>-<%= currentCompany.ward %>, <%= currentCompany.city %>,
+                                            <%= currentCompany.country %>
+                            </p>
+                            <p class="mb-0"><strong>PAN:</strong>
+                                <%= currentCompany.pan %>
+                            </p>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-3">
+                            <div>
+                                <span class="badge bg-light text-dark">
+                                    <i class="fas fa-calendar-alt me-2"></i>
+                                    <%= fromDate %> to <%= toDate %>
+                                </span>
+                            </div>
+                            <div>
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-file-invoice me-2"></i>
+                                    Purchase VAT Report
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="billsList">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Vch. No.</th>
+                                        <th>Supplier's Name</th>
+                                        <th>Supplier's PAN</th>
+                                        <th class="numeric-cell">Total Purchase</th>
+                                        <th class="numeric-cell">Discount</th>
+                                        <th class="numeric-cell">Non VAT Purchase</th>
+                                        <th class="numeric-cell">Taxable</th>
+                                        <th class="numeric-cell">VAT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (purchaseVatReport.length> 0) { %>
+                                        <% purchaseVatReport.forEach(report=> { %>
+                                            <tr>
+                                                <td>
+                                                    <%= new Date(report.date).toLocaleDateString() %>
+                                                </td>
+                                                <td>
+                                                    <%= report.billNumber %>
+                                                </td>
+                                                <td style="white-space: nowrap;">
+                                                    <%= report.account %>
+                                                </td>
+                                                <td>
+                                                    <%= report.panNumber %>
+                                                </td>
+                                                <td class="numeric-cell">
+                                                    <%= report.totalAmount.toFixed(2) %>
+                                                </td>
+                                                <td class="numeric-cell">
+                                                    <%= report.discountAmount.toFixed(2) %>
+                                                </td>
+                                                <td class="numeric-cell">
+                                                    <%= report.nonVatPurchase %>
+                                                </td>
+                                                <td class="numeric-cell">
+                                                    <%= report.taxableAmount.toFixed(2) %>
+                                                </td>
+                                                <td class="numeric-cell">
+                                                    <%= report.vatAmount.toFixed(2) %>
+                                                </td>
+                                            </tr>
+                                            <% }) %>
+                                                <% } else { %>
+                                                    <tr>
+                                                        <td colspan="9">No transactions found for the selected date
+                                                            range.</td>
+                                                    </tr>
+                                                    <% } %>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="totals-row">
+                                        <td colspan="4"><strong>Total:</strong></td>
+                                        <td class="numeric-cell"><strong id="totalPurchaseAmount">0.00</strong></td>
+                                        <td class="numeric-cell"><strong id="totalDiscountAmount">0.00</strong></td>
+                                        <td class="numeric-cell"><strong id="totalNonVatPurchase">0.00</strong></td>
+                                        <td class="numeric-cell"><strong id="totalTaxableAmount">0.00</strong></td>
+                                        <td class="numeric-cell"><strong id="totalVatAmount">0.00</strong></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="mt-3">
+                            <div class="alert alert-light d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Showing <%= purchaseVatReport.length %> records
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary no-print"
+                                    onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                                    <i class="fas fa-arrow-up me-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <% } %>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+<script>
+    function refreshPage() {
+        window.location.href = '/purchase-vat-report';
+    }
+
+    function exportToExcel() {
+        // Get the table element
+        const table = document.getElementById('billsList');
+
+        // Clone the table to modify for export
+        const tableClone = table.cloneNode(true);
+
+        // Remove any existing totals row
+        const totalsRow = tableClone.querySelector('.totals-row');
+        if (totalsRow) {
+            totalsRow.remove();
+        }
+
+        function calculateTotals() {
+            let totalPurchase = 0;
+            let totalDiscount = 0;
+            let totalNonVat = 0;
+            let totalTaxable = 0;
+            let totalVat = 0;
+
+            const rows = document.querySelectorAll('#billsList tbody tr');
+
+            rows.forEach(row => {
+                const total = parseFloat(row.dataset.total) || parseFloat(row.cells[4].textContent.replace(/,/g, '')) || 0;
+                const discount = parseFloat(row.dataset.discount) || parseFloat(row.cells[5].textContent.replace(/,/g, '')) || 0;
+                const nonVat = parseFloat(row.dataset.nonvat) || parseFloat(row.cells[6].textContent.replace(/,/g, '')) || 0;
+                const taxable = parseFloat(row.dataset.taxable) || parseFloat(row.cells[7].textContent.replace(/,/g, '')) || 0;
+                const vat = parseFloat(row.dataset.vat) || parseFloat(row.cells[8].textContent.replace(/,/g, '')) || 0;
+
+                totalPurchase += total;
+                totalDiscount += discount;
+                totalNonVat += nonVat;
+                totalTaxable += taxable;
+                totalVat += vat;
+            });
+
+            return {
+                totalPurchase,
+                totalDiscount,
+                totalNonVat,
+                totalTaxable,
+                totalVat
+            };
+        }
+
+        // Create a new totals row with calculated values
+        const totals = calculateTotals();
+        const newTotalsRow = document.createElement('tr');
+        newTotalsRow.innerHTML = `
+            <td colspan="4" style="text-align: right; font-weight: bold;">Total:</td>
+            <td style="text-align: right; font-weight: bold;">${totals.totalPurchase.toFixed(2)}</td>
+            <td style="text-align: right; font-weight: bold;">${totals.totalDiscount.toFixed(2)}</td>
+            <td style="text-align: right; font-weight: bold;">${totals.totalNonVat.toFixed(2)}</td>
+            <td style="text-align: right; font-weight: bold;">${totals.totalTaxable.toFixed(2)}</td>
+            <td style="text-align: right; font-weight: bold;">${totals.totalVat.toFixed(2)}</td>
+        `;
+        tableClone.querySelector('tbody').appendChild(newTotalsRow);
+
+        // Create a workbook
+        const wb = XLSX.utils.table_to_book(tableClone, { sheet: "Purchase VAT Report" });
+
+        // Generate a file name with date range
+        const fromDate = document.getElementById('fromDate').value;
+        const toDate = document.getElementById('toDate').value;
+        const fileName = `Purchase_VAT_Report_${fromDate}_to_${toDate}.xlsx`;
+
+        // Export to Excel
+        XLSX.writeFile(wb, fileName);
+    }
+
+    function updateTotals() {
+        try {
+            let totalPurchaseAmount = 0;
+            let totalDiscountAmount = 0;
+            let totalNonVatPurchase = 0;
+            let totalTaxableAmount = 0;
+            let totalVatAmount = 0;
+
+            const rows = document.querySelectorAll('#billsList tbody tr');
+
+            rows.forEach(row => {
+                totalPurchaseAmount += parseFloat(row.cells[4]?.textContent.replace(/,/g, '') || 0);
+                totalDiscountAmount += parseFloat(row.cells[5]?.textContent.replace(/,/g, '') || 0);
+                totalNonVatPurchase += parseFloat(row.cells[6]?.textContent.replace(/,/g, '') || 0);
+                totalTaxableAmount += parseFloat(row.cells[7]?.textContent.replace(/,/g, '') || 0);
+                totalVatAmount += parseFloat(row.cells[8]?.textContent.replace(/,/g, '') || 0);
+            });
+
+            document.getElementById('totalPurchaseAmount').textContent = totalPurchaseAmount.toFixed(2);
+            document.getElementById('totalDiscountAmount').textContent = totalDiscountAmount.toFixed(2);
+            document.getElementById('totalNonVatPurchase').textContent = totalNonVatPurchase.toFixed(2);
+            document.getElementById('totalTaxableAmount').textContent = totalTaxableAmount.toFixed(2);
+            document.getElementById('totalVatAmount').textContent = totalVatAmount.toFixed(2);
+        } catch (error) {
+            console.error('Error calculating totals:', error);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        updateTotals();
+    });
+
+    function printReport() {
+        const printWindow = window.open('', '_blank');
+        const reportContent = document.querySelector('.report-container').innerHTML;
+        const companyName = '<%= currentCompanyName %>';
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Purchase VAT Report - ${companyName}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            font-size: 9pt;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        .container {
+                            width: 100%;
+                            margin: 0;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 5px;
+                            font-size: 8pt;
+                        }
+                        th, td {
+                            border: 1px solid #000;
+                            padding: 4px;
+                            text-align: left;
+                        }
+                        th {
+                            background-color: #f2f2f2;
+                        }
+                        .totals-row {
+                            font-weight: bold;
+                        }
+                        h1, h2 {
+                            font-size: 12pt;
+                            margin: 5px 0;
+                        }
+                        .report-dates {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-bottom: 5px;
+                            font-size: 9pt;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${reportContent}
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                            }, 200);
+                        };
+                    <\/script>
+                </body>
+            </html>
+        `);
+
+        printWindow.document.close();
+    }
+
+    // Form navigation with Enter key
+    function moveToNextVisibleInput(currentElement) {
+        const formElements = Array.from(document.querySelectorAll('input, select, textarea, button'));
+        const currentIndex = formElements.indexOf(currentElement);
+
+        for (let i = currentIndex + 1; i < formElements.length; i++) {
+            if (formElements[i].offsetParent !== null) {
+                formElements[i].focus();
+                break;
+            }
+        }
+    }
+
+    // Attach event listeners for form navigation
+    document.querySelectorAll('form input, form select').forEach(input => {
+        input.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                moveToNextVisibleInput(event.target);
+            }
+        });
+    });
+</script>

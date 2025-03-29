@@ -1,11 +1,16 @@
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
 <style id="printStyles" media="print">
     body {
         -webkit-print-color-adjust: exact;
         color-adjust: exact;
-        /* Use 'exact' for color adjustment */
+        font-size: 12px;
+        filter: grayscale(100%) !important;
+        -webkit-filter: grayscale(100%) !important;
     }
 
     .container {
@@ -14,212 +19,540 @@
         padding: 0;
     }
 
-    .btn {
-        display: none;
-        /* Hide print button during print */
+    .no-print {
+        display: none !important;
     }
 
-    @media print {
-        table {
-            border-collapse: collapse;
-            width: 100%;
-        }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
 
-        th,
-        td {
-            border: 1px solid black;
-            padding: 8px;
-        }
+    th, td {
+        border: 1px solid #000 !important;
+        padding: 6px;
+        text-align: left;
+    }
 
-        h1,
-        h5 {
-            margin: 0;
-            /* Remove margin for headers in print */
-        }
+    .print-header {
+        text-align: center;
+        margin-bottom: 15px;
+    }
 
-        .header {
-            text-align: center;
-        }
+    .text-danger {
+        color: #000 !important;
+    }
 
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            white-space: nowrap;
-            /* Ensure no wrapping in print */
-        }
+    .text-success {
+        color: #000 !important;
     }
 </style>
 
+<style>
+    /* Main Layout */
+    .container {
+        width: 95%;
+        max-width: 100%;
+        margin: 20px auto;
+    }
+
+    .card {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+
+    /* Header and Navigation */
+    .action-buttons {
+        margin-bottom: 20px;
+    }
+
+    /* Table Styling */
+    .table {
+        width: 100%;
+        margin-bottom: 1rem;
+        color: #212529;
+        border-collapse: collapse;
+    }
+
+    .table thead th {
+        vertical-align: bottom;
+        border-bottom: 2px solid #dee2e6;
+        background-color: #f8f9fa;
+        font-weight: 600;
+        padding: 12px;
+    }
+
+    .table tbody tr {
+        transition: all 0.2s;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    .table td {
+        padding: 12px;
+        vertical-align: middle;
+        border-top: 1px solid #dee2e6;
+    }
+
+    /* Summary Cards */
+    .summary-card {
+        border-left: 4px solid #4e73df;
+        margin-bottom: 20px;
+    }
+
+    .summary-card .card-body {
+        padding: 15px;
+    }
+
+    .summary-card h5 {
+        color: #5a5c69;
+        font-size: 1rem;
+    }
+
+    .summary-card .amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .action-buttons .btn {
+            margin-bottom: 10px;
+            width: 100%;
+        }
+    }
+
+    /* Highlighting */
+    .highlight-dr {
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+
+    .highlight-cr {
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+
+    /* Transaction Type Icons */
+    .transaction-icon {
+        margin-right: 5px;
+    }
+
+    /* Loading Animation */
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .spinner {
+        width: 3rem;
+        height: 3rem;
+        border: 0.25em solid #4e73df;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
+<div class="loading-overlay">
+    <div class="spinner"></div>
+</div>
+
 <div class="container">
-    <div class="container mt-3">
-        <div class="row">
-            <div class="col d-flex justify-content-end align-items-start">
-                <a href="/aging/accounts" class="btn btn-secondary me-2"><i class="bi bi-back"></i></a>
-                <button class="btn btn-info ml-2" onclick="printBill()"><i class="bi bi-printer"></i></button>
+    <div class="action-buttons no-print">
+        <div class="d-flex justify-content-between">
+            <a href="/aging/accounts" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Accounts
+            </a>
+            <div>
+                <button class="btn btn-info" onclick="printReport()">
+                    <i class="fas fa-print"></i> Print Report
+                </button>
+                <button class="btn btn-success ms-2" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel"></i> Export to Excel
+                </button>
             </div>
         </div>
     </div>
 
     <div id="printableContent">
-        <div class="card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp">
-            <br>
-            <div class="header">
-                <h1></h1>
-                <h2 class="card-subtitle mb-2 text-center">
-                    <%= currentCompanyName %>
-                </h2>
-                <h3 class="text-center">Ageing Receivables/Payables</h3>
-                <h4 class="text-center">Account: <%=account.name%>
-                </h4>
-                <hr style="border: 0.5px solid;">
-            </div>
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Total Outstanding: Rs. <%= agingData.totalOutstanding.toFixed(2) %>
-                </h5>
-                <h5 class="card-title mb-0">Opening Balance: Rs. <%= (account.openingBalance.amount || 0).toFixed(2) %>
-                        (<%= account.openingBalance.type %>)</h5>
-            </div>
-
-
+        <div class="card shadow-lg">
             <div class="card-body">
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>Period</th>
-                            <th>Outstanding Amount (Rs.)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Opening Balance</td>
-                            <td>
-                                <%= Math.abs(account.openingBalance.amount || 0).toFixed(2) %>
+                <div class="print-header no-print">
+                    <h3 class="text-primary">
+                        <%= currentCompanyName %>
+                    </h3>
+                    <h4>Ageing Receivables/Payables</h4>
+                    <p class="text-muted">Generated on: <%= new Date().toLocaleString() %></p>
+                    <hr>
+                </div>
+
+                <div class="mb-4">
+                    <h4 class="text-primary no-print">
+                        <i class="fas fa-user-circle"></i> Account: <%= account.name %>
+                    </h4>
+                    <div class="d-flex justify-content-between no-print">
+                        <div>
+                            <strong>Report Period:</strong> All Transactions
+                        </div>
+                        <div>
+                            <strong>Total Outstanding:</strong>
+                            <span class="font-weight-bold">
+                                Rs. <%= agingData.totalOutstanding.toFixed(2) %>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Print View Header -->
+                    <div class="d-none print-only">
+                        <h2 class="text-center">
+                            <%= currentCompanyName %>
+                        </h2>
+                        <h3 class="text-center">Ageing Receivables/Payables</h3>
+                        <h4 class="text-center">Account: <%= account.name %></h4>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span><strong>Total Outstanding:</strong> Rs. <%= agingData.totalOutstanding.toFixed(2) %></span>
+                            <span><strong>Opening Balance:</strong> Rs. <%= (account.openingBalance.amount || 0).toFixed(2) %> (<%= account.openingBalance.type %>)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="row mb-4 no-print">
+                    <div class="col-md-3">
+                        <div class="card summary-card">
+                            <div class="card-body">
+                                <h5>Over 90 Days</h5>
+                                <div class="amount <%= agingData.ninetyPlus > 0 ? 'text-danger' : 'text-success' %>">
+                                    Rs. <%= Math.abs(agingData.ninetyPlus).toFixed(2) %>
+                                    <small><%= agingData.ninetyPlus > 0 ? 'Dr' : 'Cr' %></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card summary-card">
+                            <div class="card-body">
+                                <h5>61-90 Days</h5>
+                                <div class="amount <%= agingData.sixtyOneToNinety > 0 ? 'text-danger' : 'text-success' %>">
+                                    Rs. <%= Math.abs(agingData.sixtyOneToNinety).toFixed(2) %>
+                                    <small><%= agingData.sixtyOneToNinety > 0 ? 'Dr' : 'Cr' %></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card summary-card">
+                            <div class="card-body">
+                                <h5>31-60 Days</h5>
+                                <div class="amount <%= agingData.thirtyOneToSixty > 0 ? 'text-danger' : 'text-success' %>">
+                                    Rs. <%= Math.abs(agingData.thirtyOneToSixty).toFixed(2) %>
+                                    <small><%= agingData.thirtyOneToSixty > 0 ? 'Dr' : 'Cr' %></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card summary-card">
+                            <div class="card-body">
+                                <h5>1-30 Days</h5>
+                                <div class="amount <%= agingData.oneToThirty > 0 ? 'text-danger' : 'text-success' %>">
+                                    Rs. <%= Math.abs(agingData.oneToThirty).toFixed(2) %>
+                                    <small><%= agingData.oneToThirty > 0 ? 'Dr' : 'Cr' %></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aging Summary Table -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-4">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Period</th>
+                                <th class="text-right">Outstanding Amount (Rs.)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Opening Balance</td>
+                                <td class="text-right <%= account.openingBalance.amount > 0 ? 'text-danger' : 'text-success' %>">
+                                    <%= Math.abs(account.openingBalance.amount || 0).toFixed(2) %>
                                     <%= account.openingBalance.type %>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Over 90 Days</td>
-                            <td>
-                                <%= Math.abs(agingData.ninetyPlus).toFixed(2) %>
-                                    <% if (agingData.ninetyPlus < 0) { %> Cr <% } else if (agingData.ninetyPlus> 0) { %>
-                                            Dr <% } %>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>61 - 90 Days</td>
-                            <td>
-                                <%= Math.abs(agingData.sixtyOneToNinety).toFixed(2) %>
-                                    <% if (agingData.sixtyOneToNinety < 0) { %> Cr <% } else if
-                                            (agingData.sixtyOneToNinety> 0) { %> Dr <% } %>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>31 - 60 Days</td>
-                            <td>
-                                <%= Math.abs(agingData.thirtyOneToSixty).toFixed(2) %>
-                                    <% if (agingData.thirtyOneToSixty < 0) { %> Cr <% } else if
-                                            (agingData.thirtyOneToSixty> 0) { %> Dr <% } %>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>1 - 30 Days</td>
-                            <td>
-                                <%= Math.abs(agingData.oneToThirty).toFixed(2) %>
-                                    <% if (agingData.oneToThirty < 0) { %> Cr <% } else if (agingData.oneToThirty> 0) {
-                                            %> Dr <% } %>
-                            </td>
-                        </tr>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Over 90 Days</td>
+                                <td class="text-right <%= agingData.ninetyPlus > 0 ? 'text-danger' : 'text-success' %>">
+                                    <%= Math.abs(agingData.ninetyPlus).toFixed(2) %>
+                                    <%= agingData.ninetyPlus > 0 ? 'Dr' : 'Cr' %>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>61 - 90 Days</td>
+                                <td class="text-right <%= agingData.sixtyOneToNinety > 0 ? 'text-danger' : 'text-success' %>">
+                                    <%= Math.abs(agingData.sixtyOneToNinety).toFixed(2) %>
+                                    <%= agingData.sixtyOneToNinety > 0 ? 'Dr' : 'Cr' %>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>31 - 60 Days</td>
+                                <td class="text-right <%= agingData.thirtyOneToSixty > 0 ? 'text-danger' : 'text-success' %>">
+                                    <%= Math.abs(agingData.thirtyOneToSixty).toFixed(2) %>
+                                    <%= agingData.thirtyOneToSixty > 0 ? 'Dr' : 'Cr' %>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>1 - 30 Days</td>
+                                <td class="text-right <%= agingData.oneToThirty > 0 ? 'text-danger' : 'text-success' %>">
+                                    <%= Math.abs(agingData.oneToThirty).toFixed(2) %>
+                                    <%= agingData.oneToThirty > 0 ? 'Dr' : 'Cr' %>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                    </tbody>
-                </table>
+                <!-- Transaction Details -->
+                <h5 class="mt-4 mb-3">
+                    <i class="fas fa-list-alt"></i> Transaction Details
+                </h5>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th class="text-right">Debit (Rs.)</th>
+                                <th class="text-right">Credit (Rs.)</th>
+                                <th class="text-right">Balance (Rs.)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Opening Balance Row -->
+                            <tr class="<%= account.openingBalance.amount > 0 ? 'highlight-dr' : 'highlight-cr' %>">
+                                <td></td>
+                                <td colspan="1">Opening Balance</td>
+                                <td class="text-right">
+                                    <%= (account.openingBalance.amount > 0 ? Math.abs(account.openingBalance.amount).toFixed(2) : '0.00') %>
+                                </td>
+                                <td class="text-right">
+                                    <%= (account.openingBalance.amount < 0 ? Math.abs(account.openingBalance.amount).toFixed(2) : '0.00') %>
+                                </td>
+                                <td class="text-right font-weight-bold">
+                                    <%= (account.openingBalance.amount >= 0 ? account.openingBalance.amount.toFixed(2) + ' Dr' : Math.abs(account.openingBalance.amount).toFixed(2) + ' Cr') %>
+                                </td>
+                            </tr>
+
+                            <% agingData.transactions.forEach(transaction => { %>
+                                <tr>
+                                    <td>
+                                        <%= new Date(transaction.date).toLocaleDateString(companyDateFormat === 'nepali' ? 'en-NP' : 'en-US') %>
+                                    </td>
+                                    <td>
+                                        <% if (transaction.type === 'Sale') { %>
+                                            <i class="fas fa-file-invoice-dollar text-primary transaction-icon"></i> Sale
+                                        <% } else if (transaction.type === 'Purc') { %>
+                                            <i class="fas fa-shopping-cart text-info transaction-icon"></i> Purchase
+                                        <% } else if (transaction.type === 'PrRt') { %>
+                                            <i class="fas fa-undo text-warning transaction-icon"></i> Purchase Return
+                                        <% } else if (transaction.type === 'Slrt') { %>
+                                            <i class="fas fa-exchange-alt text-danger transaction-icon"></i> Sales Return
+                                        <% } else if (transaction.type === 'Pymt') { %>
+                                            <i class="fas fa-money-bill-wave text-success transaction-icon"></i> Payment
+                                        <% } else if (transaction.type === 'Rcpt') { %>
+                                            <i class="fas fa-hand-holding-usd text-success transaction-icon"></i> Receipt
+                                        <% } else if (transaction.type === 'DrNt') { %>
+                                            <i class="fas fa-file-alt text-danger transaction-icon"></i> Debit Note
+                                        <% } else if (transaction.type === 'CrNt') { %>
+                                            <i class="fas fa-file-alt text-success transaction-icon"></i> Credit Note
+                                        <% } else if (transaction.type === 'Jrnl') { %>
+                                            <i class="fas fa-book text-secondary transaction-icon"></i> Journal
+                                        <% } %>
+                                    </td>
+                                    <td class="text-right text-danger">
+                                        <%= transaction.debit ? transaction.debit.toFixed(2) : '0.00' %>
+                                    </td>
+                                    <td class="text-right text-success">
+                                        <%= transaction.credit ? transaction.credit.toFixed(2) : '0.00' %>
+                                    </td>
+                                    <td class="text-right font-weight-bold">
+                                        <%= (transaction.balance >= 0 ? transaction.balance.toFixed(2) + ' Cr' : (-transaction.balance).toFixed(2) + ' Dr') %>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <h5 class="mt-2 text-center">Transactions Details</h5>
-            <br>
-            <table class="table table-bordered table-striped">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Description</th>
-                        <th>Debit (Rs.)</th>
-                        <th>Credit (Rs.)</th>
-                        <th>Balance (Rs.)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Opening Balance Row -->
-                    <tr>
-                        <td></td>
-                        <td colspan="1">Opening Balance</td>
-                        <td>
-                            <%= (account.openingBalance.amount> 0 ? Math.abs(account.openingBalance.amount).toFixed(2) :
-                                '0.00') %>
-                        </td>
-                        <td>
-                            <%= (account.openingBalance.amount < 0 ? Math.abs(account.openingBalance.amount).toFixed(2)
-                                : '0.00' ) %>
-                        </td>
-                        <td>
-                            <%= (account.openingBalance.amount>= 0 ? account.openingBalance.amount.toFixed(2) + ' Dr' :
-                                Math.abs(account.openingBalance.amount).toFixed(2) + ' Cr') %>
-                        </td>
-                    </tr>
-
-                    <% agingData.transactions .forEach(transaction=> { %>
-                        <tr>
-                            <td>
-                                <%= new Date(transaction.date).toLocaleDateString(companyDateFormat==='nepali' ? 'en-NP'
-                                    : 'en-US' ) %>
-                            </td>
-                            <td>
-                                <% if (transaction.type==='Sale' ) { %>Sale<% } %>
-                                        <% if (transaction.type==='Purc' ) { %>Purchase<% } %>
-                                                <% if (transaction.type==='PrRt' ) { %>Purchase Return<% } %>
-                                                        <% if (transaction.type==='Slrt' ) { %>Sales Return<% } %>
-                                                                <% if (transaction.type==='Pymt' ) { %>Payment<% } %>
-                                                                        <% if (transaction.type==='Rcpt' ) { %>Receipt<%
-                                                                                } %>
-                                                                                <% if (transaction.type==='DrNt' ) { %>
-                                                                                    Debit Note<% } %>
-                                                                                        <% if (transaction.type==='CrNt'
-                                                                                            ) { %>Credit Note<% } %>
-                                                                                                <% if
-                                                                                                    (transaction.type==='Jrnl'
-                                                                                                    ) { %>Journal<% } %>
-                            </td>
-                            <td>
-                                <%= transaction.debit ? transaction.debit.toFixed(2) : '0.00' %>
-                            </td>
-                            <td>
-                                <%= transaction.credit ? transaction.credit.toFixed(2) : '0.00' %>
-                            </td>
-                            <td>
-                                <%= (transaction.balance>= 0 ? transaction.balance.toFixed(2) + ' Cr' :
-                                    (-transaction.balance).toFixed(2) + ' Dr') %>
-                            </td>
-                        </tr>
-                        <% }) %>
-                </tbody>
-            </table>
         </div>
     </div>
 </div>
 
 <script>
-    function printBill() {
-        var printContents = document.getElementById('printableContent').innerHTML;
-        var styles = document.getElementById('printStyles') ? document.getElementById('printStyles').innerHTML : '';
-        var originalContents = document.body.innerHTML;
+    function printReport() {
+        // Only allow printing if there's data to print
+        <% if (agingData.transactions.length > 0) { %>
+            const printContents = document.getElementById('printableContent').innerHTML;
+            const styles = document.getElementById('printStyles') ? document.getElementById('printStyles').innerHTML : '';
+            const title = 'Aging Report - <%= account ? account.name : "" %>';
 
-        // Debugging
-        console.log("Printing...");
+            const printWindow = window.open('', '_blank', 'width=1000,height=600,scrollbars=yes,resizable=yes');
 
-        document.body.innerHTML = '<style>' + styles + '</style>' + printContents;
-        window.print();
-        document.body.innerHTML = originalContents;
-
-        // Optional: refresh the page or keep original content
-        // location.reload(); 
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>${title}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            margin: 20px;
+                        }
+                        ${styles}
+                        .print-header {
+                            text-align: center;
+                            margin-bottom: 20px;
+                        }
+                        .print-header h2 {
+                            margin-bottom: 5px;
+                        }
+                        .print-header h3 {
+                            margin-top: 0;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 10px;
+                        }
+                        th, td {
+                            border: 1px solid #ddd;
+                            padding: 6px;
+                            text-align: left;
+                        }
+                        th {
+                            background-color: #f2f2f2;
+                        }
+                        .text-right {
+                            text-align: right;
+                        }
+                        .text-danger {
+                            color: #dc3545;
+                        }
+                        .text-success {
+                            color: #28a745;
+                        }
+                        .footer {
+                            margin-top: 20px;
+                            text-align: right;
+                            font-size: 11px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${printContents}
+                    <div class="footer">
+                        <p class="text-muted">Generated on: <%= new Date().toLocaleString() %> | Printed by: <%= user.name %> | Page 1 of 1</p>
+                    </div>
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                            }, 300);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        <% } else { %>
+            alert('No data available to print. Please generate a report first.');
+        <% } %>
     }
+
+    function exportToExcel() {
+        // Show loading overlay
+        document.querySelector('.loading-overlay').style.display = 'flex';
+        
+        // Simulate API call or processing
+        setTimeout(() => {
+            // Hide loading overlay
+            document.querySelector('.loading-overlay').style.display = 'none';
+            
+            // Create Excel file (this is a simplified example)
+            const html = document.getElementById('printableContent').innerHTML;
+            const blob = new Blob([html], {type: 'application/vnd.ms-excel'});
+            const fileName = 'Aging_Report_<%= account ? account.name : "Account" %>.xls';
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }, 1000);
+    }
+
+    // Add keyboard navigation for better accessibility
+    document.addEventListener('DOMContentLoaded', function() {
+        const rows = document.querySelectorAll('tbody tr');
+        let currentRow = 0;
+        
+        function highlightRow(index) {
+            rows.forEach(row => row.classList.remove('selected-row'));
+            if (index >= 0 && index < rows.length) {
+                rows[index].classList.add('selected-row');
+                rows[index].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowDown' && currentRow < rows.length - 1) {
+                currentRow++;
+                highlightRow(currentRow);
+            } else if (e.key === 'ArrowUp' && currentRow > 0) {
+                currentRow--;
+                highlightRow(currentRow);
+            } else if (e.key === 'Enter' && currentRow >= 0) {
+                // Optional: Add action when Enter is pressed on a row
+            }
+        });
+        
+        // Highlight rows on click
+        rows.forEach((row, index) => {
+            row.addEventListener('click', function() {
+                currentRow = index;
+                highlightRow(currentRow);
+            });
+        });
+        
+        // Highlight first row initially
+        if (rows.length > 0) {
+            highlightRow(0);
+        }
+    });
 </script>

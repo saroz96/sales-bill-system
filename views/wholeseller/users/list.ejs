@@ -1,86 +1,323 @@
-<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+<%- include('../layouts/boilerplate', { title: 'User Management', body: '' }) %>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 
-    <div class="container mt-4">
-        <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
-            <h1 class="mb-4">User List</h1>
+<style>
+  .user-management-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 15px;
+  }
+  
+  .user-management-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: none;
+    overflow: hidden;
+  }
+  
+  .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .card-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #212529;
+  }
+  
+  .search-container {
+    min-width: 250px;
+    flex-grow: 1;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+  }
+  
+  .table {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+  }
+  
+  .table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #e9ecef;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #495057;
+  }
+  
+  .table td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    border-top: 1px solid #e9ecef;
+  }
+  
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #0d6efd;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    margin-right: 0.75rem;
+  }
+  
+  .badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+  }
+  
+  .badge-owner {
+    background-color: #6f42c1;
+  }
+  
+  .badge-active {
+    background-color: #198754;
+  }
+  
+  .badge-inactive {
+    background-color: #dc3545;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  
+  .empty-state {
+    padding: 3rem;
+    text-align: center;
+    color: #6c757d;
+  }
+  
+  .empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #adb5bd;
+  }
+  
+  .role-select-form {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .role-select {
+    min-width: 120px;
+  }
+  
+  @media (max-width: 768px) {
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .search-container {
+      width: 100%;
+    }
+    
+    .action-buttons {
+      justify-content: flex-end;
+    }
+    
+    .role-select-form {
+      flex-direction: column;
+    }
+  }
+</style>
 
-            <% if (users.length===0) { %>
-                <div class="alert alert-info" role="alert">
-                    No users found.
-                </div>
-                <% } else { %>
-                    <table class="table table-hover">
-                        <thead class="thead-light">
-                            <tr>
-                                <th scope="col">Name</th>
-                                <th scope="col">Email</th>
-                                <th scope="col">Role</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% users.forEach(user=> { %>
-                                <tr>
-                                    <td>
-                                        <%= user.name %>
-                                    </td>
-                                    <td>
-                                        <%= user.email %>
-                                    </td>
-                                    <td>
-                                        <% if (user.isOwner) { %>
-                                            <span class="badge bg-info">Owner</span>
-                                            <% } else if (isAdminOrSupervisor) { %>
-                                                <form action="/admin/users/<%= user._id %>/role" method="POST">
-                                                    <select name="role" class="form-select">
-                                                        <option value="Sales" <%=user.role==='Sales' ? 'selected' : ''
-                                                            %>>Sales
-                                                        </option>
-                                                        <option value="Purchase" <%=user.role==='Purchase' ? 'selected'
-                                                            : '' %>
-                                                            >Purchase</option>
-                                                        <option value="Supervisor" <%=user.role==='Supervisor'
-                                                            ? 'selected' : '' %>>Supervisor</option>
-                                                    </select>
-                                                    <button type="submit" class="btn btn-primary btn-sm mt-2">Update
-                                                        Role</button>
-                                                </form>
-                                                <% } else { %>
-                                                    <%= user.role %>
-                                                        <% } %>
-                                    </td>
-                                    <td>
-                                        <%= user.isActive ? 'Active' : 'Inactive' %>
-                                    </td>
-                                    <td class="action-btns">
-                                        <% if (isAdminOrSupervisor && !user.isOwner) { %>
-                                            <% if (user.isActive) { %>
-                                                <form action="/admin/users/<%= user._id %>/deactivate" method="POST"
-                                                    style="display: inline;">
-                                                    <button type="submit"
-                                                        class="btn btn-warning btn-sm">Deactivate</button>
-                                                </form>
-                                                <% } else { %>
-                                                    <form action="/admin/users/<%= user._id %>/activate" method="POST"
-                                                        style="display: inline;">
-                                                        <button type="submit"
-                                                            class="btn btn-success btn-sm">Activate</button>
-                                                    </form>
-                                                    <% } %>
-                                                        <% } %>
-
-                                                            <a href="/users/view/<%= user._id %>"
-                                                                class="btn btn-primary btn-sm">View</a>
-                                                            <% if (isAdminOrSupervisor && !user.isOwner) { %>
-                                                                <a href="/admin/users/edit/<%= user._id %>"
-                                                                    class="btn btn-warning btn-sm">Edit</a>
-                                                                <% } %>
-                                    </td>
-                                </tr>
-                                <% }) %>
-                        </tbody>
-                    </table>
-                    <% } %>
+<div class="container user-management-container">
+  <div class="card user-management-card animate__animated animate__fadeInUp">
+    <div class="card-header">
+      <h1 class="card-title">
+        <i class="fas fa-users me-2"></i>User Management
+      </h1>
+      <div class="search-container">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-search"></i></span>
+          <input type="text" class="form-control" placeholder="Search users..." id="userSearch">
         </div>
+      </div>
+      <a href="/admin/create-user/new" class="btn btn-primary">
+        <i class="fas fa-user-plus me-2"></i>Add User
+      </a>
     </div>
+    
+    <div class="card-body p-0">
+      <% if (users.length === 0) { %>
+        <div class="empty-state">
+          <i class="fas fa-user-slash"></i>
+          <h4>No Users Found</h4>
+          <p>There are currently no users in the system.</p>
+          <a href="/admin/create-user/new" class="btn btn-primary mt-2">
+            <i class="fas fa-user-plus me-2"></i>Create New User
+          </a>
+        </div>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody">
+              <% users.forEach(user => { %>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="user-avatar">
+                        <%= user.name.charAt(0).toUpperCase() %>
+                      </div>
+                      <div>
+                        <div class="fw-medium"><%= user.name %></div>
+                        <small class="text-muted">ID: <%= user._id.toString().slice(-6) %></small>
+                        <small class="text-muted">Joined <%= new Date(user.createdAt).toLocaleDateString() %></small>
+                      </div>
+                    </div>
+                  </td>
+                  <td><%= user.email %></td>
+                  <td>
+                    <% if (user.isOwner) { %>
+                      <span class="badge badge-owner">Owner</span>
+                    <% } else if (isAdminOrSupervisor) { %>
+                      <form class="role-select-form" action="/admin/users/<%= user._id %>/role" method="POST">
+                        <select name="role" class="form-select form-select-sm role-select">
+                          <option value="Sales" <%= user.role === 'Sales' ? 'selected' : '' %>>Sales</option>
+                          <option value="Purchase" <%= user.role === 'Purchase' ? 'selected' : '' %>>Purchase</option>
+                          <option value="Supervisor" <%= user.role === 'Supervisor' ? 'selected' : '' %>>Supervisor</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm btn-icon" title="Update Role">
+                          <i class="fas fa-save"></i>
+                        </button>
+                      </form>
+                    <% } else { %>
+                      <span class="badge bg-secondary"><%= user.role %></span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (user.isActive) { %>
+                      <span class="badge badge-active">Active</span>
+                    <% } else { %>
+                      <span class="badge badge-inactive">Inactive</span>
+                    <% } %>
+                  </td>
+                  <td class="text-end">
+                    <div class="action-buttons">
+                      <a href="/users/view/<%= user._id %>" class="btn btn-sm btn-primary btn-icon" title="View">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <% if (isAdminOrSupervisor && !user.isOwner) { %>
+                        <a href="/admin/users/edit/<%= user._id %>" class="btn btn-sm btn-warning btn-icon" title="Edit">
+                          <i class="fas fa-edit"></i>
+                        </a>
+                        <% if (user.isActive) { %>
+                          <form action="/admin/users/<%= user._id %>/deactivate" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-danger btn-icon" title="Deactivate">
+                              <i class="fas fa-user-slash"></i>
+                            </button>
+                          </form>
+                        <% } else { %>
+                          <form action="/admin/users/<%= user._id %>/activate" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-success btn-icon" title="Activate">
+                              <i class="fas fa-user-check"></i>
+                            </button>
+                          </form>
+                        <% } %>
+                      <% } %>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+    
+    <% if (users.length > 0) { %>
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <div class="text-muted">
+          Showing <span class="fw-semibold"><%= users.length %></span> user<%= users.length !== 1 ? 's' : '' %>
+        </div>
+        <div>
+          <a href="/admin/create-user/new" class="btn btn-outline-primary">
+            <i class="fas fa-user-plus me-2"></i>Add Another User
+          </a>
+        </div>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Search functionality
+    const searchInput = document.getElementById('userSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#userTableBody tr');
+        
+        rows.forEach(row => {
+          const name = row.querySelector('td:first-child').textContent.toLowerCase();
+          const email = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+          
+          if (name.includes(searchTerm) || email.includes(searchTerm)) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+    }
+    
+    // Add confirmation dialogs for sensitive actions
+    const deactivateForms = document.querySelectorAll('form[action*="/deactivate"]');
+    const activateForms = document.querySelectorAll('form[action*="/activate"]');
+    
+    deactivateForms.forEach(form => {
+      form.addEventListener('submit', function(e) {
+        if (!confirm('Are you sure you want to deactivate this user?')) {
+          e.preventDefault();
+        }
+      });
+    });
+    
+    activateForms.forEach(form => {
+      form.addEventListener('submit', function(e) {
+        if (!confirm('Are you sure you want to activate this user?')) {
+          e.preventDefault();
+        }
+      });
+    });
+  });
+</script>

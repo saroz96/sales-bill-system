@@ -1,0 +1,133 @@
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid black;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+
+    <div class="container">
+        <div class=" card mt-4 shadow-lg p-4 animate__animated animate__fadeInUp expanded-card">
+            <h1 style="text-decoration: underline;">Fiscal Years</h1>
+
+            <!-- Dropdown to change fiscal year -->
+            <label for="fiscalYearSelect">Change Fiscal Year:</label>
+            <select id="fiscalYearSelect" class="form-control">
+                <% fiscalYears.forEach(fiscalYear=> { %>
+                    <option value="<%= fiscalYear._id %>" <%=fiscalYear._id.toString()===currentFiscalYear ? 'selected'
+                        : '' %>>
+                        <%= fiscalYear.name %>
+                    </option>
+                    <% }); %>
+            </select>
+            <br>
+            <!-- Table to display fiscal years -->
+            <table>
+                <thead>
+                    <tr>
+                        <th>S.No.</th> <!-- New column for serial numbers -->
+                        <th>Fiscal Year Id</th>
+                        <th>Name</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Status</th> <!-- Column for showing status -->
+                        <th>Actions</th> <!-- Column for delete buttons -->
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (fiscalYears.length> 0) {
+                        let serialNumber = 1; // Initialize serial number
+                        %>
+                        <% fiscalYears.forEach(fiscalYear=> { %>
+                            <tr>
+                                <td>
+                                    <%= serialNumber++ %>
+                                </td> <!-- Display and increment serial number -->
+                                <td>
+                                    <%= fiscalYear._id %>
+                                </td>
+                                <td>
+                                    <%= fiscalYear.name %>
+                                </td>
+                                <td>
+                                    <%= new Date(fiscalYear.startDate).toLocaleDateString() %>
+                                </td>
+                                <td>
+                                    <%= new Date(fiscalYear.endDate).toLocaleDateString() %>
+                                </td>
+                                <td
+                                    style="color: <%= fiscalYear._id.toString() === currentFiscalYear ? 'green' : 'red' %>;">
+                                    <%= fiscalYear._id.toString()===currentFiscalYear ? 'Active' : 'Inactive' %>
+                                </td>
+                                <td>
+                                    <button class="delete-button form-control bg-danger"
+                                        onclick="deleteFiscalYear('<%= fiscalYear._id %>')"
+                                        style="color: white;">Delete</button>
+                                </td>
+                            </tr>
+                            <% }); %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="7">No fiscal years found.</td>
+                                    </tr>
+                                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('fiscalYearSelect').addEventListener('change', async function () {
+            const fiscalYearId = this.value;
+            try {
+                const response = await fetch('/switch-fiscal-year', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ fiscalYearId })
+                });
+                if (response.ok) {
+                    window.location.reload(); // Reload the page to reflect the change
+                } else {
+                    console.error('Failed to change fiscal year');
+                }
+            } catch (err) {
+                console.error('Error changing fiscal year:', err);
+            }
+        });
+
+        // Handle deleting fiscal year
+        async function deleteFiscalYear(fiscalYearId) {
+            if (confirm('Are you sure you want to delete this fiscal year?')) {
+                try {
+                    const response = await fetch(`/delete-fiscal-year/${fiscalYearId}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) {
+                        window.location.reload(); // Reload the page after deletion
+                    } else {
+                        console.error('Failed to delete fiscal year');
+                    }
+                } catch (err) {
+                    console.error('Error deleting fiscal year:', err);
+                }
+            }
+        }
+    </script>
