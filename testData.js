@@ -11,7 +11,7 @@ async function seedDatabase() {
         // Connect to MongoDB
         // await mongoose.connect(DB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
         //--Connect with database--//
-        mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/sales-bill-system');
+        mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/Sarathi');
         //--Connect with database--//
 
         // Example Item ID to use (make sure this ID exists in your Item collection)

@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User'); // Adjust the path as needed
 
 // Connect to your MongoDB
-mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/sales-bill-system')
+mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/Sarathi')
     .then(() => console.log('MongoDB connected successfully'))
     .catch(err => console.error('MongoDB connection error:', err));
 

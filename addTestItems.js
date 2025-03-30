@@ -8,7 +8,7 @@ const DB_URI = 'mongodb://localhost:27017/yourDatabase'; // Replace with your da
 async function seedItems() {
     try {
         // Connect to MongoDB
-        mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/sales-bill-system');
+        mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/Sarathi');
 
         // Insert test item data
         const testItem = new Item({

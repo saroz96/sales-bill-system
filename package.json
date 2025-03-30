@@ -1,13 +1,13 @@
 {
-  "name": "sales-bill-system",
+  "name": "Sarathi",
   "version": "1.0.0",
-  "description": "A billing software to manage sales and stock",
+  "description": "A billing software to manage accounting",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
     "electron": "electron .",
-    "package-win": "electron-packager . sales-bill-system --platform=win32 --arch=x64 --out=dist --overwrite --electron-version=34.2.0",
+    "package-win": "electron-packager . Sarathi --platform=win32 --arch=x64 --out=dist --overwrite --electron-version=34.2.0",
     "dist": "electron-builder --win",
     "package": "electron-builder"
   },
@@ -43,7 +43,7 @@
     "nodemon": "^3.1.9"
   },
   "build": {
-    "appId": "com.yourname.sales-bill-system",
+    "appId": "com.yourname.Sarathi",
     "productName": "Sarathi",
     "directories": {
       "output": "dist"

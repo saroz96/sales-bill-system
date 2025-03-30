@@ -27,7 +27,7 @@ function createWindow() {
 app.whenReady().then(() => {
   // Start the MongoDB server (if required)
   // You can remove or customize this if you're using a cloud DB like MongoDB Atlas
-  mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/sales-bill-system', { useNewUrlParser: true, useUnifiedTopology: true })
+  mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/Sarathi', { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
       console.log('MongoDB connected');
       // Start the Express server
