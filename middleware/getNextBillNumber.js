@@ -1,4 +1,4 @@
-const BillCounter = require('../models/wholeseller/billCounter'); // Assuming the schema is saved in models/BillCounter
+const BillCounter = require('../models/retailer/billCounter'); // Assuming the schema is saved in models/BillCounter
 
 async function getNextBillNumber(companyId, fiscalYearId, transactionType) {
     let billCounter;

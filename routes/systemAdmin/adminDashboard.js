@@ -1,6 +1,6 @@
 const express = require('express');
 const { ensureAuthenticated, isLoggedIn } = require('../../middleware/auth');
-const Company = require('../../models/wholeseller/Company');
+const Company = require('../../models/retailer/Company');
 const router = express.Router();
 const NepaliDate = require('nepali-date'); // Adjust if using a different library
 

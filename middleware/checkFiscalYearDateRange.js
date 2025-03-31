@@ -1,5 +1,5 @@
-const FiscalYear = require('../models/wholeseller/FiscalYear');
-const Company = require('../models/wholeseller/Company');
+const FiscalYear = require('../models/retailer/FiscalYear');
+const Company = require('../models/retailer/Company');
 
 // Middleware to check if the current date is within the active fiscal year
 async function checkFiscalYearDateRange(req, res, next) {
@@ -59,7 +59,7 @@ async function checkFiscalYearDateRange(req, res, next) {
         if (dateFormat === 'nepali') {
             // Compare as Nepali dates (assuming startDate and endDate are Nepali dates)
             if (entryDate < startDate || entryDate > endDate) {
-                return res.render('wholeseller/errorSuccess/validation', {
+                return res.render('retailer/errorSuccess/validation', {
                     error: 'Entries are not allowed outside the active fiscal year date range.',
                     success: null,
                     redirectUrl: redirectUrl,
@@ -70,7 +70,7 @@ async function checkFiscalYearDateRange(req, res, next) {
             const fiscalStartDate = new Date(startDate);
             const fiscalEndDate = new Date(endDate);
             if (entryDate < fiscalStartDate || entryDate > fiscalEndDate) {
-                return res.render('wholeseller/errorSuccess/validation', {
+                return res.render('retailer/errorSuccess/validation', {
                     error: 'Entries are not allowed outside the active fiscal year date range.',
                     success: null,
                     redirectUrl: redirectUrl,

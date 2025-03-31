@@ -58,7 +58,7 @@ const checkDemoPeriod = async (req, res, next) => {
             if (dateFormat === 'nepali') {
                 // Simple string comparison for nepaliDate (assuming it's in a valid string format)
                 if (salesBillDate > oneMonthLater.toISOString().split('T')[0]) {
-                    return res.render('wholeseller/errorSuccess/validation', {
+                    return res.render('retailer/errorSuccess/validation', {
                         error: 'Demo period has expired. Please upgrade to the full version to continue using the software.',
                         success: null,
                         redirectUrl: redirectUrl,
@@ -67,7 +67,7 @@ const checkDemoPeriod = async (req, res, next) => {
             } else if (dateFormat === 'english') {
                 // Validate if the English date is beyond the one-month limit
                 if (salesBillDate > oneMonthLater) {
-                    return res.render('wholeseller/errorSuccess/validation', {
+                    return res.render('retailer/errorSuccess/validation', {
                         error: 'Demo period has expired. Please upgrade to the full version to continue using the software.',
                         success: null,
                         redirectUrl: redirectUrl,
@@ -81,7 +81,7 @@ const checkDemoPeriod = async (req, res, next) => {
 
                 // Compare the Nepali dates (string comparison for 'YYYY-MM-DD' format)
                 if (salesBillDate > renewalDate.trim()) {
-                    return res.render('wholeseller/errorSuccess/validation', {
+                    return res.render('retailer/errorSuccess/validation', {
                         error: 'Renewal period has expired. Please renew to continue making entries.',
                         success: null,
                         redirectUrl: redirectUrl,
@@ -92,7 +92,7 @@ const checkDemoPeriod = async (req, res, next) => {
 
                 // Compare Date objects for English dates
                 if (salesBillDate > new Date(renewalDate)) {
-                    return res.render('wholeseller/errorSuccess/validation', {
+                    return res.render('retailer/errorSuccess/validation', {
                         error: 'Renewal period has expired. Please renew to continue making entries.',
                         success: null,
                         redirectUrl: redirectUrl,

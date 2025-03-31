@@ -1,11 +1,11 @@
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
 
-const FiscalYear = require('../models/wholeseller/FiscalYear');
-const Account = require('../models/wholeseller/Account');
-const Company = require('../models/wholeseller/Company');
-const Transaction = require('../models/wholeseller/Transaction');
-const Item = require('../models/wholeseller/Item');
+const FiscalYear = require('../models/retailer/FiscalYear');
+const Account = require('../models/retailer/Account');
+const Company = require('../models/retailer/Company');
+const Transaction = require('../models/retailer/Transaction');
+const Item = require('../models/retailer/Item');
 
 // Function to calculate the closing balance of an account
 async function calculateClosingBalance(accountId, fiscalYearId) {

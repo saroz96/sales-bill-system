@@ -1,20 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const Company = require('../models/wholeseller/Company');
+const Company = require('../models/retailer/Company');
 const User = require('../models/User');
 const mongoose = require('mongoose');
-const AccountGroup = require('../models/wholeseller/CompanyGroup');
+const AccountGroup = require('../models/retailer/CompanyGroup');
 // const addDefaultAccountGroups = require('../Seed/InsertDefaultAccountGroups');
-const Account = require('../models/wholeseller/Account');
+const Account = require('../models/retailer/Account');
 const NepaliDate = require('nepali-date');
 const { ensureAuthenticated, isLoggedIn, storeReturnTo } = require('../middleware/auth');
-const Category = require('../models/wholeseller/Category');
-const Unit = require('../models/wholeseller/Unit');
-const FiscalYear = require('../models/wholeseller/FiscalYear');
-const Settings = require('../models/wholeseller/Settings');
+const Category = require('../models/retailer/Category');
+const Unit = require('../models/retailer/Unit');
+const FiscalYear = require('../models/retailer/FiscalYear');
+const Settings = require('../models/retailer/Settings');
 const { ensureNotAdministrator } = require('../middleware/adminAuth');
 const catchAsync = require('../catchAsync');
-const mainUnit = require('../models/wholeseller/MainUnit');
+const mainUnit = require('../models/retailer/MainUnit');
 
 router.get('/company/new', ensureAuthenticated, ensureNotAdministrator, async (req, res) => {
     const companyId = req.session.currentCompany;
@@ -629,10 +629,7 @@ router.post('/company', ensureAuthenticated, async (req, res) => {
         // Redirect based on tradeType
         let redirectPath;
         switch (tradeType) {
-            case 'Wholeseller':
-                redirectPath = '/wholesellerDashboard';
-                break;
-            case 'Retailer':
+            case 'retailer':
                 redirectPath = '/retailerDashboard';
                 break;
             case 'Pharmacy':
@@ -688,8 +685,8 @@ router.get('/switch/:id/', ensureAuthenticated, async (req, res) => {
         // Determine the redirect path based on the company's trade type
         let redirectPath;
         switch (company.tradeType) {
-            case 'Wholeseller':
-                redirectPath = '/wholesellerDashboard/indexv1';
+            case 'retailer':
+                redirectPath = '/retailerDashboard/indexv1';
                 break;
             case 'Retailer':
                 redirectPath = '/retailerDashboard';
@@ -917,8 +914,8 @@ router.put('/company/edit/:id', ensureAuthenticated, async (req, res) => {
         // Redirect based on updated tradeType
         let redirectPath;
         switch (tradeType) {
-            case 'Wholeseller':
-                redirectPath = '/wholesellerDashboard';
+            case 'retailer':
+                redirectPath = '/retailerDashboard';
                 break;
             case 'Retailer':
                 redirectPath = '/retailerDashboard';

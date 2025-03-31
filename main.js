@@ -10,7 +10,7 @@ function createWindow() {
   win = new BrowserWindow({
     width: 800,
     height: 600,
-    icon: path.join(__dirname, 'assets/icons/icon.ico'), // Set the same icon here
+    icon: path.join(__dirname, 'public/assets/icons/icon.ico'), // Set the same icon here
     webPreferences: {
       nodeIntegration: true
     }

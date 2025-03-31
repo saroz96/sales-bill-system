@@ -310,8 +310,7 @@
                     <div class="col-md-6">
                         <label for="tradeType" class="form-label">Business Type</label>
                         <select class="form-select select2" id="tradeType" name="tradeType" required>
-                            <option value="Wholeseller" <%= company.tradeType === 'Wholeseller' ? 'selected' : '' %>>Wholeseller</option>
-                            <option value="Retailer" <%= company.tradeType === 'Retailer' ? 'selected' : '' %>>Retailer</option>
+                            <option value="retailer" <%= company.tradeType === 'retailer' ? 'selected' : '' %>>Retailer</option>
                             <option value="Pharmacy" <%= company.tradeType === 'Pharmacy' ? 'selected' : '' %>>Pharmacy</option>
                             <option value="Other" <%= company.tradeType === 'Other' ? 'selected' : '' %>>Other</option>
                         </select>

@@ -1,0 +1,125 @@
+<%- include('../layouts/boilerplate', { title: '' , body: '' }) %>
+    <div class="container mt-4 wow-form">
+        <div class="card shadow-lg p-4 animate__animated animate__fadeInUp">
+            <div class="card-header">
+                <h2 style="text-align: center;text-decoration: underline;">Items Details</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="card-title">Details:</h5>
+                        <br>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>Name:</strong>
+                                <%= items.name %>
+                            </li>
+                            <li class="list-group-item"><strong>HSN: </strong>
+                                <%=items.hscode%>
+                            </li>
+                            <li class="list-group-item"><strong>VAT Status:</strong>
+                                <%= items.vatStatus %>
+                            </li>
+                            <li class="list-group-item"><strong>Main Unit:</strong>
+                                <%= items.mainUnit? items.mainUnit.name : 'No Main Unit' %>
+                            </li>
+                            <li class="list-group-item"><strong>WS Unit:</strong>
+                                <%= items.WSUnit %>
+                            </li>
+
+                            <li class="list-group-item"><strong>Unit:</strong>
+                                <%= items.unit ? items.unit.name : 'No Unit' %>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="card-title">
+                            <%=items._id%>
+                        </h5>
+                        <br>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>Sales Price:</strong>
+                                <%= salesPrice.toFixed(2) %>
+                            </li>
+                            <li class="list-group-item"><strong>Purchase Price:</strong>
+                                <%= purchasePrice %>
+                            </li>
+                            <li class="list-group-item"><strong>Opening Stock:</strong>
+                                <%= openingStock %>
+                            </li>
+                            <li class="list-group-item"><strong>Opening Stock Value:</strong>
+                                <%= openingStockBalance || 0.00 %>
+                            </li>
+                            <li class="list-group-item"><strong>Re-Order Level:</strong>
+                                <%=items.reorderLevel %>
+                            </li>
+                            <li class="list-group-item"><strong>Category:</strong>
+                                <%= items.category ? items.category.name : 'No Category' %>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <button id="backButton" class="back-button">
+                    <span class="icon">←</span> Back
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <style>
+        .back-button {
+            background-color: #007bff;
+            /* Blue background */
+            color: white;
+            /* White text */
+            border: none;
+            /* No border */
+            padding: 10px 20px;
+            /* Padding */
+            font-size: 16px;
+            /* Font size */
+            cursor: pointer;
+            /* Pointer cursor on hover */
+            border-radius: 5px;
+            /* Rounded corners */
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            /* Space between icon and text */
+        }
+
+        .back-button:hover {
+            background-color: #0056b3;
+            /* Darker blue on hover */
+        }
+
+        .icon {
+            font-size: 20px;
+            /* Icon size */
+        }
+    </style>
+
+    <script>
+        document.getElementById('backButton').addEventListener('click', function () {
+            window.history.back(); // Navigate to the previous page
+        });
+    </script>
+
+    <script>
+        //Handle scape buttons
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                event.preventDefault(); // Prevent default escape behavior
+                var exitModal = new bootstrap.Modal(document.getElementById('exitConfirmationModal'));
+                exitModal.show();
+            }
+        });
+
+        // Handle the exit confirmation
+        document.getElementById('confirmExit').addEventListener('click', function () {
+            // Redirect to the home page
+            window.location.href = '/retailerDashboard'; // Change '/' to your home page URL
+        });
+    </script>

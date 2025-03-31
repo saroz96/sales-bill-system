@@ -4,8 +4,8 @@ const bcrypt = require('bcryptjs');
 const passport = require('passport');
 const User = require('../models/User');
 const { forwardAuthenticated, ensureAuthenticated, ensureCompanySelected, isLoggedIn } = require('../middleware/auth');
-const Company = require('../models/wholeseller/Company');
-const FiscalYear = require('../models/wholeseller/FiscalYear');
+const Company = require('../models/retailer/Company');
+const FiscalYear = require('../models/retailer/FiscalYear');
 const ensureAdminOrSupervisor = require('../middleware/isAdminMiddleware');
 
 
@@ -133,7 +133,7 @@ router.get('/admin/create-user/new', isLoggedIn, ensureAdminOrSupervisor, async 
     }
 
 
-    res.render('wholeseller/users/user', {
+    res.render('retailer/users/user', {
         company,
         currentFiscalYear,
         currentCompanyName: req.session.currentCompanyName,
@@ -198,7 +198,7 @@ router.get('/admin/create-user/new', isLoggedIn, ensureAdminOrSupervisor, async 
 
 //         if (errors.length > 0) {
 //             errors.push({ msg: 'Errors' });
-//             res.render('wholeseller/users/user', {
+//             res.render('retailer/users/user', {
 //                 errors,
 //                 name,
 //                 email,
@@ -274,7 +274,7 @@ router.post('/admin/create-user/new', ensureAdminOrSupervisor, async (req, res) 
         }
 
         if (errors.length > 0) {
-            return res.render('wholeseller/users/user', {
+            return res.render('retailer/users/user', {
                 errors,
                 name,
                 email,
@@ -358,13 +358,13 @@ router.get('/admin/users/view/:id', ensureAuthenticated, ensureCompanySelected, 
         }
 
         // Render the view page with user details
-        res.render('wholeseller/users/view', {
+        res.render('retailer/users/view', {
             company,
             currentFiscalYear,
             user,
             currentCompanyName: req.session.currentCompanyName,
             title: 'User',
-            body: 'wholeseller >> user >> view',
+            body: 'retailer >> user >> view',
             user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
@@ -417,11 +417,11 @@ router.get('/account/users/view/:id', ensureAuthenticated, ensureCompanySelected
 
         if (!user) {
             req.flash('error', 'User not found.');
-            return res.redirect('/wholesellerDashboard');
+            return res.redirect('/retailerDashboard');
         }
 
         // Render the view page with user details
-        res.render('wholeseller/users/view', {
+        res.render('retailer/users/view', {
             company,
             currentFiscalYear,
             user,
@@ -434,7 +434,7 @@ router.get('/account/users/view/:id', ensureAuthenticated, ensureCompanySelected
     } catch (err) {
         console.error(err);
         req.flash('error', 'An error occurred while fetching user details.');
-        res.redirect('/wholesellerDashboard');
+        res.redirect('/retailerDashboard');
     }
 });
 
@@ -487,13 +487,13 @@ router.get('/admin/users/edit/:id', ensureAuthenticated, ensureCompanySelected, 
         }
 
         // Render the edit page with user details
-        res.render('wholeseller/users/edit', {
+        res.render('retailer/users/edit', {
             company,
             currentFiscalYear,
             user,
             currentCompanyName: req.session.currentCompanyName,
             title: 'Edit User',
-            body: 'wholeseller >> user >> edit',
+            body: 'retailer >> user >> edit',
             user: req.user,
             isAdminOrSupervisor: req.user.isAdmin || req.user.role === 'Supervisor'
         });
@@ -635,7 +635,7 @@ router.get('/admin/users/list', ensureAuthenticated, async (req, res) => {
 
 
         // Render the list of users associated with the current company
-        res.render('wholeseller/users/list', {
+        res.render('retailer/users/list', {
             company,
             currentFiscalYear,
             users,
@@ -718,7 +718,7 @@ router.get('/users/view/:id', ensureAuthenticated, ensureCompanySelected, async 
             return res.status(404).render('errors/404', { message: 'User not found.' }); // Optional: Add a 404 page
         }
 
-        res.render('wholeseller/users/userById', {
+        res.render('retailer/users/userById', {
             userById,
             company,
             currentFiscalYear,
@@ -880,7 +880,7 @@ router.get('/user/change-password', ensureAuthenticated, ensureCompanySelected, 
         return res.status(400).json({ error: 'No fiscal year found in session or company.' });
     }
 
-    res.render('wholeseller/users/change-password', {
+    res.render('retailer/users/change-password', {
         company,
         currentFiscalYear,
         currentCompanyName: req.session.currentCompanyName,

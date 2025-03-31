@@ -1,5 +1,5 @@
-const Company = require('../models/wholeseller/Company');
-const FiscalYear = require('../models/wholeseller/FiscalYear');
+const Company = require('../models/retailer/Company');
+const FiscalYear = require('../models/retailer/FiscalYear');
 
 async function ensureFiscalYear(req, res, next) {
     if (!req.session.currentFiscalYear) {
@@ -28,7 +28,7 @@ async function ensureFiscalYear(req, res, next) {
         } catch (err) {
             console.error('Error setting fiscal year in session:', err);
             req.flash('error', 'Failed to set fiscal year. Please try again.');
-            return res.redirect('/wholesellerDashboard');
+            return res.redirect('/retailerDashboard');
         }
     }
     next();

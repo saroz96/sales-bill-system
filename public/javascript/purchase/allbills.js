@@ -96,7 +96,7 @@ filterBills();
 // // Handle the exit confirmation
 // document.getElementById('confirmExit').addEventListener('click', function () {
 //     // Redirect to the home page
-//     window.location.href = '/wholesellerDashboard'; // Change '/' to your home page URL
+//     window.location.href = '/retailerDashboard'; // Change '/' to your home page URL
 // });
 
 // Print all bills

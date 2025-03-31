@@ -1,7 +1,7 @@
 
 //router.put logic should be here
 router.put('/purchase-bills/edit/:id', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, checkDemoPeriod, async (req, res) => {
-    if (req.tradeType === 'Wholeseller') {
+    if (req.tradeType === 'retailer') {
         const billId = req.params.id;
         const {
             accountId,

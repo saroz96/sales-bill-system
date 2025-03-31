@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+require('dotenv').config(); // Make sure to load environment variables
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const flash = require('connect-flash');
@@ -9,30 +10,30 @@ const { numberToWords } = require('./public/js/helpers');
 const passport = require('passport');
 const initializePassport = require('./config/passport-config');
 
-const salesBillsRoutes = require('./routes/wholeseller/SalesBill');
-const unitRoutes = require('./routes/wholeseller/unit');
-const accountRoutes = require('./routes/wholeseller/account');
-const companyGroupRoutes = require('./routes/wholeseller/companyGroup');
-const itemsCategoryRoutes = require('./routes/wholeseller/items_category');
-const itemsRoutes = require('./routes/wholeseller/items');
-const transactionRoutes = require('./routes/wholeseller/transaction');
-const indexRoutes = require('./routes/wholeseller/index');
+const salesBillsRoutes = require('./routes/retailer/SalesBill');
+const unitRoutes = require('./routes/retailer/unit');
+const accountRoutes = require('./routes/retailer/account');
+const companyGroupRoutes = require('./routes/retailer/companyGroup');
+const itemsCategoryRoutes = require('./routes/retailer/items_category');
+const itemsRoutes = require('./routes/retailer/items');
+const transactionRoutes = require('./routes/retailer/transaction');
+const indexRoutes = require('./routes/retailer/index');
 const usersRoutes = require('./routes/users');
 const companyRoutes = require('./routes/companyRoutes');
-const stockAdjustmentsRoutes = require('./routes/wholeseller/stockAdjustments');
-const itemsLedgerRoutes = require('./routes/wholeseller/items-ledger');
-const settingsRoutes = require('./routes/wholeseller/Settings');
-const purchaseRoutes = require('./routes/wholeseller/purchaseBill');
-const paymentRoutes = require('./routes/wholeseller/payment');
-const receiptRoutes = require('./routes/wholeseller/receipt');
-const journalVoucherRoutes = require('./routes/wholeseller/journalVoucher');
-const salesReturnRoutes = require('./routes/wholeseller/salesReturn');
-const purchaseReturnRoutes = require('./routes/wholeseller/purchaseReturn');
-const debitNoteRoutes = require('./routes/wholeseller/debitNote');
-const creditNoteRoutes = require('./routes/wholeseller/creditNote');
-const fiscalYearRoutes = require('./routes/wholeseller/fiscalYear');
-const ageingReportRoutes = require('./routes/wholeseller/ageingReport');
-const stockStatusRoutes = require('./routes/wholeseller/stockStatus');
+const stockAdjustmentsRoutes = require('./routes/retailer/stockAdjustments');
+const itemsLedgerRoutes = require('./routes/retailer/items-ledger');
+const settingsRoutes = require('./routes/retailer/Settings');
+const purchaseRoutes = require('./routes/retailer/purchaseBill');
+const paymentRoutes = require('./routes/retailer/payment');
+const receiptRoutes = require('./routes/retailer/receipt');
+const journalVoucherRoutes = require('./routes/retailer/journalVoucher');
+const salesReturnRoutes = require('./routes/retailer/salesReturn');
+const purchaseReturnRoutes = require('./routes/retailer/purchaseReturn');
+const debitNoteRoutes = require('./routes/retailer/debitNote');
+const creditNoteRoutes = require('./routes/retailer/creditNote');
+const fiscalYearRoutes = require('./routes/retailer/fiscalYear');
+const ageingReportRoutes = require('./routes/retailer/ageingReport');
+const stockStatusRoutes = require('./routes/retailer/stockStatus');
 
 //Admin Panel
 const systemAdminDashboardRoutes = require('./routes/systemAdmin/adminDashboard');
@@ -47,14 +48,28 @@ const app = express();
 // Initialize Passport
 initializePassport(passport);
 
-// Connect with database
-// mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/Sarathi');
-mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/Sarathi');
+
+const mongoUri = process.env.MONGO_URI; // Access MongoDB URI from the .env file
+
+mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true });
+
 const db = mongoose.connection;
+
 db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", () => {
     console.log("Database connected");
 });
+
+// Connect with database
+// mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/sales-bill-system');
+// mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/Sarathi');
+// const db = mongoose.connection;
+// db.on("error", console.error.bind(console, "connection error:"));
+// db.once("open", () => {
+//     console.log("Database connected");
+// });
+
+
 
 const sessionConfig = {
     secret: 'thisisnotagoodsecret',
@@ -116,7 +131,7 @@ app.use('/', debitNoteRoutes);
 app.use('/', creditNoteRoutes);
 app.use('/', fiscalYearRoutes);
 app.use('/', ageingReportRoutes);
-app.use('/wholeseller', stockStatusRoutes);
+app.use('/retailer', stockStatusRoutes);
 
 //Admin Panel
 app.use('/', systemAdminDashboardRoutes);

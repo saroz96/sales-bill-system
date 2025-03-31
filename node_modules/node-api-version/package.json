@@ -1,6 +1,6 @@
 {
   "name": "node-api-version",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "Tim Fish <tim@timfish.uk>",
   "main": "index.js",
   "types": "types.d.ts",
