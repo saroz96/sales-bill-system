@@ -1731,34 +1731,6 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
                     req.flash('error', `Item with id ${item.item} not found`);
                     return res.redirect(`/purchase-return/edit/${billId}`);
                 }
-
-                // Create the transaction for this item
-                const transaction = new Transaction({
-                    item: product._id,
-                    account: accountId,
-                    billNumber: existingBill.billNumber,
-                    partyBillNumber: existingBill.partyBillNumber,
-                    quantity: item.quantity,
-                    puPrice: item.puPrice,
-                    unit: item.unit,
-                    type: 'Sale',
-                    purchaseReturnBillId: existingBill._id,
-                    purchaseSalesReturnType: 'Purchase Return',
-                    isType: 'PrRt',
-                    type: 'PrRt',
-                    debit: finalAmount,
-                    credit: 0,
-                    paymentMode: paymentMode,
-                    balance: 0,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear,
-                });
-
-                await transaction.save();
-                console.log('Transaction created:', transaction);
-
                 // Reduce stock for the batch using both batchNumber and uniqueUuId
                 await reduceStockBatchWise(product, item.batchNumber, item.uniqueUuId, item.quantity);
 
@@ -1775,6 +1747,34 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
                     uniqueUuId: item.uniqueUuId, // Include uniqueUuId
                 });
             }
+
+
+            // Create the transaction for this item
+            const transaction = new Transaction({
+                account: accountId,
+                billNumber: existingBill.billNumber,
+                partyBillNumber: existingBill.partyBillNumber,
+                quantity: items[0].quantity,
+                puPrice: items[0].puPrice,
+                unit: items[0].unit,
+                type: 'Sale',
+                purchaseReturnBillId: existingBill._id,
+                purchaseSalesReturnType: 'Purchase Return',
+                isType: 'PrRt',
+                type: 'PrRt',
+                debit: finalAmount,
+                credit: 0,
+                paymentMode: paymentMode,
+                balance: 0,
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear,
+            });
+
+            await transaction.save();
+            console.log('Transaction created:', transaction);
+
 
             existingBill.items = billItems;
 

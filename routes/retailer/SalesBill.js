@@ -1915,7 +1915,7 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
 
             // Now create a single transaction for the entire bill
             const transaction = new Transaction({
-                account: accountId,
+                cashAccount: cashAccount,
                 billNumber: newBillNumber,
                 isType: 'Sale',
                 type: 'Sale',
@@ -3375,22 +3375,37 @@ router.put('/bills/editCashAccount/:id', isLoggedIn, ensureAuthenticated, ensure
                 return res.redirect(`/bills/editCashAccount/${billId}`);
             }
 
-            // // Reverse stock from existing bill items
-            // for (const existingItem of existingBill.items) {
-            //     const product = await Item.findById(existingItem.item).session(session);
-            //     if (!product) {
-            //         console.warn(`Product with ID ${existingItem.item} not found`);
-            //         continue;
-            //     }
+            // Step 1: Restore stock for all existing items (complete reversal)
+            for (const existingItem of existingBill.items) {
+                const product = await Item.findById(existingItem.item._id).session(session);
+                if (!product) {
+                    console.warn(`Product with ID ${existingItem.item._id} not found`);
+                    continue;
+                }
 
-            //     const batchEntry = product.stockEntries.find(entry => entry.batchNumber === existingItem.batchNumber);
-            //     if (batchEntry) {
-            //         batchEntry.quantity += existingItem.quantity; // Restore stock
-            //         await product.save({ session });
-            //     } else {
-            //         console.warn(`Batch number ${existingItem.batchNumber} not found for product: ${product.name}`);
-            //     }
-            // }
+                // Find or create the batch entry
+                let batchEntry = product.stockEntries.find(entry =>
+                    entry.batchNumber === existingItem.batchNumber &&
+                    entry.uniqueUuId === existingItem.uniqueUuId
+                );
+
+                if (batchEntry) {
+                    batchEntry.quantity += existingItem.quantity;
+                } else {
+                    // If batch doesn't exist, create a new one (shouldn't happen for existing bills)
+                    batchEntry = {
+                        batchNumber: existingItem.batchNumber,
+                        uniqueUuId: existingItem.uniqueUuId || uuidv4(),
+                        quantity: existingItem.quantity,
+                        date: existingItem.date || new Date(),
+                        purchaseRate: existingItem.price // Using sale price as fallback
+                    };
+                    product.stockEntries.push(batchEntry);
+                }
+
+                await product.save({ session });
+            }
+
 
             // console.log('Stock successfully reversed for existing bill items.');
             // Step 1: Identify removed items and restore stock
@@ -3413,47 +3428,47 @@ router.put('/bills/editCashAccount/:id', isLoggedIn, ensureAuthenticated, ensure
                     entry.uniqueUuId === removedItem.uniqueUuId
                 );
 
-                if (batchEntry) {
-                    batchEntry.quantity += removedItem.quantity; // Restore stock
-                    await product.save({ session });
-                } else {
-                    console.warn(`Batch number ${removedItem.batchNumber} not found for product: ${product.name}`);
-                }
+                // if (batchEntry) {
+                //     batchEntry.quantity += removedItem.quantity; // Restore stock
+                //     await product.save({ session });
+                // } else {
+                //     console.warn(`Batch number ${removedItem.batchNumber} not found for product: ${product.name}`);
+                // }
             }
-            // Step 1: Identify updated items
-            const updatedItems = existingBill.items.filter(existingItem =>
-                items.some(item =>
-                    item.item === existingItem.item.toString() &&
-                    item.batchNumber === existingItem.batchNumber &&
-                    item.uniqueUuId === existingItem.uniqueUuId
-                )
-            );
+            // // Step 1: Identify updated items
+            // const updatedItems = existingBill.items.filter(existingItem =>
+            //     items.some(item =>
+            //         item.item === existingItem.item.toString() &&
+            //         item.batchNumber === existingItem.batchNumber &&
+            //         item.uniqueUuId === existingItem.uniqueUuId
+            //     )
+            // );
 
-            // Step 2: Reverse stock for updated items
-            for (const updatedItem of updatedItems) {
-                const product = await Item.findById(updatedItem.item).session(session);
-                if (!product) {
-                    console.warn(`Product with ID ${updatedItem.item} not found`);
-                    continue;
-                }
+            // // Step 2: Reverse stock for updated items
+            // for (const updatedItem of updatedItems) {
+            //     const product = await Item.findById(updatedItem.item).session(session);
+            //     if (!product) {
+            //         console.warn(`Product with ID ${updatedItem.item} not found`);
+            //         continue;
+            //     }
 
-                // Find the exact batch entry using both batchNumber and uniqueUuId
-                const batchEntry = product.stockEntries.find(entry =>
-                    entry.batchNumber === updatedItem.batchNumber &&
-                    entry.uniqueUuId === updatedItem.uniqueUuId
-                );
+            //     // Find the exact batch entry using both batchNumber and uniqueUuId
+            //     const batchEntry = product.stockEntries.find(entry =>
+            //         entry.batchNumber === updatedItem.batchNumber &&
+            //         entry.uniqueUuId === updatedItem.uniqueUuId
+            //     );
 
-                if (batchEntry) {
-                    // Restore stock for the old quantity
-                    batchEntry.quantity += updatedItem.quantity;
-                    await product.save({ session });
-                    console.log(`Stock restored for batch ${updatedItem.batchNumber} with uniqueUuId ${updatedItem.uniqueUuId} for product: ${product.name}`);
-                } else {
-                    console.warn(`Batch number ${updatedItem.batchNumber} with uniqueUuId ${updatedItem.uniqueUuId} not found for product: ${product.name}`);
-                }
-            }
+            //     if (batchEntry) {
+            //         // Restore stock for the old quantity
+            //         batchEntry.quantity += updatedItem.quantity;
+            //         await product.save({ session });
+            //         console.log(`Stock restored for batch ${updatedItem.batchNumber} with uniqueUuId ${updatedItem.uniqueUuId} for product: ${product.name}`);
+            //     } else {
+            //         console.warn(`Batch number ${updatedItem.batchNumber} with uniqueUuId ${updatedItem.uniqueUuId} not found for product: ${product.name}`);
+            //     }
+            // }
 
-            console.log('Stock successfully reversed for updated items.');
+            // console.log('Stock successfully reversed for updated items.');
 
             // Delete all associated transactions
             await Transaction.deleteMany({ billId: existingBill._id }).session(session);
@@ -3529,73 +3544,95 @@ router.put('/bills/editCashAccount/:id', isLoggedIn, ensureAuthenticated, ensure
             existingBill.date = nepaliDate || new Date(billDate);
             existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
 
-            // Reduce stock for new items
-            const billItems = await Promise.all(items.map(async item => {
-                const product = await Item.findById(item.item).session(session);
-                if (!product) {
-                    throw new Error(`Product with ID ${item.item} not found`);
-                }
+           // Group items by (product, batchNumber) to aggregate quantities
+           const groupedItems = {};
+           for (const item of items) {
+               const key = `${item.item}-${item.batchNumber || 'N/A'}`; // Handle batch numbers
+               if (!groupedItems[key]) {
+                   groupedItems[key] = { ...item, quantity: 0 }; // Ensure numeric quantity
+               }
+               groupedItems[key].quantity += Number(item.quantity); // Convert quantity to number before summing
+           }
 
-                // Reduce stock for the specific batch
-                const batchEntry = product.stockEntries.find(entry => entry.batchNumber === item.batchNumber && entry.uniqueUuId === item.uniqueUuId);
-                if (!batchEntry) {
-                    throw new Error(`Batch number ${item.batchNumber} not found for product: ${product.name}`);
-                }
+           async function reduceStock(product, quantity) {
+               let remainingQuantity = quantity;
+               const batchesUsed = []; // Array to track batches and quantities used
 
-                if (batchEntry.quantity < item.quantity) {
-                    throw new Error(`Not enough stock for batch number ${item.batchNumber} of product: ${product.name}`);
-                }
+               // Sort stock entries FIFO (oldest first)
+               product.stockEntries.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-                batchEntry.quantity -= item.quantity; // Reduce stock
-                await product.save({ session });
+               for (let i = 0; i < product.stockEntries.length && remainingQuantity > 0; i++) {
+                   let entry = product.stockEntries[i];
 
-                return {
-                    item: product._id,
-                    quantity: item.quantity,
-                    price: item.price,
-                    unit: item.unit,
-                    batchNumber: item.batchNumber,
-                    expiryDate: item.expiryDate,
-                    vatStatus: product.vatStatus,
-                    fiscalYear: currentFiscalYear,
-                    uniqueUuId: item.uniqueUuId
-                };
-            }));
+                   const quantityUsed = Math.min(entry.quantity, remainingQuantity);
+                   batchesUsed.push({
+                       batchNumber: entry.batchNumber,
+                       quantity: quantityUsed,
+                       uniqueUuId: entry.uniqueUuId, // Include the uniqueUuId of the batch
+                   });
 
-            // Recreate transactions for the updated bill
-            await Promise.all(billItems.map(async item => {
-                const product = await Item.findById(item.item).session(session);
-                if (!product) {
-                    await session.abortTransaction();
-                    session.endSession();
-                    throw new Error(`Product with ID ${item.item} not found`);
-                }
+                   remainingQuantity -= quantityUsed;
+                   entry.quantity -= quantityUsed;
+               }
 
-                // Create a transaction for each item
-                const transaction = new Transaction({
-                    item: product._id,
-                    cashAccount: cashAccount,
-                    billNumber: existingBill.billNumber,
-                    quantity: item.quantity,
-                    price: item.price,
-                    unit: item.unit,
-                    type: 'Sale',
-                    billId: existingBill._id,
-                    purchaseSalesType: 'Sales',
-                    debit: finalAmount, // Update as per your logic
-                    credit: 0, // Since it's a sale
-                    paymentMode: paymentMode,
-                    balance: 0, // Update with the correct balance logic if needed
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
+               // Remove depleted stock entries
+               product.stockEntries = product.stockEntries.filter(entry => entry.quantity > 0);
+               await product.save({ session });
 
-                await transaction.save({ session });
-            }));
+               // If remainingQuantity > 0, it means there isn't enough stock
+               if (remainingQuantity > 0) {
+                   throw new Error(`Not enough stock for item: ${product.name}. Required: ${quantity}, Available: ${quantity - remainingQuantity}`);
+               }
 
-            console.log('All transactions successfully created for updated bill.');
+               return batchesUsed; // Return the batches and quantities used
+           }
+
+           // Process stock reduction and transaction recording
+           const billItems = [];
+           const transactions = [];
+
+           // First process all stock reductions
+           for (const item of Object.values(groupedItems)) {
+               const product = await Item.findById(item.item).session(session);
+
+               // Reduce stock using FIFO and get the batches used
+               const batchesUsed = await reduceStock(product, item.quantity);
+
+               // Create bill items for each batch used
+               const itemsForBill = batchesUsed.map(batch => ({
+                   item: product._id,
+                   quantity: batch.quantity,
+                   price: item.price,
+                   unit: item.unit,
+                   batchNumber: batch.batchNumber, // Use the actual batch number from stock reduction
+                   expiryDate: item.expiryDate,
+                   vatStatus: product.vatStatus,
+                   fiscalYear: currentFiscalYear,
+                   uniqueUuId: batch.uniqueUuId
+               }));
+
+               billItems.push(...itemsForBill);
+           }
+
+           // Now create a single transaction for the entire bill
+           const transaction = new Transaction({
+               cashAccount: cashAccount,
+               billNumber: existingBill.billNumber,
+               isType: 'Sale',
+               type: 'Sale',
+               billId: existingBill._id,
+               purchaseSalesType: 'Sales',
+               debit: finalAmount,
+               credit: 0,
+               paymentMode: paymentMode,
+               balance: 0,
+               date: nepaliDate ? nepaliDate : new Date(billDate),
+               company: companyId,
+               user: userId,
+               fiscalYear: currentFiscalYear
+           });
+           await transaction.save({ session });
+           transactions.push(transaction);
 
             // Create a transaction for the default Purchase Account
             const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
@@ -3723,8 +3760,11 @@ router.put('/bills/editCashAccount/:id', isLoggedIn, ensureAuthenticated, ensure
             }
 
             // Update bill with modified items
-            existingBill.items = billItems;
-            await existingBill.save({ session });
+            // Flatten the bill items array (since each item may have multiple batches)
+           const flattenedBillItems = billItems.flat();
+
+           existingBill.items = flattenedBillItems;
+           await existingBill.save({ session });
 
             // Commit the transaction
             await session.commitTransaction();
