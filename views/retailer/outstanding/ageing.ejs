@@ -218,7 +218,7 @@
                             <strong>Total Outstanding:</strong>
                             <span class="font-weight-bold">
                                 Rs. <%= Math.abs(agingData.totalOutstanding).toFixed(2) %>
-                                    <%= agingData.totalOutstanding.toFixed(2) > 0 ? 'Dr' : 'Cr' %>
+                                    <%= agingData.totalOutstanding.toFixed(2) <= 0 ? 'Dr' : 'Cr' %>
                             </span>
                         </div>
                     </div>

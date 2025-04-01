@@ -175,23 +175,23 @@ router.get('/aging/:accountId', isLoggedIn, ensureAuthenticated, ensureCompanySe
         };
 
         // Helper function to apply receipt credit to outstanding sales transactions (FIFO)
-        function applyReceiptFIFO(remainingCredit, agingData) {
-            const periods = ['ninetyPlus', 'sixtyOneToNinety', 'thirtyOneToSixty', 'oneToThirty'];
+        // function applyReceiptFIFO(remainingCredit, agingData) {
+        //     const periods = ['ninetyPlus', 'sixtyOneToNinety', 'thirtyOneToSixty', 'oneToThirty'];
 
-            for (const period of periods) {
-                if (remainingCredit <= 0) break; // Stop if no remaining credit
+        //     for (const period of periods) {
+        //         if (remainingCredit <= 0) break; // Stop if no remaining credit
 
-                if (agingData[period] > 0) { // Apply only to the current period if it has balance
-                    const appliedAmount = Math.min(agingData[period], remainingCredit);
-                    agingData[period] -= appliedAmount;  // Deduct the applied amount from the period balance
-                    remainingCredit -= appliedAmount;  // Decrease remaining credit by applied amount
+        //         if (agingData[period] > 0) { // Apply only to the current period if it has balance
+        //             const appliedAmount = Math.min(agingData[period], remainingCredit);
+        //             agingData[period] -= appliedAmount;  // Deduct the applied amount from the period balance
+        //             remainingCredit -= appliedAmount;  // Decrease remaining credit by applied amount
 
-                    // Stop moving to the next period if there is no remaining credit after deduction
-                    if (remainingCredit <= 0) break;
-                }
-            }
-            return remainingCredit; // Return any remaining credit if any
-        }
+        //             // Stop moving to the next period if there is no remaining credit after deduction
+        //             if (remainingCredit <= 0) break;
+        //         }
+        //     }
+        //     return remainingCredit; // Return any remaining credit if any
+        // }
 
         // Loop through transactions to calculate outstanding amounts and balance
         transactions.forEach(transaction => {
@@ -333,7 +333,7 @@ router.get('/aging/:accountId', isLoggedIn, ensureAuthenticated, ensureCompanySe
         });
 
         // Include opening balance in the total outstanding calculation
-        agingData.totalOutstanding += agingData.openingBalance;
+        agingData.totalOutstanding = runningBalance;
 
         res.render('retailer/outstanding/ageing', {
             company,
