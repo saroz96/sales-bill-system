@@ -1320,7 +1320,7 @@
                 <div>${item.name}</div>
                 <div>${totalStock}</div>
                 <div>${item.unit ? item.unit.name : ''}</div>
-                <div>Rs.${item.price.toFixed()}</div>
+                <div>Rs.${item.price}</div>
             `;
 
                     dropdownItem.addEventListener('click', () => {
@@ -1399,7 +1399,7 @@
                     <div>${item.category ? item.category.name : 'No Category'}</div>
                     <div>${totalStock}</div>
                     <div>${item.unit ? item.unit.name : ''}</div>
-                    <div>Rs.${item.price.toFixed()}</div>
+                    <div>Rs.${item.price}</div>
                 `;
 
                         dropdownItem.addEventListener('click', () => {
