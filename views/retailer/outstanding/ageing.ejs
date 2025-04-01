@@ -217,7 +217,8 @@
                         <div>
                             <strong>Total Outstanding:</strong>
                             <span class="font-weight-bold">
-                                Rs. <%= agingData.totalOutstanding.toFixed(2) %>
+                                Rs. <%= Math.abs(agingData.totalOutstanding).toFixed(2) %>
+                                    <%= agingData.totalOutstanding.toFixed(2) > 0 ? 'Dr' : 'Cr' %>
                             </span>
                         </div>
                     </div>
@@ -353,16 +354,10 @@
                             <!-- Opening Balance Row -->
                             <tr class="<%= account.openingBalance.amount > 0 ? 'highlight-dr' : 'highlight-cr' %>">
                                 <td></td>
-                                <td colspan="1">Opening Balance</td>
-                                <td class="text-right">
-                                    <%= (account.openingBalance.amount > 0 ? Math.abs(account.openingBalance.amount).toFixed(2) : '0.00') %>
-                                </td>
-                                <td class="text-right">
-                                    <%= (account.openingBalance.amount < 0 ? Math.abs(account.openingBalance.amount).toFixed(2) : '0.00') %>
-                                </td>
+                                <td colspan="3">Opening Balance</td>
                                 <td class="text-right font-weight-bold">
-                                    <%= (account.openingBalance.amount >= 0 ? account.openingBalance.amount.toFixed(2) + ' Dr' : Math.abs(account.openingBalance.amount).toFixed(2) + ' Cr') %>
-                                </td>
+                                    <%= Math.abs(account.openingBalance.amount || 0).toFixed(2) %>
+                                    <%= account.openingBalance.type %>                                </td>
                             </tr>
 
                             <% agingData.transactions.forEach(transaction => { %>

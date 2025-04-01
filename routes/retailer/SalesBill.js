@@ -763,8 +763,13 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
 
                 return batchesUsed; // Return the batches and quantities used
             }
+
             // Process stock reduction and transaction recording
-            const billItems = await Promise.all(Object.values(groupedItems).map(async item => {
+            const billItems = [];
+            const transactions = [];
+
+            // First process all stock reductions
+            for (const item of Object.values(groupedItems)) {
                 const product = await Item.findById(item.item).session(session);
 
                 // Reduce stock using FIFO and get the batches used
@@ -783,33 +788,28 @@ router.post('/bills', isLoggedIn, ensureAuthenticated, ensureCompanySelected, en
                     uniqueUuId: batch.uniqueUuId
                 }));
 
-                // Create transactions for each batch used
-                await Promise.all(batchesUsed.map(async batch => {
-                    const transaction = new Transaction({
-                        item: product._id,
-                        account: accountId,
-                        billNumber: newBillNumber,
-                        quantity: batch.quantity,
-                        price: item.price,
-                        unit: item.unit,
-                        isType: 'Sale',
-                        type: 'Sale',
-                        billId: newBill._id,
-                        purchaseSalesType: 'Sales',
-                        debit: finalAmount,
-                        credit: 0,
-                        paymentMode: paymentMode,
-                        balance: previousBalance - finalAmount,
-                        date: nepaliDate ? nepaliDate : new Date(billDate),
-                        company: companyId,
-                        user: userId,
-                        fiscalYear: currentFiscalYear
-                    });
-                    await transaction.save({ session });
-                }));
+                billItems.push(...itemsForBill);
+            }
 
-                return itemsForBill; // Return the bill items for each batch used
-            }));
+            // Now create a single transaction for the entire bill
+            const transaction = new Transaction({
+                account: accountId,
+                billNumber: newBillNumber,
+                isType: 'Sale',
+                type: 'Sale',
+                billId: newBill._id,
+                purchaseSalesType: 'Sales',
+                debit: finalAmount,
+                credit: 0,
+                paymentMode: paymentMode,
+                balance: previousBalance - finalAmount,
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear
+            });
+            await transaction.save({ session });
+            transactions.push(transaction);
 
             // Flatten the bill items array (since each item may have multiple batches)
             const flattenedBillItems = billItems.flat();
@@ -1313,7 +1313,9 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                 await product.save({ session });
             }
 
+            // Process all items first to reduce stock and build bill items
             const billItems = [];
+
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
                 const product = await Item.findById(item.item).session(session);
@@ -1324,30 +1326,6 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                     req.flash('error', `Item with id ${item.item} not found`);
                     return res.redirect('/billsTrackBatchOpen');
                 }
-
-                // Create the transaction for this item
-                const transaction = new Transaction({
-                    item: product._id,
-                    account: accountId,
-                    billNumber: billNumber,
-                    quantity: item.quantity,
-                    price: item.price,
-                    unit: item.unit,
-                    type: 'Sale',
-                    billId: newBill._id,
-                    purchaseSalesType: 'Sales',
-                    debit: finalAmount,
-                    credit: 0,
-                    paymentMode: paymentMode,
-                    balance: previousBalance - finalAmount,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-
-                await transaction.save({ session });
-                console.log('Transaction', transaction);
 
                 // Reduce stock for the specific batch
                 await reduceStockBatchWise(product, item.batchNumber, item.quantity, item.uniqueUuId);
@@ -1368,6 +1346,34 @@ router.post('/billsTrackBatchOpen', isLoggedIn, ensureAuthenticated, ensureCompa
                     uniqueUuId: item.uniqueUuId,
                 });
             }
+
+            // Calculate the correct total amount from the bill (not from items)
+            // Assuming newBill has the correct total amount already calculated
+            const correctTotalAmount = newBill.totalAmount; // This should be 14125 in your example
+
+            // Create a single transaction for the entire bill
+            const transaction = new Transaction({
+                account: accountId,
+                billNumber: billNumber,
+                quantity: items.reduce((sum, item) => sum + item.quantity, 0), // Total quantity
+                price: items[0].price, // Assuming same price for all items
+                unit: items[0].unit, // Assuming same unit for all items
+                isType: 'Sale',
+                type: 'Sale',
+                billId: newBill._id,
+                purchaseSalesType: 'Sales',
+                debit: correctTotalAmount, // Use the bill's total amount directly
+                credit: 0,
+                paymentMode: paymentMode,
+                balance: previousBalance - correctTotalAmount,
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear
+            });
+
+            await transaction.save({ session });
+            console.log('Transaction amount:', correctTotalAmount);
 
             // Create a transaction for the default Sales Account
             const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
@@ -1847,7 +1853,6 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                 groupedItems[key].quantity += Number(item.quantity); // Convert quantity to number before summing
             }
 
-            // Reduce stock using FIFO for each grouped item
             async function reduceStock(product, quantity) {
                 let remainingQuantity = quantity;
                 const batchesUsed = []; // Array to track batches and quantities used
@@ -1882,7 +1887,11 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
             }
 
             // Process stock reduction and transaction recording
-            const billItems = await Promise.all(Object.values(groupedItems).map(async item => {
+            const billItems = [];
+            const transactions = [];
+
+            // First process all stock reductions
+            for (const item of Object.values(groupedItems)) {
                 const product = await Item.findById(item.item).session(session);
 
                 // Reduce stock using FIFO and get the batches used
@@ -1898,40 +1907,34 @@ router.post('/cash/bills/add', isLoggedIn, ensureAuthenticated, ensureCompanySel
                     expiryDate: item.expiryDate,
                     vatStatus: product.vatStatus,
                     fiscalYear: fiscalYearId,
-                    uniqueUuId: batch.uniqueUuId, // Include the uniqueUuId of the batch
+                    uniqueUuId: batch.uniqueUuId
                 }));
 
-                // Create transactions for each batch used
-                await Promise.all(batchesUsed.map(async batch => {
-                    const transaction = new Transaction({
-                        item: product._id,
-                        cashAccount: cashAccount,
-                        billNumber: newBillNumber,
-                        quantity: batch.quantity,
-                        price: item.price,
-                        unit: item.unit,
-                        isType: 'Sale',
-                        type: 'Sale',
-                        billId: newBill._id,
-                        purchaseSalesType: 'Sales',
-                        debit: finalAmount,
-                        credit: 0,
-                        paymentMode: paymentMode,
-                        balance: previousBalance - finalAmount,
-                        date: nepaliDate ? nepaliDate : new Date(billDate),
-                        company: companyId,
-                        user: userId,
-                        fiscalYear: currentFiscalYear
-                    });
-                    await transaction.save({ session });
-                }));
+                billItems.push(...itemsForBill);
+            }
 
-                return itemsForBill; // Return the bill items for each batch used
-            }));
+            // Now create a single transaction for the entire bill
+            const transaction = new Transaction({
+                account: accountId,
+                billNumber: newBillNumber,
+                isType: 'Sale',
+                type: 'Sale',
+                billId: newBill._id,
+                purchaseSalesType: 'Sales',
+                debit: finalAmount,
+                credit: 0,
+                paymentMode: paymentMode,
+                balance: previousBalance - finalAmount,
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear
+            });
+            await transaction.save({ session });
+            transactions.push(transaction);
 
             // Flatten the bill items array (since each item may have multiple batches)
             const flattenedBillItems = billItems.flat();
-
             // Create a transaction for the default Purchase Account
             const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
             if (salesAmount > 0) {
@@ -2416,8 +2419,9 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                 await product.save({ session });
             }
 
-            // **Updated processing for billItems to allow multiple entries of the same item**
+            // Process all items first to reduce stock and build bill items
             const billItems = [];
+
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
                 const product = await Item.findById(item.item).session(session);
@@ -2426,38 +2430,13 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                     await session.abortTransaction();
                     session.endSession();
                     req.flash('error', `Item with id ${item.item} not found`);
-                    return res.redirect('/purchase-return');
+                    return res.redirect('/billsTrackBatchOpen');
                 }
 
-                // Create the transaction for this item
-                const transaction = new Transaction({
-                    item: product._id,
-                    cashAccount: cashAccount,
-                    billNumber: billNumber,
-                    quantity: item.quantity,
-                    price: item.price,
-                    unit: item.unit,
-                    isType: 'Sale',
-                    type: 'Sale',
-                    billId: newBill._id,
-                    purchaseSalesType: 'Sales',
-                    debit: finalAmount,
-                    credit: 0,
-                    paymentMode: paymentMode,
-                    balance: previousBalance - finalAmount,
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-
-                await transaction.save({ session });
-                console.log('Transaction', transaction);
-
-                // Assuming reduceStockBatchWise is called here
+                // Reduce stock for the specific batch
                 await reduceStockBatchWise(product, item.batchNumber, item.quantity, item.uniqueUuId);
 
-                // Handle specific batch number not found error
+                // Update product stock
                 product.stock -= item.quantity;
                 await product.save({ session });
 
@@ -2466,13 +2445,42 @@ router.post('/cash/bills/addOpen', isLoggedIn, ensureAuthenticated, ensureCompan
                     quantity: item.quantity,
                     price: item.price,
                     unit: item.unit,
-                    batchNumber: item.batchNumber,  // Add batch number
-                    expiryDate: item.expiryDate,  // Add expiry date
+                    batchNumber: item.batchNumber,
+                    expiryDate: item.expiryDate,
                     vatStatus: product.vatStatus,
                     fiscalYear: fiscalYearId,
                     uniqueUuId: item.uniqueUuId,
                 });
             }
+
+            // Calculate the correct total amount from the bill (not from items)
+            // Assuming newBill has the correct total amount already calculated
+            const correctTotalAmount = newBill.totalAmount; // This should be 14125 in your example
+
+            // Create a single transaction for the entire bill
+            const transaction = new Transaction({
+                cashAccount: cashAccount,
+                billNumber: billNumber,
+                quantity: items.reduce((sum, item) => sum + item.quantity, 0), // Total quantity
+                price: items[0].price, // Assuming same price for all items
+                unit: items[0].unit, // Assuming same unit for all items
+                isType: 'Sale',
+                type: 'Sale',
+                billId: newBill._id,
+                purchaseSalesType: 'Sales',
+                debit: correctTotalAmount, // Use the bill's total amount directly
+                credit: 0,
+                paymentMode: paymentMode,
+                balance: previousBalance - correctTotalAmount,
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear
+            });
+
+            await transaction.save({ session });
+            console.log('Transaction amount:', correctTotalAmount);
+
 
             // Update bill with items
             newBill.items = billItems;

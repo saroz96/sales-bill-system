@@ -1,6 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
-require('dotenv').config(); // Make sure to load environment variables
+// require('dotenv').config(); // Make sure to load environment variables
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const flash = require('connect-flash');
@@ -49,25 +49,25 @@ const app = express();
 initializePassport(passport);
 
 
-const mongoUri = process.env.MONGO_URI; // Access MongoDB URI from the .env file
+// const mongoUri = process.env.MONGO_URI; // Access MongoDB URI from the .env file
 
-mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true });
+// mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-const db = mongoose.connection;
-
-db.on("error", console.error.bind(console, "connection error:"));
-db.once("open", () => {
-    console.log("Database connected");
-});
-
-// Connect with database
-// mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/sales-bill-system');
-// mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/Sarathi');
 // const db = mongoose.connection;
+
 // db.on("error", console.error.bind(console, "connection error:"));
 // db.once("open", () => {
 //     console.log("Database connected");
 // });
+
+// Connect with database
+mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/sales-bill-system');
+// mongoose.connect('mongodb+srv://saroj:12345@cluster0.vgu4kmg.mongodb.net/Sarathi');
+const db = mongoose.connection;
+db.on("error", console.error.bind(console, "connection error:"));
+db.once("open", () => {
+    console.log("Database connected");
+});
 
 
 

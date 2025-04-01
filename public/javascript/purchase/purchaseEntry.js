@@ -873,11 +873,18 @@ function handleExpDateKeydown(event) {
         priceInput.select();
     }
 }
-
 function handlePriceKeydown(event, itemIndex) {
     if (event.key === 'Enter') {
-
         const puPriceInput = document.getElementById(`puPrice-${itemIndex}`);
+        const tr = puPriceInput.closest('tr');
+
+        // Remove any existing hidden inputs for this item first
+        ['price', 'mrp', 'marginPercentage', 'currency'].forEach(field => {
+            const existingInput = tr.querySelector(`input[name="items[${itemIndex}][${field}]"]`);
+            if (existingInput) {
+                tr.removeChild(existingInput);
+            }
+        });
 
         if (puPriceInput.value) {
             // Set the PU Price in the modal
@@ -925,34 +932,27 @@ function handlePriceKeydown(event, itemIndex) {
                 const currency = document.getElementById('currency').value;
 
                 if (salesPrice) {
-                    // Store sales price in a hidden input within the current row
-                    const tr = puPriceInput.closest('tr');
-                    const salesPriceInput = document.createElement('input');
-                    salesPriceInput.type = 'hidden';
-                    salesPriceInput.name = `items[${itemIndex}][price]`;
-                    salesPriceInput.value = salesPrice;
-                    tr.appendChild(salesPriceInput);
+                    // First remove any existing hidden inputs for this item
+                    ['price', 'mrp', 'marginPercentage', 'currency'].forEach(field => {
+                        const existingInput = tr.querySelector(`input[name="items[${itemIndex}][${field}]"]`);
+                        if (existingInput) {
+                            tr.removeChild(existingInput);
+                        }
+                    });
 
-                    // Store MRP in a hidden input within the current row
-                    const mrpInputHidden = document.createElement('input');
-                    mrpInputHidden.type = 'hidden';
-                    mrpInputHidden.name = `items[${itemIndex}][mrp]`; // Ensure this matches your schema
-                    mrpInputHidden.value = mrpValue;
-                    tr.appendChild(mrpInputHidden);
+                    // Create new hidden inputs with the latest values
+                    const createHiddenInput = (name, value) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = `items[${itemIndex}][${name}]`;
+                        input.value = value;
+                        tr.appendChild(input);
+                    };
 
-                    // Store marginPercentage in a hidden input within the current row
-                    const marginPercentageInputHidden = document.createElement('input');
-                    marginPercentageInputHidden.type = 'hidden';
-                    marginPercentageInputHidden.name = `items[${itemIndex}][marginPercentage]`; // Ensure this matches your schema
-                    marginPercentageInputHidden.value = marginPercentage;
-                    tr.appendChild(marginPercentageInputHidden);
-
-                    //Store current in a hidden input within the current row
-                    const currencyInputHidden = document.createElement('input');
-                    currencyInputHidden.type = 'hidden';
-                    currencyInputHidden.name = `items[${itemIndex}][currency]`;
-                    currencyInputHidden.value = currency;
-                    tr.appendChild(currencyInputHidden);
+                    createHiddenInput('price', salesPrice);
+                    createHiddenInput('mrp', mrpValue);
+                    createHiddenInput('marginPercentage', marginPercentage);
+                    createHiddenInput('currency', currency);
 
                     // Close the modal
                     $('#setSalesPriceModal').modal('hide');
@@ -967,7 +967,6 @@ function handlePriceKeydown(event, itemIndex) {
         }
     }
 }
-
 
 // function updateSalesPriceFromMargin(puPrice) {
 //     const marginPercentage = parseFloat(document.getElementById('marginPercentage').value) || 0;

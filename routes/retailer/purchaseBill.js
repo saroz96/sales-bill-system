@@ -586,16 +586,13 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
             // Generate a unique ID for the stock entry
             const uniqueId = uuidv4();
 
-            //FIFO stock addition function
+            // FIFO stock addition function (unchanged)
             async function addStock(product, batchNumber, expiryDate, WSUnit, quantity, bonus, price, puPrice, marginPercentage, mrp, currency, uniqueId) {
-                // Ensure quantity is treated as a number
                 const quantityNumber = Number(quantity) + Number(bonus);
                 const bonusNumber = Number(bonus);
                 const parsedPrice = price !== undefined && price !== "" ? parseFloat(price) : 0;
                 const parsedPuPrice = puPrice !== undefined && puPrice !== "" ? parseFloat(puPrice) : 0;
                 const parsedMrp = mrp !== undefined && mrp !== "" ? parseFloat(mrp) : 0;
-
-                // const WSUnitNumber = Number(WSUnit);
                 const WSUnitNumber = WSUnit !== undefined && WSUnit !== "" && WSUnit !== null ? Number(WSUnit) : 1;
 
                 const stockEntry = {
@@ -607,30 +604,24 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
                     expiryDate: expiryDate,
                     price: WSUnitNumber ? parsedPrice / WSUnitNumber : 0,
                     puPrice: WSUnitNumber ? parsedPuPrice / WSUnitNumber : 0,
-                    mainUnitPuPrice: parsedPuPrice, // Keeps the original value before division
+                    mainUnitPuPrice: parsedPuPrice,
                     mrp: WSUnitNumber ? parsedMrp / WSUnitNumber : 0,
                     marginPercentage: marginPercentage,
                     currency: currency,
-                    purchaseBillId: newBill._id, // Add the purchase bill ID
+                    purchaseBillId: newBill._id,
                     uniqueUuId: uniqueId
                 };
 
-
-                // Debug: log stock entry to ensure values are correct
-                console.log('Stock Entry:', stockEntry);
-                product.stockEntries.push(stockEntry); // Add entry to stockEntries array
-                // Ensure stock is incremented correctly as a number
+                product.stockEntries.push(stockEntry);
                 product.stock = (product.stock || 0) + (quantityNumber * WSUnitNumber);
-
-                // Also update the WSUnit value in the product schema if it has changed
-                product.WSUnit = WSUnitNumber; // Update WSUnit in the database
-
+                product.WSUnit = WSUnitNumber;
                 await product.save();
             }
 
-
-            // **Updated processing for billItems to allow multiple entries of the same item**
+            // Process bill items - modified to correctly calculate total amount
             const billItems = [];
+
+            // First process all items to update stock and build bill items
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
                 const product = await Item.findById(item.item).session(session);
@@ -640,38 +631,22 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
                     await session.abortTransaction();
                     return res.redirect('/purchase-bills');
                 }
-                // Create the transaction for this item
-                const transaction = new Transaction({
-                    item: product._id,
-                    account: accountId,
-                    billNumber: billNumber,
-                    partyBillNumber,
-                    purchaseSalesType: 'Purchase',
-                    WSUnit: item.WSUnit,
-                    quantity: item.quantity,
-                    bonus: item.bonus,
-                    puPrice: item.puPrice,
-                    unit: item.unit,  // Include the unit field
-                    currency: item.currency,
-                    mainUnit: item.mainUnit,
-                    isType: 'Purc',
-                    type: 'Purc',
-                    purchaseBillId: newBill._id,  // Set billId to the new bill's ID
-                    debit: 0,             // Debit is 0 for purchase transactions
-                    credit: finalAmount,    // Set credit to the item's total amount
-                    paymentMode: paymentMode,
-                    balance: previousBalance + finalAmount, // Update the balance based on item total
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
 
-                await transaction.save();
-                console.log('Transaction', transaction);
-
-                // Increment stock quantity using FIFO
-                await addStock(product, item.batchNumber, item.expiryDate, item.WSUnit, item.quantity, item.bonus, item.price, item.puPrice, item.marginPercentage, item.mrp, item.currency, uniqueId);
+                // Update stock for each item (batch-level tracking)
+                await addStock(
+                    product,
+                    item.batchNumber,
+                    item.expiryDate,
+                    item.WSUnit,
+                    item.quantity,
+                    item.bonus,
+                    item.price,
+                    item.puPrice,
+                    item.marginPercentage,
+                    item.mrp,
+                    item.currency,
+                    uniqueId
+                );
 
                 billItems.push({
                     item: product._id,
@@ -696,6 +671,27 @@ router.post('/purchase-bills', isLoggedIn, ensureAuthenticated, ensureCompanySel
                 });
             }
 
+            // Get the total amount from the bill (not by calculating from items)
+            // Assuming newBill has the correct total amount already calculated
+            const transaction = new Transaction({
+                account: accountId,
+                billNumber: billNumber,
+                partyBillNumber,
+                purchaseSalesType: 'Purchase',
+                isType: 'Purc',
+                type: 'Purc',
+                purchaseBillId: newBill._id,
+                debit: 0,
+                credit: newBill.totalAmount, // Use the bill's total amount directly
+                paymentMode: paymentMode,
+                balance: previousBalance + newBill.totalAmount,
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear
+            });
+
+            await transaction.save();
             // Create a transaction for the default Purchase Account
             const purchaseAmount = finalTaxableAmount + finalNonTaxableAmount;
             if (purchaseAmount > 0) {

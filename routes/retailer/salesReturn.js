@@ -455,28 +455,52 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
             }
 
 
-            // Create transactions and update stock
-            const billItems = await Promise.all(items.map(async item => {
+            const billItems = [];
+
+              // First process all items to update stock and build bill items
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
                 const product = await Item.findById(item.item);
 
-                // Calculate the total amount for this item
-                const itemTotal = item.quantity * item.price;
+                if (!product) {
+                    req.flash('error', `Item with id ${item.item} not found`);
+                    return res.redirect('/purchase-bills');
+                }
+
+                // Update stock for each item (batch-level tracking)
+                await addStock(
+                    product, item.quantity, item.price, item.batchNumber, item.expiryDate, uniqueId
+                );
+
+                billItems.push({
+                    item: product._id,
+                    batchNumber: item.batchNumber,
+                    expiryDate: item.expiryDate,
+                    quantity: item.quantity,
+                    price: item.price,
+                    // mrp: item.mrp,
+                    // marginPercentage: item.marginPercentage,
+                    // currency: item.currency,
+                    unit: item.unit,
+                    vatStatus: product.vatStatus,
+                    uniqueUuId: uniqueId
+                });
+            }
 
                 // Create the transaction for this item
                 const transaction = new Transaction({
-                    item: product._id,
                     account: accountId,
                     billNumber: billNumber,
                     purchaseSalesReturnType: 'Sales Return',
-                    quantity: item.quantity,
-                    price: item.price,
+                    quantity: items[0].quantity,
+                    price: items[0].price,
                     isType: 'SlRt',
                     type: 'SlRt',
                     salesReturnBillId: newBill._id,  // Set billId to the new bill's ID
                     debit: 0,             // Debit is 0 for purchase transactions
-                    credit: finalAmount,    // Set credit to the item's total amount
+                    credit: newBill.totalAmount,    // Set credit to the item's total amount
                     paymentMode: paymentMode,
-                    balance: previousBalance + finalAmount, // Update the balance based on item total
+                    balance: previousBalance + newBill.totalAmount, // Update the balance based on item total
                     date: nepaliDate ? nepaliDate : new Date(billDate),
                     fiscalYear: currentFiscalYear,
                     company: companyId,
@@ -485,22 +509,6 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
 
                 await transaction.save();
                 console.log('Transaction', transaction);
-
-                // Increment stock quantity using FIFO
-                await addStock(product, item.quantity, item.price, item.batchNumber, item.expiryDate, uniqueId);
-
-                return {
-                    item: product._id,
-                    quantity: item.quantity,
-                    price: item.price,
-                    unit: item.unit,
-                    batchNumber: item.batchNumber,  // Add batch number
-                    expiryDate: item.expiryDate,  // Add expiry date
-                    vatStatus: product.vatStatus,
-                    fiscalYear: fiscalYearId,
-                    uniqueUuId: uniqueId
-                };
-            }));
 
             // Create a transaction for the default Sales Account
             const salesRtnAmount = finalTaxableAmount + finalNonTaxableAmount;

@@ -2206,21 +2206,24 @@
 
   <script>
 
-    function openPurchasePriceModal(product) {
-      selectedProduct = product; // Store product globally
-      const purchasePriceDisplay = document.getElementById('purchasePriceDisplay');
-      if (purchasePriceDisplay) {
+function openPurchasePriceModal(product) {
+    selectedProduct = product; // Store product globally
+    const purchasePriceDisplay = document.getElementById('purchasePriceDisplay');
+    if (purchasePriceDisplay) {
         let tableContent = '<table class="table table-bordered"><thead><tr><th>Cost Rate</th><th>Stock</th><th>Unit</th><th>Batch</th><th>Expiry Date</th><th>Sales Rate</th><th>Action</th></tr></thead><tbody>';
 
-        if (product.stockEntries.length > 0) {
-          tableContent += product.stockEntries.map((entry, index) => `
+        // Filter out entries with quantity <= 0
+        const validStockEntries = product.stockEntries.filter(entry => entry.quantity > 0);
+
+        if (validStockEntries.length > 0) {
+            tableContent += validStockEntries.map((entry, index) => `
                 <tr>
                     <td>Rs.${entry.puPrice.toFixed(2)}</td>
                     <td>${entry.quantity}</td>
                     <td>${product.unit ? product.unit.name : 'No unit'}</td>
                     <td>${entry.batchNumber}</td>
                     <td>${entry.expiryDate}</td>
-                    <td>${entry.price}</td>
+                    <td>Rs.${entry.price.toFixed(2)}</td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="openBatchUpdateModal(${index}, '${entry.batchNumber}', '${entry.expiryDate}', '${entry.price}')">
                             Update
@@ -2228,8 +2231,8 @@
                     </td>
                 </tr>`).join('');
         } else {
-          // If no stock entries exist, show one row with default values
-          tableContent += `
+            // If no stock entries exist or all have 0 quantity
+            tableContent += `
                 <tr>
                     <td>Rs.0.00</td>
                     <td>0</td>
@@ -2249,8 +2252,8 @@
 
         // Show the modal
         new bootstrap.Modal(document.getElementById('purchasePriceModal')).show();
-      }
     }
+}
 
 
     function openBatchUpdateModal(index, batchNumber, expiryDate, price) {

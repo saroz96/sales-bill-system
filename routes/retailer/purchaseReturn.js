@@ -624,34 +624,6 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                     return res.redirect('/purchase-return');
                 }
 
-                // Create the transaction for this item
-                const transaction = new Transaction({
-                    item: product._id,
-                    account: accountId,
-                    // billNumber: billCounter.count,
-                    billNumber: billNumber,
-                    partyBillNumber: partyBillNumber,
-                    quantity: item.quantity,
-                    puPrice: item.puPrice,
-                    unit: item.unit,  // Include the unit field                    type: 'Sale',
-                    purchaseReturnBillId: newBill._id,  // Set billId to the new bill's ID
-                    purchaseSalesReturnType: 'Purchase Return',
-                    isType: 'PrRt',
-                    type: 'PrRt',
-                    debit: finalAmount,  // Set debit to the item's total amount
-                    credit: 0,        // Credit is 0 for sales transactions
-                    paymentMode: paymentMode,
-                    balance: previousBalance - finalAmount, // Update the balance based on item total
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear,
-
-                });
-
-                await transaction.save();
-                console.log('Transaction', transaction);
-
                 // Assuming reduceStockBatchWise is called here
                 await reduceStockBatchWise(product, item.batchNumber, item.quantity, item.uniqueUuId);
 
@@ -671,6 +643,35 @@ router.post('/purchase-return', isLoggedIn, ensureAuthenticated, ensureCompanySe
                     uniqueUuId: item.uniqueUuId,
                 });
             }
+            const correctTotalAmount = newBill.totalAmount; // This should be 14125 in your example
+
+            // Create the transaction for this item
+            const transaction = new Transaction({
+                account: accountId,
+                // billNumber: billCounter.count,
+                billNumber: billNumber,
+                partyBillNumber: partyBillNumber,
+                quantity: items[0].quantity,
+                puPrice: items[0].puPrice,
+                unit: items[0].unit,  // Include the unit field                    type: 'Sale',
+                purchaseReturnBillId: newBill._id,  // Set billId to the new bill's ID
+                purchaseSalesReturnType: 'Purchase Return',
+                isType: 'PrRt',
+                type: 'PrRt',
+                debit: correctTotalAmount,  // Set debit to the item's total amount
+                credit: 0,        // Credit is 0 for sales transactions
+                paymentMode: paymentMode,
+                balance: previousBalance - finalAmount, // Update the balance based on item total
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear,
+
+            });
+
+            await transaction.save();
+            console.log('Transaction', transaction);
+
             // Create a transaction for the default Purchase Account
             const purchaseRtnAmount = finalTaxableAmount + finalNonTaxableAmount;
             if (purchaseRtnAmount > 0) {
@@ -1586,8 +1587,8 @@ router.put('/purchase-return/edit/:id', isLoggedIn, ensureAuthenticated, ensureC
             existingBill.items = existingBill.items.filter(existingItem => {
                 return items.some(
                     item => item.item.toString() === existingItem.item.toString() &&
-                            item.batchNumber === existingItem.batchNumber &&
-                            item.uniqueUuId === existingItem.uniqueUuId
+                        item.batchNumber === existingItem.batchNumber &&
+                        item.uniqueUuId === existingItem.uniqueUuId
                 );
             });
 
