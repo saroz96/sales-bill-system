@@ -457,7 +457,7 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
 
             const billItems = [];
 
-              // First process all items to update stock and build bill items
+            // First process all items to update stock and build bill items
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
                 const product = await Item.findById(item.item);
@@ -487,28 +487,28 @@ router.post('/sales-return', ensureAuthenticated, ensureCompanySelected, ensureT
                 });
             }
 
-                // Create the transaction for this item
-                const transaction = new Transaction({
-                    account: accountId,
-                    billNumber: billNumber,
-                    purchaseSalesReturnType: 'Sales Return',
-                    quantity: items[0].quantity,
-                    price: items[0].price,
-                    isType: 'SlRt',
-                    type: 'SlRt',
-                    salesReturnBillId: newBill._id,  // Set billId to the new bill's ID
-                    debit: 0,             // Debit is 0 for purchase transactions
-                    credit: newBill.totalAmount,    // Set credit to the item's total amount
-                    paymentMode: paymentMode,
-                    balance: previousBalance + newBill.totalAmount, // Update the balance based on item total
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    fiscalYear: currentFiscalYear,
-                    company: companyId,
-                    user: userId
-                });
+            // Create the transaction for this item
+            const transaction = new Transaction({
+                account: accountId,
+                billNumber: billNumber,
+                purchaseSalesReturnType: 'Sales Return',
+                quantity: items[0].quantity,
+                price: items[0].price,
+                isType: 'SlRt',
+                type: 'SlRt',
+                salesReturnBillId: newBill._id,  // Set billId to the new bill's ID
+                debit: 0,             // Debit is 0 for purchase transactions
+                credit: newBill.totalAmount,    // Set credit to the item's total amount
+                paymentMode: paymentMode,
+                balance: previousBalance + newBill.totalAmount, // Update the balance based on item total
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                fiscalYear: currentFiscalYear,
+                company: companyId,
+                user: userId
+            });
 
-                await transaction.save();
-                console.log('Transaction', transaction);
+            await transaction.save();
+            console.log('Transaction', transaction);
 
             // Create a transaction for the default Sales Account
             const salesRtnAmount = finalTaxableAmount + finalNonTaxableAmount;
@@ -799,6 +799,350 @@ router.get('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
 });
 
 
+// // PUT route to update a sales return bill
+// router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+//     if (req.tradeType === 'retailer') {
+//         const billId = req.params.id;
+//         const {
+//             accountId,
+//             items,
+//             vatPercentage,
+//             transactionDateRoman,
+//             transactionDateNepali,
+//             billDate,
+//             nepaliDate,
+//             isVatExempt,
+//             discountPercentage,
+//             paymentMode,
+//             roundOffAmount: manualRoundOffAmount,
+//         } = req.body;
+
+
+//         const companyId = req.session.currentCompany;
+//         const currentFiscalYear = req.session.currentFiscalYear.id;
+//         const userId = req.user._id;
+
+//         if (!companyId) {
+//             return res.status(400).json({ error: 'Company ID is required' });
+//         }
+
+//         const existingBill = await SalesReturn.findOne({ _id: billId, company: companyId });
+//         if (!existingBill) {
+//             req.flash('error', 'Bill not found');
+//             return res.redirect('/sales-return/list');
+//         }
+
+//         // Step 1: Restore stock from the existing bill items
+//         for (const existingItem of existingBill.items) {
+//             const product = await Item.findById(existingItem.item);
+
+//             const batchEntry = product.stockEntries.find(entry => entry.batchNumber === existingItem.batchNumber);
+//             if (batchEntry) {
+//                 batchEntry.quantity -= existingItem.quantity; // Restore stock for the existing item
+//             } else {
+//                 console.warn(`Batch number ${existingItem.batchNumber} not found for product: ${product.name}`);
+//             }
+
+//             await product.save(); // Save the updated product
+//         }
+
+//         console.log('Stock successfully reversed for existing bill items.');
+
+//         // Delete all associated transactions
+//         await Transaction.deleteMany({ billId });
+
+//         console.log('Existing transactions deleted successfully');
+
+//         // Calculate amounts based on the updated POST route logic
+//         const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
+//         const isVatAll = isVatExempt === 'all';
+//         const discount = parseFloat(discountPercentage) || 0;
+
+//         let totalTaxableAmount = 0;
+//         let totalNonTaxableAmount = 0;
+
+//         for (const item of items) {
+//             const product = await Item.findById(item.item);
+//             if (product.vatStatus) {
+//                 totalTaxableAmount += item.quantity * item.price
+//             }
+//         }
+
+
+//         const discountForTaxable = (totalTaxableAmount * discount) / 100;
+//         const discountForNonTaxable = (totalNonTaxableAmount * discount) / 100;
+
+//         const finalTaxableAmount = totalTaxableAmount - discountForTaxable;
+//         const finalNonTaxableAmount = totalNonTaxableAmount - discountForNonTaxable;
+
+//         let vatAmount = 0;
+//         if (!isVatExemptBool || isVatExempt === 'all') {
+//             vatAmount = (finalTaxableAmount * vatPercentage) / 100;
+//         }
+
+//         const totalAmount = finalTaxableAmount + finalNonTaxableAmount + vatAmount;
+
+
+//         let finalAmount = totalAmount;
+//         let roundOffAmount = 0;
+
+//         const roundOffForSalesReturn = await Settings.findOne({ companyId, userId, fiscalYear: currentFiscalYear }) || { roundOffSalesReturn: false };
+
+//         if (roundOffForSalesReturn.roundOffSalesReturn) {
+//             finalAmount = Math.round(finalAmount.toFixed(2));
+//             roundOffAmount = finalAmount - totalAmount;
+//         } else if (manualRoundOffAmount && !roundOffForSalesReturn.roundOffSalesReturn) {
+//             roundOffAmount = parseFloat(manualRoundOffAmount);
+//             finalAmount = totalAmount + roundOffAmount;
+//         }
+
+//         // Update existing bill
+//         existingBill.account = accountId;
+//         existingBill.isVatExempt = isVatExemptBool;
+//         existingBill.vatPercentage = isVatExemptBool ? 0 : vatPercentage;
+//         existingBill.subTotal = totalTaxableAmount + totalNonTaxableAmount;
+//         existingBill.discountPercentage = discount;
+//         existingBill.discountAmount = discountForTaxable + discountForNonTaxable;
+//         existingBill.nonVatSales = finalNonTaxableAmount;
+//         existingBill.taxableAmount = finalTaxableAmount;
+//         existingBill.vatAmount = vatAmount;
+//         existingBill.totalAmount = finalAmount;
+//         existingBill.roundOffAmount = roundOffAmount;
+//         existingBill.paymentMode = paymentMode;
+//         existingBill.date = nepaliDate || new Date(billDate);
+//         existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
+
+//         //FIFO stock addition function
+//         async function addStock(product, batchNumber, expiryDate, quantity, price, puPrice, marginPercentage, mrp) {
+//             // Ensure quantity is treated as a number
+//             const quantityNumber = Number(quantity);
+
+//             const stockEntry = {
+//                 date: nepaliDate ? nepaliDate : new Date(billDate),
+//                 quantity: quantityNumber,
+//                 batchNumber: batchNumber,
+//                 expiryDate: expiryDate,
+//                 price: price,
+//                 // puPrice: puPrice,
+//                 // mrp: mrp,
+//                 // marginPercentage: marginPercentage,
+//             };
+
+
+//             // Debug: log stock entry to ensure values are correct
+//             console.log('Stock Entry:', stockEntry);
+//             product.stockEntries.push(stockEntry); // Add entry to stockEntries array
+//             // Ensure stock is incremented correctly as a number
+//             product.stock = (product.stock || 0) + quantityNumber;
+//             await product.save();
+//         }
+
+
+//         const billItems = await Promise.all(items.map(async item => {
+//             const product = await Item.findById(item.item);
+
+//             // Increment stock quantity using FIFO
+//             await addStock(product, item.batchNumber, item.expiryDate, item.quantity, item.price, item.puPrice, item.marginPercentage, item.mrp);
+
+//             return {
+//                 item: product._id,
+//                 quantity: item.quantity,
+//                 price: item.price,
+//                 unit: item.unit,
+//                 batchNumber: item.batchNumber,
+//                 expiryDate: item.expiryDate,
+//                 vatStatus: product.vatStatus,
+//                 fiscalYear: currentFiscalYear,
+//             };
+//         }));
+
+//         existingBill.items = billItems;
+
+//         // After updating the existingBill.items, reinserting transactions
+//         const billItemsTransactions = await Promise.all(existingBill.items.map(async item => {
+//             const product = await Item.findById(item.item);
+
+//             if (!product) {
+//                 throw new Error(`Product with ID ${item.item} not found`);
+//             }
+
+//             // Create a transaction for each item
+//             const transaction = new Transaction({
+//                 item: product._id,
+//                 account: accountId,
+//                 billNumber: existingBill.billNumber,
+//                 quantity: item.quantity,
+//                 price: item.price,
+//                 unit: item.unit,
+//                 type: 'SlRt',
+//                 salesReturnBillId: existingBill._id,
+//                 purchaseSalesReturnType: 'Sales Return',
+//                 debit: 0, // Update as per your logic
+//                 credit: finalAmount, // Since it's a sale
+//                 paymentMode: paymentMode,
+//                 balance: 0, // Update with the correct balance logic if needed
+//                 date: nepaliDate ? nepaliDate : new Date(billDate),
+//                 company: companyId,
+//                 user: userId,
+//                 fiscalYear: currentFiscalYear
+//             });
+
+//             await transaction.save();
+//             console.log('Transaction created:', transaction);
+
+//             return transaction; // Optional, if you need to track the transactions created
+//         }));
+
+//         console.log('All transactions successfully created for updated bill.');
+
+//         await existingBill.save();
+
+
+
+//         // Create a transaction for the default Sales Account
+//         const salesRtnAmount = finalTaxableAmount + finalNonTaxableAmount;
+//         if (salesRtnAmount > 0) {
+//             const salesRtnAccount = await Account.findOne({ name: 'Sales', company: companyId });
+//             if (salesRtnAccount) {
+//                 const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+//                 if (!partyAccount) {
+//                     return res.status(400).json({ error: 'Party account not found.' });
+//                 }
+//                 const salesTransaction = new Transaction({
+//                     account: salesRtnAccount._id,
+//                     billNumber: existingBill.billNumber,
+//                     type: 'SlRt',
+//                     billId: existingBill._id,
+//                     purchaseSalesReturnType: partyAccount.name,  // Save the party account name in purchaseSalesType,
+//                     debit: salesRtnAmount,  // Debit the VAT account
+//                     credit: 0,// Credit is 0 for VAT transactions
+//                     paymentMode: paymentMode,
+//                     balance: 0, // Update the balance
+//                     date: nepaliDate ? nepaliDate : new Date(billDate),
+//                     company: companyId,
+//                     user: userId,
+//                     fiscalYear: currentFiscalYear
+//                 });
+//                 await salesTransaction.save();
+//                 console.log('Sales Transaction: ', salesTransaction);
+//             }
+//         }
+
+//         // Create a transaction for the VAT amount
+//         if (vatAmount > 0) {
+//             const vatAccount = await Account.findOne({ name: 'VAT', company: companyId });
+//             if (vatAccount) {
+//                 const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+//                 if (!partyAccount) {
+//                     return res.status(400).json({ error: 'Party account not found.' });
+//                 }
+//                 const vatTransaction = new Transaction({
+//                     account: vatAccount._id,
+//                     billNumber: existingBill.billNumber,
+//                     isType: 'VAT',
+//                     type: 'SlRt',
+//                     billId: existingBill._id,
+//                     purchaseSalesReturnType: partyAccount.name,  // Save the party account name in purchaseSalesType,
+//                     debit: vatAmount,  // Debit the VAT account
+//                     credit: 0,          // Credit is 0 for VAT transactions
+//                     paymentMode: paymentMode,
+//                     balance: 0, // Update the balance
+//                     date: nepaliDate ? nepaliDate : new Date(billDate),
+//                     company: companyId,
+//                     user: userId,
+//                     fiscalYear: currentFiscalYear
+//                 });
+//                 await vatTransaction.save();
+//                 console.log('Vat Transaction: ', vatTransaction);
+//             }
+//         }
+
+//         // Create a transaction for the round-off amount
+//         if (roundOffAmount > 0) {
+//             const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
+//             if (roundOffAccount) {
+//                 const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+//                 if (!partyAccount) {
+//                     return res.status(400).json({ error: 'Party account not found.' });
+//                 }
+//                 const roundOffTransaction = new Transaction({
+//                     account: roundOffAccount._id,
+//                     billNumber: existingBill.billNumber,
+//                     isType: 'RoundOff',
+//                     type: 'SlRt',
+//                     billId: existingBill._id,
+//                     purchaseSalesReturnType: partyAccount.name,  // Save the party account name in purchaseSalesType,
+//                     debit: 0,  // Debit the VAT account
+//                     credit: roundOffAmount,         // Credit is 0 for VAT transactions
+//                     paymentMode: paymentMode,
+//                     balance: 0, // Update the balance
+//                     date: nepaliDate ? nepaliDate : new Date(billDate),
+//                     company: companyId,
+//                     user: userId,
+//                     fiscalYear: currentFiscalYear
+//                 });
+//                 await roundOffTransaction.save();
+//                 console.log('Round-off Transaction: ', roundOffTransaction);
+//             }
+//         }
+
+//         if (roundOffAmount < 0) {
+//             const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
+//             if (roundOffAccount) {
+//                 const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+//                 if (!partyAccount) {
+//                     return res.status(400).json({ error: 'Party account not found.' });
+//                 }
+//                 const roundOffTransaction = new Transaction({
+//                     account: roundOffAccount._id,
+//                     billNumber: existingBill.billNumber,
+//                     isType: 'RoundOff',
+//                     type: 'SlRt',
+//                     billId: existingBill._id,
+//                     purchaseSalesReturnType: partyAccount.name,  // Save the party account name in purchaseSalesType,
+//                     debit: Math.abs(roundOffAmount),  // Debit the VAT account
+//                     credit: 0, // Ensure roundOffAmount is not saved as a negative value
+//                     paymentMode: paymentMode,
+//                     balance: 0, // Update the balance
+//                     date: nepaliDate ? nepaliDate : new Date(billDate),
+//                     company: companyId,
+//                     user: userId,
+//                     fiscalYear: currentFiscalYear
+//                 });
+//                 await roundOffTransaction.save();
+//                 console.log('Round-off Transaction: ', roundOffTransaction);
+//             }
+//         }
+//         if (paymentMode === 'cash') {
+//             const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
+
+//             if (cashAccount) {
+//                 const cashTransaction = new Transaction({
+//                     account: cashAccount._id,
+//                     billNumber: existingBill.billNumber,
+//                     type: 'SlRt',
+//                     salesReturnBillId: existingBill._id,
+//                     purchaseSalesReturnType: 'Sales Return',
+//                     debit: finalAmount, // The cash amount received
+//                     credit: 0,
+//                     paymentMode: paymentMode,
+//                     balance: 0, // Adjust with the correct balance logic
+//                     date: nepaliDate ? nepaliDate : new Date(billDate),
+//                     company: companyId,
+//                     user: userId,
+//                     fiscalYear: currentFiscalYear
+//                 });
+
+//                 await cashTransaction.save();
+//                 console.log('Cash transaction created:', cashTransaction);
+//             }
+//         }
+
+//         req.flash('success', 'Bill updated successfully');
+//         res.redirect(`/sales-return/edit/${billId}`);
+//     }
+// })
+
 // PUT route to update a sales return bill
 router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'retailer') {
@@ -816,7 +1160,6 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
             paymentMode,
             roundOffAmount: manualRoundOffAmount,
         } = req.body;
-
 
         const companyId = req.session.currentCompany;
         const currentFiscalYear = req.session.currentFiscalYear.id;
@@ -849,9 +1192,10 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
         console.log('Stock successfully reversed for existing bill items.');
 
         // Delete all associated transactions
-        await Transaction.deleteMany({ billId });
+        await Transaction.deleteMany({ salesReturnBillId: existingBill._id });
 
         console.log('Existing transactions deleted successfully');
+
 
         // Calculate amounts based on the updated POST route logic
         const isVatExemptBool = isVatExempt === 'true' || isVatExempt === true;
@@ -912,9 +1256,8 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
         existingBill.date = nepaliDate || new Date(billDate);
         existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
 
-        //FIFO stock addition function
+        // FIFO stock addition function
         async function addStock(product, batchNumber, expiryDate, quantity, price, puPrice, marginPercentage, mrp) {
-            // Ensure quantity is treated as a number
             const quantityNumber = Number(quantity);
 
             const stockEntry = {
@@ -923,25 +1266,16 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
                 batchNumber: batchNumber,
                 expiryDate: expiryDate,
                 price: price,
-                // puPrice: puPrice,
-                // mrp: mrp,
-                // marginPercentage: marginPercentage,
             };
 
-
-            // Debug: log stock entry to ensure values are correct
             console.log('Stock Entry:', stockEntry);
-            product.stockEntries.push(stockEntry); // Add entry to stockEntries array
-            // Ensure stock is incremented correctly as a number
+            product.stockEntries.push(stockEntry);
             product.stock = (product.stock || 0) + quantityNumber;
             await product.save();
         }
 
-
         const billItems = await Promise.all(items.map(async item => {
             const product = await Item.findById(item.item);
-
-            // Increment stock quantity using FIFO
             await addStock(product, item.batchNumber, item.expiryDate, item.quantity, item.price, item.puPrice, item.marginPercentage, item.mrp);
 
             return {
@@ -958,53 +1292,31 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
 
         existingBill.items = billItems;
 
-        // After updating the existingBill.items, reinserting transactions
-        const billItemsTransactions = await Promise.all(existingBill.items.map(async item => {
-            const product = await Item.findById(item.item);
-
-            if (!product) {
-                throw new Error(`Product with ID ${item.item} not found`);
-            }
-
-            // Create a transaction for each item
-            const transaction = new Transaction({
-                item: product._id,
-                account: accountId,
-                billNumber: existingBill.billNumber,
-                quantity: item.quantity,
-                price: item.price,
-                unit: item.unit,
-                type: 'SlRt',
-                salesReturnBillId: existingBill._id,
-                purchaseSalesReturnType: 'Sales Return',
-                debit: 0, // Update as per your logic
-                credit: finalAmount, // Since it's a sale
-                paymentMode: paymentMode,
-                balance: 0, // Update with the correct balance logic if needed
-                date: nepaliDate ? nepaliDate : new Date(billDate),
-                company: companyId,
-                user: userId,
-                fiscalYear: currentFiscalYear
-            });
-
-            await transaction.save();
-            console.log('Transaction created:', transaction);
-
-            return transaction; // Optional, if you need to track the transactions created
-        }));
-
-        console.log('All transactions successfully created for updated bill.');
-
-        await existingBill.save();
-
-
+        // Create a single transaction for the party account
+        const partyTransaction = new Transaction({
+            account: accountId,
+            billNumber: existingBill.billNumber,
+            type: 'SlRt',
+            salesReturnBillId: existingBill._id,
+            purchaseSalesReturnType: 'Sales Return',
+            debit: 0,
+            credit: existingBill.totalAmount,
+            paymentMode: paymentMode,
+            balance: 0,
+            date: nepaliDate ? nepaliDate : new Date(billDate),
+            company: companyId,
+            user: userId,
+            fiscalYear: currentFiscalYear
+        });
+        await partyTransaction.save();
+        console.log('Party transaction created:', partyTransaction);
 
         // Create a transaction for the default Sales Account
         const salesRtnAmount = finalTaxableAmount + finalNonTaxableAmount;
         if (salesRtnAmount > 0) {
             const salesRtnAccount = await Account.findOne({ name: 'Sales', company: companyId });
             if (salesRtnAccount) {
-                const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+                const partyAccount = await Account.findById(accountId);
                 if (!partyAccount) {
                     return res.status(400).json({ error: 'Party account not found.' });
                 }
@@ -1013,11 +1325,11 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
                     billNumber: existingBill.billNumber,
                     type: 'SlRt',
                     billId: existingBill._id,
-                    purchaseSalesReturnType: partyAccount.name,  // Save the party account name in purchaseSalesType,
-                    debit: salesRtnAmount,  // Debit the VAT account
-                    credit: 0,// Credit is 0 for VAT transactions
+                    purchaseSalesReturnType: partyAccount.name,
+                    debit: salesRtnAmount,
+                    credit: 0,
                     paymentMode: paymentMode,
-                    balance: 0, // Update the balance
+                    balance: 0,
                     date: nepaliDate ? nepaliDate : new Date(billDate),
                     company: companyId,
                     user: userId,
@@ -1032,7 +1344,7 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
         if (vatAmount > 0) {
             const vatAccount = await Account.findOne({ name: 'VAT', company: companyId });
             if (vatAccount) {
-                const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+                const partyAccount = await Account.findById(accountId);
                 if (!partyAccount) {
                     return res.status(400).json({ error: 'Party account not found.' });
                 }
@@ -1042,11 +1354,11 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
                     isType: 'VAT',
                     type: 'SlRt',
                     billId: existingBill._id,
-                    purchaseSalesReturnType: partyAccount.name,  // Save the party account name in purchaseSalesType,
-                    debit: vatAmount,  // Debit the VAT account
-                    credit: 0,          // Credit is 0 for VAT transactions
+                    purchaseSalesReturnType: partyAccount.name,
+                    debit: vatAmount,
+                    credit: 0,
                     paymentMode: paymentMode,
-                    balance: 0, // Update the balance
+                    balance: 0,
                     date: nepaliDate ? nepaliDate : new Date(billDate),
                     company: companyId,
                     user: userId,
@@ -1058,10 +1370,10 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
         }
 
         // Create a transaction for the round-off amount
-        if (roundOffAmount > 0) {
+        if (roundOffAmount !== 0) {
             const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
             if (roundOffAccount) {
-                const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
+                const partyAccount = await Account.findById(accountId);
                 if (!partyAccount) {
                     return res.status(400).json({ error: 'Party account not found.' });
                 }
@@ -1071,11 +1383,11 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
                     isType: 'RoundOff',
                     type: 'SlRt',
                     billId: existingBill._id,
-                    purchaseSalesReturnType: partyAccount.name,  // Save the party account name in purchaseSalesType,
-                    debit: 0,  // Debit the VAT account
-                    credit: roundOffAmount,         // Credit is 0 for VAT transactions
+                    purchaseSalesReturnType: partyAccount.name,
+                    debit: roundOffAmount > 0 ? 0 : Math.abs(roundOffAmount),
+                    credit: roundOffAmount > 0 ? roundOffAmount : 0,
                     paymentMode: paymentMode,
-                    balance: 0, // Update the balance
+                    balance: 0,
                     date: nepaliDate ? nepaliDate : new Date(billDate),
                     company: companyId,
                     user: userId,
@@ -1086,36 +1398,8 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
             }
         }
 
-        if (roundOffAmount < 0) {
-            const roundOffAccount = await Account.findOne({ name: 'Rounded Off', company: companyId });
-            if (roundOffAccount) {
-                const partyAccount = await Account.findById(accountId); // Find the party account (from where the purchase is made)
-                if (!partyAccount) {
-                    return res.status(400).json({ error: 'Party account not found.' });
-                }
-                const roundOffTransaction = new Transaction({
-                    account: roundOffAccount._id,
-                    billNumber: existingBill.billNumber,
-                    isType: 'RoundOff',
-                    type: 'SlRt',
-                    billId: existingBill._id,
-                    purchaseSalesReturnType: partyAccount.name,  // Save the party account name in purchaseSalesType,
-                    debit: Math.abs(roundOffAmount),  // Debit the VAT account
-                    credit: 0, // Ensure roundOffAmount is not saved as a negative value
-                    paymentMode: paymentMode,
-                    balance: 0, // Update the balance
-                    date: nepaliDate ? nepaliDate : new Date(billDate),
-                    company: companyId,
-                    user: userId,
-                    fiscalYear: currentFiscalYear
-                });
-                await roundOffTransaction.save();
-                console.log('Round-off Transaction: ', roundOffTransaction);
-            }
-        }
         if (paymentMode === 'cash') {
             const cashAccount = await Account.findOne({ name: 'Cash in Hand', company: companyId });
-
             if (cashAccount) {
                 const cashTransaction = new Transaction({
                     account: cashAccount._id,
@@ -1123,25 +1407,25 @@ router.put('/sales-return/edit/:id', ensureAuthenticated, ensureCompanySelected,
                     type: 'SlRt',
                     salesReturnBillId: existingBill._id,
                     purchaseSalesReturnType: 'Sales Return',
-                    debit: finalAmount, // The cash amount received
+                    debit: finalAmount,
                     credit: 0,
                     paymentMode: paymentMode,
-                    balance: 0, // Adjust with the correct balance logic
+                    balance: 0,
                     date: nepaliDate ? nepaliDate : new Date(billDate),
                     company: companyId,
                     user: userId,
                     fiscalYear: currentFiscalYear
                 });
-
                 await cashTransaction.save();
                 console.log('Cash transaction created:', cashTransaction);
             }
         }
 
+        await existingBill.save();
         req.flash('success', 'Bill updated successfully');
         res.redirect(`/sales-return/edit/${billId}`);
     }
-})
+});
 
 
 router.get('/sales-return/:id/print', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
