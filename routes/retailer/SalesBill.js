@@ -3544,95 +3544,95 @@ router.put('/bills/editCashAccount/:id', isLoggedIn, ensureAuthenticated, ensure
             existingBill.date = nepaliDate || new Date(billDate);
             existingBill.transactionDate = transactionDateNepali || new Date(transactionDateRoman);
 
-           // Group items by (product, batchNumber) to aggregate quantities
-           const groupedItems = {};
-           for (const item of items) {
-               const key = `${item.item}-${item.batchNumber || 'N/A'}`; // Handle batch numbers
-               if (!groupedItems[key]) {
-                   groupedItems[key] = { ...item, quantity: 0 }; // Ensure numeric quantity
-               }
-               groupedItems[key].quantity += Number(item.quantity); // Convert quantity to number before summing
-           }
+            // Group items by (product, batchNumber) to aggregate quantities
+            const groupedItems = {};
+            for (const item of items) {
+                const key = `${item.item}-${item.batchNumber || 'N/A'}`; // Handle batch numbers
+                if (!groupedItems[key]) {
+                    groupedItems[key] = { ...item, quantity: 0 }; // Ensure numeric quantity
+                }
+                groupedItems[key].quantity += Number(item.quantity); // Convert quantity to number before summing
+            }
 
-           async function reduceStock(product, quantity) {
-               let remainingQuantity = quantity;
-               const batchesUsed = []; // Array to track batches and quantities used
+            async function reduceStock(product, quantity) {
+                let remainingQuantity = quantity;
+                const batchesUsed = []; // Array to track batches and quantities used
 
-               // Sort stock entries FIFO (oldest first)
-               product.stockEntries.sort((a, b) => new Date(a.date) - new Date(b.date));
+                // Sort stock entries FIFO (oldest first)
+                product.stockEntries.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-               for (let i = 0; i < product.stockEntries.length && remainingQuantity > 0; i++) {
-                   let entry = product.stockEntries[i];
+                for (let i = 0; i < product.stockEntries.length && remainingQuantity > 0; i++) {
+                    let entry = product.stockEntries[i];
 
-                   const quantityUsed = Math.min(entry.quantity, remainingQuantity);
-                   batchesUsed.push({
-                       batchNumber: entry.batchNumber,
-                       quantity: quantityUsed,
-                       uniqueUuId: entry.uniqueUuId, // Include the uniqueUuId of the batch
-                   });
+                    const quantityUsed = Math.min(entry.quantity, remainingQuantity);
+                    batchesUsed.push({
+                        batchNumber: entry.batchNumber,
+                        quantity: quantityUsed,
+                        uniqueUuId: entry.uniqueUuId, // Include the uniqueUuId of the batch
+                    });
 
-                   remainingQuantity -= quantityUsed;
-                   entry.quantity -= quantityUsed;
-               }
+                    remainingQuantity -= quantityUsed;
+                    entry.quantity -= quantityUsed;
+                }
 
-               // Remove depleted stock entries
-               product.stockEntries = product.stockEntries.filter(entry => entry.quantity > 0);
-               await product.save({ session });
+                // Remove depleted stock entries
+                product.stockEntries = product.stockEntries.filter(entry => entry.quantity > 0);
+                await product.save({ session });
 
-               // If remainingQuantity > 0, it means there isn't enough stock
-               if (remainingQuantity > 0) {
-                   throw new Error(`Not enough stock for item: ${product.name}. Required: ${quantity}, Available: ${quantity - remainingQuantity}`);
-               }
+                // If remainingQuantity > 0, it means there isn't enough stock
+                if (remainingQuantity > 0) {
+                    throw new Error(`Not enough stock for item: ${product.name}. Required: ${quantity}, Available: ${quantity - remainingQuantity}`);
+                }
 
-               return batchesUsed; // Return the batches and quantities used
-           }
+                return batchesUsed; // Return the batches and quantities used
+            }
 
-           // Process stock reduction and transaction recording
-           const billItems = [];
-           const transactions = [];
+            // Process stock reduction and transaction recording
+            const billItems = [];
+            const transactions = [];
 
-           // First process all stock reductions
-           for (const item of Object.values(groupedItems)) {
-               const product = await Item.findById(item.item).session(session);
+            // First process all stock reductions
+            for (const item of Object.values(groupedItems)) {
+                const product = await Item.findById(item.item).session(session);
 
-               // Reduce stock using FIFO and get the batches used
-               const batchesUsed = await reduceStock(product, item.quantity);
+                // Reduce stock using FIFO and get the batches used
+                const batchesUsed = await reduceStock(product, item.quantity);
 
-               // Create bill items for each batch used
-               const itemsForBill = batchesUsed.map(batch => ({
-                   item: product._id,
-                   quantity: batch.quantity,
-                   price: item.price,
-                   unit: item.unit,
-                   batchNumber: batch.batchNumber, // Use the actual batch number from stock reduction
-                   expiryDate: item.expiryDate,
-                   vatStatus: product.vatStatus,
-                   fiscalYear: currentFiscalYear,
-                   uniqueUuId: batch.uniqueUuId
-               }));
+                // Create bill items for each batch used
+                const itemsForBill = batchesUsed.map(batch => ({
+                    item: product._id,
+                    quantity: batch.quantity,
+                    price: item.price,
+                    unit: item.unit,
+                    batchNumber: batch.batchNumber, // Use the actual batch number from stock reduction
+                    expiryDate: item.expiryDate,
+                    vatStatus: product.vatStatus,
+                    fiscalYear: currentFiscalYear,
+                    uniqueUuId: batch.uniqueUuId
+                }));
 
-               billItems.push(...itemsForBill);
-           }
+                billItems.push(...itemsForBill);
+            }
 
-           // Now create a single transaction for the entire bill
-           const transaction = new Transaction({
-               cashAccount: cashAccount,
-               billNumber: existingBill.billNumber,
-               isType: 'Sale',
-               type: 'Sale',
-               billId: existingBill._id,
-               purchaseSalesType: 'Sales',
-               debit: finalAmount,
-               credit: 0,
-               paymentMode: paymentMode,
-               balance: 0,
-               date: nepaliDate ? nepaliDate : new Date(billDate),
-               company: companyId,
-               user: userId,
-               fiscalYear: currentFiscalYear
-           });
-           await transaction.save({ session });
-           transactions.push(transaction);
+            // Now create a single transaction for the entire bill
+            const transaction = new Transaction({
+                cashAccount: cashAccount,
+                billNumber: existingBill.billNumber,
+                isType: 'Sale',
+                type: 'Sale',
+                billId: existingBill._id,
+                purchaseSalesType: 'Sales',
+                debit: finalAmount,
+                credit: 0,
+                paymentMode: paymentMode,
+                balance: 0,
+                date: nepaliDate ? nepaliDate : new Date(billDate),
+                company: companyId,
+                user: userId,
+                fiscalYear: currentFiscalYear
+            });
+            await transaction.save({ session });
+            transactions.push(transaction);
 
             // Create a transaction for the default Purchase Account
             const salesAmount = finalTaxableAmount + finalNonTaxableAmount;
@@ -3761,10 +3761,10 @@ router.put('/bills/editCashAccount/:id', isLoggedIn, ensureAuthenticated, ensure
 
             // Update bill with modified items
             // Flatten the bill items array (since each item may have multiple batches)
-           const flattenedBillItems = billItems.flat();
+            const flattenedBillItems = billItems.flat();
 
-           existingBill.items = flattenedBillItems;
-           await existingBill.save({ session });
+            existingBill.items = flattenedBillItems;
+            await existingBill.save({ session });
 
             // Commit the transaction
             await session.commitTransaction();
@@ -4285,7 +4285,7 @@ router.get('/bills/:id/pdf', ensureAuthenticated, ensureCompanySelected, async (
     }
 });
 
-router.get('/sales-vat-report', ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
+router.get('/sales-vat-report', isLoggedIn, ensureAuthenticated, ensureCompanySelected, ensureTradeType, ensureFiscalYear, checkFiscalYearDateRange, async (req, res) => {
     if (req.tradeType === 'retailer') {
         const companyId = req.session.currentCompany;
         const currentCompanyName = req.session.currentCompanyName;
@@ -4370,22 +4370,57 @@ router.get('/sales-vat-report', ensureAuthenticated, ensureCompanySelected, ensu
 
         const Bills = await SalesBill.find(query)
             .populate('account')
+            .populate('cashAccount')
             .sort({ billNumber: 1 })
 
         // Prepare VAT report data
+        // const salesVatReport = await Promise.all(Bills.map(async bill => {
+        //     const account = await Account.findById(bill.account);
+        //     return {
+        //         billNumber: bill.billNumber,
+        //         date: bill.date,
+        //         account: account.name,
+        //         panNumber: account.pan,
+        //         totalAmount: bill.totalAmount,
+        //         discountAmount: bill.discountAmount,
+        //         nonVatSales: bill.nonVatSales,
+        //         taxableAmount: bill.taxableAmount,
+        //         vatAmount: bill.vatAmount,
+        //     };
+        // }));
+
         const salesVatReport = await Promise.all(Bills.map(async bill => {
-            const account = await Account.findById(bill.account);
-            return {
-                billNumber: bill.billNumber,
-                date: bill.date,
-                account: account.name,
-                panNumber: account.pan,
-                totalAmount: bill.totalAmount,
-                discountAmount: bill.discountAmount,
-                nonVatSales: bill.nonVatSales,
-                taxableAmount: bill.taxableAmount,
-                vatAmount: bill.vatAmount,
-            };
+            // For credit sales (with account)
+            if (bill.account) {
+                const account = await Account.findById(bill.account);
+                return {
+                    billNumber: bill.billNumber,
+                    date: bill.date,
+                    accountName: account ? account.name : 'N/A',
+                    panNumber: account ? account.pan : 'N/A',
+                    totalAmount: bill.totalAmount,
+                    discountAmount: bill.discountAmount,
+                    nonVatSales: bill.nonVatSales,
+                    taxableAmount: bill.taxableAmount,
+                    vatAmount: bill.vatAmount,
+                    isCash: false
+                };
+            }
+            // For cash sales (with cashAccount details)
+            else {
+                return {
+                    billNumber: bill.billNumber,
+                    date: bill.date,
+                    accountName: bill.cashAccount || 'Cash Sale',
+                    panNumber: bill.cashAccountPan || 'N/A',
+                    totalAmount: bill.totalAmount,
+                    discountAmount: bill.discountAmount,
+                    nonVatSales: bill.nonVatSales,
+                    taxableAmount: bill.taxableAmount,
+                    vatAmount: bill.vatAmount,
+                    isCash: true
+                };
+            }
         }));
 
         res.render('retailer/sales-bills/salesVatReport', {
